@@ -1,0 +1,23 @@
+export const LEVEL = {
+    width: 1024,
+    height: 768,
+    platforms: [
+        // Piso
+        { x: 512, y: 740, w: 1024, h: 56, color: 0x3a3a5c },
+        // Columnas/paredes a los bordes (para wall grab en Fase 3)
+        { x: 40, y: 400, w: 24, h: 720, color: 0x4a4270 },
+        { x: 984, y: 400, w: 24, h: 720, color: 0x4a4270 },
+        // Plataformas flotantes - fila baja
+        { x: 200, y: 620, w: 140, h: 20, color: 0x3a3a5c },
+        { x: 512, y: 540, w: 200, h: 20, color: 0x3a3a5c },
+        { x: 824, y: 620, w: 140, h: 20, color: 0x3a3a5c },
+        // Plataformas flotantes - fila media
+        { x: 150, y: 420, w: 120, h: 20, color: 0x3a3a5c },
+        { x: 400, y: 320, w: 120, h: 20, color: 0x3a3a5c },
+        { x: 640, y: 320, w: 120, h: 20, color: 0x3a3a5c },
+        { x: 880, y: 420, w: 120, h: 20, color: 0x3a3a5c },
+        // Plataformas flotantes - fila alta
+        { x: 300, y: 180, w: 160, h: 20, color: 0x3a3a5c },
+        { x: 720, y: 180, w: 160, h: 20, color: 0x3a3a5c }
+    ]
+};

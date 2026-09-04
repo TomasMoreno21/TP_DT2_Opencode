@@ -1,0 +1,47 @@
+export const PLAYER_CONFIG = {
+    width: 32,
+    height: 48,
+    color: 0x00d1b2,
+    speed: 260,
+    jumpVelocity: -460
+};
+
+export class Player {
+    constructor(scene, x, y) {
+        this.scene = scene;
+        this.rect = scene.add.rectangle(x, y, PLAYER_CONFIG.width, PLAYER_CONFIG.height, PLAYER_CONFIG.color);
+        this.rect.setStrokeStyle(2, 0xffffff);
+
+        scene.physics.add.existing(this.rect);
+        this.body = this.rect.body;
+        this.body.setCollideWorldBounds(true);
+        this.body.setBounce(0);
+
+        this.jumpPressed = false;
+
+        this.cursors = scene.input.keyboard.createCursorKeys();
+        this.keys = scene.input.keyboard.addKeys('W,A,D,SPACE');
+    }
+
+    update() {
+        const left = this.cursors.left.isDown || this.keys.A.isDown;
+        const right = this.cursors.right.isDown || this.keys.D.isDown;
+
+        if (left) {
+            this.body.setVelocityX(-PLAYER_CONFIG.speed);
+        } else if (right) {
+            this.body.setVelocityX(PLAYER_CONFIG.speed);
+        } else {
+            this.body.setVelocityX(0);
+        }
+
+        const jumpNow = this.cursors.up.isDown || this.cursors.space.isDown || this.keys.W.isDown ||
+            this.keys.SPACE.isDown;
+
+        if (jumpNow && !this.jumpPressed && this.body.blocked.down) {
+            this.body.setVelocityY(PLAYER_CONFIG.jumpVelocity);
+        }
+
+        this.jumpPressed = jumpNow;
+    }
+}
