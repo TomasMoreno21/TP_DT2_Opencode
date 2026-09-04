@@ -19,5 +19,23 @@ export const LEVEL = {
         // Plataformas flotantes - fila alta
         { x: 300, y: 180, w: 160, h: 20, color: 0x3a3a5c },
         { x: 720, y: 180, w: 160, h: 20, color: 0x3a3a5c }
+    ],
+    pointSpots: [
+        // Sobre el piso
+        { x: 250, y: 688 },
+        { x: 512, y: 688 },
+        { x: 800, y: 688 },
+        // Sobre plataformas - fila baja
+        { x: 200, y: 596 },
+        { x: 512, y: 516 },
+        { x: 824, y: 596 },
+        // Sobre plataformas - fila media
+        { x: 150, y: 396 },
+        { x: 400, y: 296 },
+        { x: 640, y: 296 },
+        { x: 880, y: 396 },
+        // Sobre plataformas - fila alta
+        { x: 300, y: 156 },
+        { x: 720, y: 156 }
     ]
 };
