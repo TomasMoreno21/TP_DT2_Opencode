@@ -7,6 +7,8 @@ export const LEVEL = {
         // Columnas/paredes a los bordes (para wall grab en Fase 3)
         { x: 40, y: 400, w: 24, h: 720, color: 0x4a4270 },
         { x: 984, y: 400, w: 24, h: 720, color: 0x4a4270 },
+        // Columna central para wall grab
+        { x: 512, y: 460, w: 24, h: 180, color: 0x4a4270 },
         // Plataformas flotantes - fila baja
         { x: 200, y: 620, w: 140, h: 20, color: 0x3a3a5c },
         { x: 512, y: 540, w: 200, h: 20, color: 0x3a3a5c },
