@@ -5,6 +5,7 @@ import { PointSpawner } from '../systems/PointSpawner';
 import { ScoreManager } from '../systems/ScoreManager';
 import { GameTimer } from '../systems/GameTimer';
 import { Hud } from '../systems/Hud';
+import { ProjectileManager } from '../systems/ProjectileManager';
 
 export class Game extends Scene
 {
@@ -15,6 +16,8 @@ export class Game extends Scene
 
     create ()
     {
+        this.gameEnded = false;
+
         this.cameras.main.setBackgroundColor(0x1a1a2e);
 
         this.level = new Level(this);
@@ -30,6 +33,7 @@ export class Game extends Scene
         this.hud.setTime(this.timer.remainingSeconds);
 
         this.pointSpawner = new PointSpawner(this);
+        this.projectileManager = new ProjectileManager(this);
 
         this.physics.add.overlap(this.player.rect, this.pointSpawner.points.map((point) => point.circle), (player, circle) => {
             const point = this.pointSpawner.getPointByCircle(circle);
@@ -42,12 +46,15 @@ export class Game extends Scene
             this.hud.setScore(this.scoreManager.score);
             point.deactivate();
         });
+
+        this.physics.add.overlap(this.player.rect, this.projectileManager.group, () => this.onHit());
     }
 
     update ()
     {
         this.player.update();
         this.timer.update();
+        this.projectileManager.update();
 
         const seconds = this.timer.remainingSeconds;
         if (seconds !== this.lastSecond) {
@@ -58,6 +65,21 @@ export class Game extends Scene
 
     onTimeUp ()
     {
-        // El resumen de fin de partida se conecta en la Fase 4.
+        if (this.gameEnded) {
+            return;
+        }
+
+        this.gameEnded = true;
+        this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'timeout' });
+    }
+
+    onHit ()
+    {
+        if (this.gameEnded) {
+            return;
+        }
+
+        this.gameEnded = true;
+        this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'hit' });
     }
 }
