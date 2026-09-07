@@ -65,11 +65,11 @@ export class Game extends Scene
         this.physics.add.overlap(this.player.rect, this.projectileManager.group, () => this.onHit());
     }
 
-    update ()
+    update (time, delta)
     {
         this.player.update();
         this.timer.update();
-        this.projectileManager.update();
+        this.projectileManager.update(delta);
 
         const seconds = this.timer.remainingSeconds;
         if (seconds !== this.lastSecond) {
