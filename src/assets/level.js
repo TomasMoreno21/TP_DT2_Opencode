@@ -4,40 +4,51 @@ export const LEVEL = {
     platforms: [
         // Piso
         { x: 512, y: 740, w: 1024, h: 56, color: 0x3a3a5c },
-        // Columnas/paredes a los bordes (para wall grab en Fase 3)
-        { x: 40, y: 400, w: 24, h: 720, color: 0x4a4270 },
-        { x: 984, y: 400, w: 24, h: 720, color: 0x4a4270 },
-        // Columna central para wall grab
-        { x: 512, y: 460, w: 24, h: 180, color: 0x4a4270 },
-        // Plataformas flotantes - fila baja
-        { x: 200, y: 620, w: 140, h: 20, color: 0x3a3a5c },
-        { x: 512, y: 540, w: 200, h: 20, color: 0x3a3a5c },
-        { x: 824, y: 620, w: 140, h: 20, color: 0x3a3a5c },
-        // Plataformas flotantes - fila media
-        { x: 150, y: 420, w: 120, h: 20, color: 0x3a3a5c },
-        { x: 400, y: 320, w: 120, h: 20, color: 0x3a3a5c },
-        { x: 640, y: 320, w: 120, h: 20, color: 0x3a3a5c },
-        { x: 880, y: 420, w: 120, h: 20, color: 0x3a3a5c },
-        // Plataformas flotantes - fila alta
-        { x: 300, y: 180, w: 160, h: 20, color: 0x3a3a5c },
-        { x: 720, y: 180, w: 160, h: 20, color: 0x3a3a5c }
+
+        // Paredes de borde (wall grab en los extremos)
+        { x: 30, y: 430, w: 24, h: 620, color: 0x4a4270 },
+        { x: 994, y: 430, w: 24, h: 620, color: 0x4a4270 },
+
+        // TORRE IZQUIERDA: shaft vertical para wall jump (y 300..740)
+        { x: 96, y: 520, w: 24, h: 440, color: 0x4a4270 },
+        { x: 210, y: 520, w: 24, h: 440, color: 0x4a4270 },
+        { x: 153, y: 270, w: 130, h: 20, color: 0x3a3a5c },
+
+        // ESCALERA CENTRAL: zigzag ascendente (izq -> der -> izq ...)
+        { x: 350, y: 630, w: 120, h: 20, color: 0x3a3a5c },
+        { x: 560, y: 560, w: 120, h: 20, color: 0x3a3a5c },
+        { x: 350, y: 490, w: 120, h: 20, color: 0x3a3a5c },
+        { x: 560, y: 420, w: 120, h: 20, color: 0x3a3a5c },
+        { x: 350, y: 340, w: 120, h: 20, color: 0x3a3a5c },
+        { x: 512, y: 250, w: 120, h: 20, color: 0x3a3a5c },
+        // Corona central (tope)
+        { x: 512, y: 160, w: 120, h: 20, color: 0x5a5a8c },
+
+        // TORRE DERECHA: shaft vertical para wall jump (y 340..740)
+        { x: 800, y: 540, w: 24, h: 400, color: 0x4a4270 },
+        { x: 914, y: 540, w: 24, h: 400, color: 0x4a4270 },
+        { x: 857, y: 320, w: 130, h: 20, color: 0x3a3a5c }
     ],
     pointSpots: [
-        // Sobre el piso
-        { x: 250, y: 688 },
-        { x: 512, y: 688 },
-        { x: 800, y: 688 },
-        // Sobre plataformas - fila baja
-        { x: 200, y: 596 },
-        { x: 512, y: 516 },
-        { x: 824, y: 596 },
-        // Sobre plataformas - fila media
-        { x: 150, y: 396 },
-        { x: 400, y: 296 },
-        { x: 640, y: 296 },
-        { x: 880, y: 396 },
-        // Sobre plataformas - fila alta
-        { x: 300, y: 156 },
-        { x: 720, y: 156 }
+        // Piso
+        { x: 350, y: 688 },
+        { x: 700, y: 688 },
+        // Shaft izquierdo (se requiere wall grab/wall jump para tomarlo)
+        { x: 120, y: 560 },
+        // Tope de la torre izquierda
+        { x: 153, y: 246 },
+        // Escalera central
+        { x: 350, y: 606 },
+        { x: 560, y: 536 },
+        { x: 350, y: 466 },
+        { x: 560, y: 396 },
+        { x: 350, y: 316 },
+        { x: 512, y: 226 },
+        // Corona central
+        { x: 512, y: 136 },
+        // Shaft derecho
+        { x: 860, y: 560 },
+        // Tope de la torre derecha
+        { x: 857, y: 296 }
     ]
 };
