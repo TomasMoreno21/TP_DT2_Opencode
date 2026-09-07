@@ -5,7 +5,7 @@ export const PROJECTILE_SPAWN_CONFIG = {
     initialInterval: 1400,
     minInterval: 450,
     maxSpeedMultiplier: 2,
-    wallGapX: 52
+    wallGapX: 182
 };
 
 export class ProjectileManager {
