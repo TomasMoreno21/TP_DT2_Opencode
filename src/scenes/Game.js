@@ -74,7 +74,7 @@ export class Game extends Scene
         const seconds = this.timer.remainingSeconds;
         if (seconds !== this.lastSecond) {
             this.lastSecond = seconds;
-            this.hud.setTime(seconds, TIMER_CONFIG.duration);
+            this.hud.setTime(seconds);
         }
     }
 
