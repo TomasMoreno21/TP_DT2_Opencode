@@ -10,7 +10,8 @@ export const PLAYER_CONFIG = {
     jumpBufferTime: 130,
     wallJumpXVelocity: 300,
     wallJumpYVelocity: -500,
-    wallJumpCooldown: 250
+    wallJumpCooldown: 220,
+    wallCoyoteTime: 180
 };
 
 const MULTIPLIER_COLORS = {
@@ -39,6 +40,8 @@ export class Player {
         this.onFloor = false;
         this.lastOnFloorTime = -Infinity;
         this.jumpBufferUntil = 0;
+        this.lastWallTouchTime = -Infinity;
+        this.wallSide = null;
 
         this.cursors = scene.input.keyboard.createCursorKeys();
         this.keys = scene.input.keyboard.addKeys('W,A,D,SPACE');
@@ -82,42 +85,49 @@ export class Player {
             this.body.setVelocityY(PLAYER_CONFIG.jumpCutVelocity);
         }
 
-        const holdingAgainstLeft = this.body.blocked.left && left;
-        const holdingAgainstRight = this.body.blocked.right && right;
-        const touchingWall = !this.onFloor && (this.body.blocked.left || this.body.blocked.right);
+        const touchingLeft = this.body.blocked.left;
+        const touchingRight = this.body.blocked.right;
+        const touchingWall = !this.onFloor && (touchingLeft || touchingRight);
 
         if (touchingWall) {
-            const side = this.body.blocked.left ? 'left' : 'right';
-            const holdingToward = side === 'left' ? holdingAgainstLeft : holdingAgainstRight;
+            this.lastWallTouchTime = now;
+            this.wallSide = touchingLeft ? 'left' : 'right';
+        }
 
-            if (holdingToward) {
-                this.wallGrabbing = true;
-                this.rect.setFillStyle(PLAYER_CONFIG.wallGrabColor);
-                this.body.setAllowGravity(false);
-                this.body.setVelocity(0, 0);
-            } else if (this.wallGrabbing) {
-                this.wallGrabbing = false;
-                this.rect.setFillStyle(MULTIPLIER_COLORS[this.multiplier] ?? PLAYER_CONFIG.color);
-                this.body.setAllowGravity(true);
-            }
+        const side = this.wallSide;
+        const holdingToward = side === 'left' ? (touchingLeft && left) : (touchingRight && right);
+        const wallCoyoteReady = now - this.lastWallTouchTime <= PLAYER_CONFIG.wallCoyoteTime;
+        const wallJumpReady = !this.onFloor && (touchingWall || wallCoyoteReady) && side
+            && (justPressedJump || bufferReady)
+            && now - this.lastWallJumpTime >= PLAYER_CONFIG.wallJumpCooldown;
 
-            if ((justPressedJump || bufferReady) && now - this.lastWallJumpTime >= PLAYER_CONFIG.wallJumpCooldown) {
-                const dir = side === 'left' ? 1 : -1;
+        if (touchingWall && holdingToward) {
+            this.wallGrabbing = true;
+            this.rect.setFillStyle(PLAYER_CONFIG.wallGrabColor);
+            this.body.setAllowGravity(false);
+            this.body.setVelocity(0, 0);
+        } else if (this.wallGrabbing) {
+            this.wallGrabbing = false;
+            this.rect.setFillStyle(MULTIPLIER_COLORS[this.multiplier] ?? PLAYER_CONFIG.color);
+            this.body.setAllowGravity(true);
+        }
 
-                this.wallGrabbing = false;
-                this.rect.setFillStyle(MULTIPLIER_COLORS[this.multiplier] ?? PLAYER_CONFIG.color);
-                this.body.setAllowGravity(true);
-                this.body.setVelocityX(dir * PLAYER_CONFIG.wallJumpXVelocity);
-                this.body.setVelocityY(PLAYER_CONFIG.wallJumpYVelocity);
-                this.lastWallJumpTime = now;
-                this.jumpBufferUntil = 0;
-                this.squashBounce(1.3, 0.7);
-                return;
-            }
+        if (wallJumpReady) {
+            const dir = side === 'left' ? 1 : -1;
 
-            if (holdingToward) {
-                return;
-            }
+            this.wallGrabbing = false;
+            this.rect.setFillStyle(MULTIPLIER_COLORS[this.multiplier] ?? PLAYER_CONFIG.color);
+            this.body.setAllowGravity(true);
+            this.body.setVelocityX(dir * PLAYER_CONFIG.wallJumpXVelocity);
+            this.body.setVelocityY(PLAYER_CONFIG.wallJumpYVelocity);
+            this.lastWallJumpTime = now;
+            this.jumpBufferUntil = 0;
+            this.squashBounce(1.3, 0.7);
+            return;
+        }
+
+        if (touchingWall && holdingToward) {
+            return;
         }
 
         if (this.wallGrabbing) {
