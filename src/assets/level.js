@@ -5,40 +5,43 @@ export const LEVEL = {
         // Piso abierto (todo el ancho)
         { x: 512, y: 740, w: 1024, h: 56, color: 0x3a3a5c },
 
-        // Pilares libres para wall crawl / wall jump (izq y der)
-        { x: 170, y: 470, w: 24, h: 540, color: 0x4a4270 },
-        { x: 854, y: 470, w: 24, h: 540, color: 0x4a4270 },
+        // Paredes de la pantalla: pilares para wall grab / wall jump
+        { x: 30, y: 430, w: 24, h: 620, color: 0x4a4270 },
+        { x: 994, y: 430, w: 24, h: 620, color: 0x4a4270 },
 
-        // Topes de pilares (solo accesibles escalando con wall jump)
-        { x: 170, y: 180, w: 130, h: 20, color: 0x5a5a8c },
-        { x: 854, y: 180, w: 130, h: 20, color: 0x5a5a8c },
+        // Topes de las paredes (solo accesibles escalando por el borde)
+        { x: 85, y: 150, w: 100, h: 20, color: 0x5a5a8c },
+        { x: 939, y: 150, w: 100, h: 20, color: 0x5a5a8c },
 
-        // Plataformas centrales: escalera saltable y abierta
-        { x: 330, y: 630, w: 150, h: 20, color: 0x3a3a5c },
-        { x: 694, y: 630, w: 150, h: 20, color: 0x3a3a5c },
-        { x: 512, y: 540, w: 180, h: 20, color: 0x3a3a5c },
-        { x: 330, y: 440, w: 140, h: 20, color: 0x3a3a5c },
-        { x: 694, y: 440, w: 140, h: 20, color: 0x3a3a5c },
-        { x: 512, y: 340, w: 160, h: 20, color: 0x3a3a5c },
+        // Plataformas centrales: escalera saltable, separadas y abiertas
+        { x: 300, y: 650, w: 140, h: 20, color: 0x3a3a5c },
+        { x: 724, y: 650, w: 140, h: 20, color: 0x3a3a5c },
+        { x: 512, y: 670, w: 140, h: 20, color: 0x3a3a5c },
+        { x: 512, y: 560, w: 150, h: 20, color: 0x3a3a5c },
+        { x: 300, y: 470, w: 140, h: 20, color: 0x3a3a5c },
+        { x: 724, y: 470, w: 140, h: 20, color: 0x3a3a5c },
+        { x: 512, y: 380, w: 150, h: 20, color: 0x3a3a5c },
+        { x: 512, y: 300, w: 150, h: 20, color: 0x3a3a5c },
         // Corona central
-        { x: 512, y: 250, w: 160, h: 20, color: 0x5a5a8c }
+        { x: 512, y: 220, w: 150, h: 20, color: 0x5a5a8c }
     ],
     pointSpots: [
         // Piso
-        { x: 330, y: 688 },
-        { x: 512, y: 688 },
-        { x: 694, y: 688 },
+        { x: 300, y: 688 },
+        { x: 724, y: 688 },
         // Escalera central
-        { x: 330, y: 606 },
-        { x: 694, y: 606 },
-        { x: 512, y: 516 },
-        { x: 330, y: 416 },
-        { x: 694, y: 416 },
-        { x: 512, y: 316 },
+        { x: 300, y: 626 },
+        { x: 724, y: 626 },
+        { x: 512, y: 646 },
+        { x: 512, y: 536 },
+        { x: 300, y: 446 },
+        { x: 724, y: 446 },
+        { x: 512, y: 356 },
+        { x: 512, y: 276 },
         // Corona central
-        { x: 512, y: 226 },
-        // Topes de pilares (wall jump)
-        { x: 170, y: 156 },
-        { x: 854, y: 156 }
+        { x: 512, y: 196 },
+        // Topes de las paredes (wall jump)
+        { x: 85, y: 126 },
+        { x: 939, y: 126 }
     ]
 };
