@@ -39,6 +39,7 @@ const StartGame = (parent) => {
 
 document.addEventListener('DOMContentLoaded', () => {
 
+    document.getElementById('startup-message')?.remove();
     StartGame('game-container');
 
 });

@@ -13,3 +13,14 @@ body {
     justify-content: center;
     align-items: center;
 }
+
+#startup-message {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    color: #ffffff;
+    font: 18px Arial, sans-serif;
+    text-align: center;
+}

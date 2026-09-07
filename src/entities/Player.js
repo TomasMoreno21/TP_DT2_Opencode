@@ -6,7 +6,8 @@ export const PLAYER_CONFIG = {
     speed: 260,
     jumpVelocity: -460,
     wallJumpXVelocity: 260,
-    wallJumpYVelocity: -460
+    wallJumpYVelocity: -460,
+    wallJumpCooldown: 200
 };
 
 export class Player {
@@ -22,6 +23,7 @@ export class Player {
 
         this.jumpPressed = false;
         this.wallGrabbing = false;
+        this.lastWallJumpTime = 0;
 
         this.cursors = scene.input.keyboard.createCursorKeys();
         this.keys = scene.input.keyboard.addKeys('W,A,D,SPACE');
@@ -47,7 +49,7 @@ export class Player {
             this.body.setAllowGravity(false);
             this.body.setVelocity(0, 0);
 
-            if (justJumped) {
+            if (justJumped && this.scene.time.now - this.lastWallJumpTime >= PLAYER_CONFIG.wallJumpCooldown) {
                 const dir = side === 'left' ? 1 : -1;
 
                 this.wallGrabbing = false;
@@ -55,6 +57,7 @@ export class Player {
                 this.body.setAllowGravity(true);
                 this.body.setVelocityX(dir * PLAYER_CONFIG.wallJumpXVelocity);
                 this.body.setVelocityY(PLAYER_CONFIG.wallJumpYVelocity);
+                this.lastWallJumpTime = this.scene.time.now;
             }
 
             return;
