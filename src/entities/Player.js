@@ -82,16 +82,24 @@ export class Player {
             this.body.setVelocityY(PLAYER_CONFIG.jumpCutVelocity);
         }
 
-        const againstLeftWall = this.body.blocked.left && left;
-        const againstRightWall = this.body.blocked.right && right;
+        const holdingAgainstLeft = this.body.blocked.left && left;
+        const holdingAgainstRight = this.body.blocked.right && right;
+        const touchingWall = !this.onFloor && (this.body.blocked.left || this.body.blocked.right);
 
-        if (!this.onFloor && (againstLeftWall || againstRightWall)) {
+        if (touchingWall) {
             const side = this.body.blocked.left ? 'left' : 'right';
+            const holdingToward = side === 'left' ? holdingAgainstLeft : holdingAgainstRight;
 
-            this.wallGrabbing = true;
-            this.rect.setFillStyle(PLAYER_CONFIG.wallGrabColor);
-            this.body.setAllowGravity(false);
-            this.body.setVelocity(0, 0);
+            if (holdingToward) {
+                this.wallGrabbing = true;
+                this.rect.setFillStyle(PLAYER_CONFIG.wallGrabColor);
+                this.body.setAllowGravity(false);
+                this.body.setVelocity(0, 0);
+            } else if (this.wallGrabbing) {
+                this.wallGrabbing = false;
+                this.rect.setFillStyle(MULTIPLIER_COLORS[this.multiplier] ?? PLAYER_CONFIG.color);
+                this.body.setAllowGravity(true);
+            }
 
             if ((justPressedJump || bufferReady) && now - this.lastWallJumpTime >= PLAYER_CONFIG.wallJumpCooldown) {
                 const dir = side === 'left' ? 1 : -1;
@@ -104,9 +112,12 @@ export class Player {
                 this.lastWallJumpTime = now;
                 this.jumpBufferUntil = 0;
                 this.squashBounce(1.3, 0.7);
+                return;
             }
 
-            return;
+            if (holdingToward) {
+                return;
+            }
         }
 
         if (this.wallGrabbing) {

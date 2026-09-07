@@ -26,7 +26,7 @@ export class MainMenu extends Scene
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
 
-        this.add.text(512, 365, 'Mover: A / D o Flechas\nSaltar: Espacio / W / Flecha Arriba\nWall grab: mantené la dirección contra una pared', {
+        this.add.text(512, 365, 'Mover: A / D o Flechas\nSaltar: Espacio / W / Flecha Arriba\nWall grab: mantené la dirección contra una pared\nWall jump: saltá tocando una pared y salís al lado opuesto', {
             fontFamily: 'Arial', fontSize: 18, color: '#dddddd',
             align: 'center', lineSpacing: 8
         }).setOrigin(0.5);
