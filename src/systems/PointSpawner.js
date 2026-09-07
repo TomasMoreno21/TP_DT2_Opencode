@@ -1,9 +1,9 @@
+import { Math as PhaserMath } from 'phaser';
 import { Point } from '../entities/Point';
 import { LEVEL } from '../assets/level';
 
 export const POINT_SPAWN_CONFIG = {
-    rotateInterval: 2500,
-    activePerRound: 2
+    initialActive: 2
 };
 
 export class PointSpawner {
@@ -11,30 +11,23 @@ export class PointSpawner {
         this.scene = scene;
         this.points = LEVEL.pointSpots.map((spot) => new Point(scene, spot.x, spot.y));
 
-        this.rotationEvent = scene.time.addEvent({
-            delay: POINT_SPAWN_CONFIG.rotateInterval,
-            loop: true,
-            callback: () => this.rotate()
-        });
-
-        this.rotate();
+        for (let i = 0; i < POINT_SPAWN_CONFIG.initialActive; i++) {
+            this.activateAnother();
+        }
     }
 
-    rotate() {
-        this.points.forEach((point) => point.deactivate());
+    activateAnother() {
+        const inactive = this.points.filter((point) => !point.circle.active);
 
-        const shuffled = this.points.slice().sort(() => Math.random() - 0.5);
-
-        for (let i = 0; i < Math.min(POINT_SPAWN_CONFIG.activePerRound, shuffled.length); i++) {
-            shuffled[i].activate();
+        if (inactive.length === 0) {
+            return;
         }
+
+        const next = inactive[PhaserMath.Between(0, inactive.length - 1)];
+        next.activate();
     }
 
     getPointByCircle(circle) {
         return this.points.find((point) => point.circle === circle);
-    }
-
-    destroy() {
-        this.rotationEvent.remove();
     }
 }

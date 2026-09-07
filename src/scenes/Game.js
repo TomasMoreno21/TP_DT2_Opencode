@@ -59,6 +59,7 @@ export class Game extends Scene
             this.burstAt(point.circle.x, point.circle.y, point.color);
             this.floatingText.show(point.circle.x, point.circle.y - 20, `+${gained}`, this.scoreManager.multiplier > 1 ? '#ff6622' : '#ffdd44');
             point.deactivate();
+            this.pointSpawner.activateAnother();
         });
 
         this.physics.add.overlap(this.player.rect, this.projectileManager.group, () => this.onHit());

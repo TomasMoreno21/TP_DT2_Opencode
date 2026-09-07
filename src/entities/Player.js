@@ -5,9 +5,12 @@ export const PLAYER_CONFIG = {
     wallGrabColor: 0x00ff88,
     speed: 260,
     jumpVelocity: -460,
-    wallJumpXVelocity: 260,
-    wallJumpYVelocity: -460,
-    wallJumpCooldown: 200
+    jumpCutVelocity: -150,
+    coyoteTime: 100,
+    jumpBufferTime: 130,
+    wallJumpXVelocity: 300,
+    wallJumpYVelocity: -500,
+    wallJumpCooldown: 250
 };
 
 const MULTIPLIER_COLORS = {
@@ -34,6 +37,8 @@ export class Player {
         this.lastWallJumpTime = 0;
         this.multiplier = 1;
         this.onFloor = false;
+        this.lastOnFloorTime = -Infinity;
+        this.jumpBufferUntil = 0;
 
         this.cursors = scene.input.keyboard.createCursorKeys();
         this.keys = scene.input.keyboard.addKeys('W,A,D,SPACE');
@@ -44,11 +49,22 @@ export class Player {
         const right = this.cursors.right.isDown || this.keys.D.isDown;
         const jumpNow = this.cursors.up.isDown || this.cursors.space.isDown || this.keys.W.isDown ||
             this.keys.SPACE.isDown;
-        const justJumped = jumpNow && !this.jumpPressed;
+        const justPressedJump = jumpNow && !this.jumpPressed;
+        const justReleasedJump = !jumpNow && this.jumpPressed;
         this.jumpPressed = jumpNow;
+
+        const now = this.scene.time.now;
+
+        if (justPressedJump) {
+            this.jumpBufferUntil = now + PLAYER_CONFIG.jumpBufferTime;
+        }
 
         const wasOnFloor = this.onFloor;
         this.onFloor = this.body.blocked.down;
+
+        if (this.onFloor) {
+            this.lastOnFloorTime = now;
+        }
 
         if (!wasOnFloor && this.onFloor && this.rect.scaleX !== 1) {
             if (this.squashTween) {
@@ -56,6 +72,14 @@ export class Player {
             }
 
             this.rect.setScale(1, 1);
+        }
+
+        const coyoteReady = now - this.lastOnFloorTime <= PLAYER_CONFIG.coyoteTime;
+        const bufferReady = now <= this.jumpBufferUntil;
+        const canGroundJump = this.onFloor || coyoteReady;
+
+        if (justReleasedJump && this.body.velocity.y < PLAYER_CONFIG.jumpCutVelocity) {
+            this.body.setVelocityY(PLAYER_CONFIG.jumpCutVelocity);
         }
 
         const againstLeftWall = this.body.blocked.left && left;
@@ -69,7 +93,7 @@ export class Player {
             this.body.setAllowGravity(false);
             this.body.setVelocity(0, 0);
 
-            if (justJumped && this.scene.time.now - this.lastWallJumpTime >= PLAYER_CONFIG.wallJumpCooldown) {
+            if ((justPressedJump || bufferReady) && now - this.lastWallJumpTime >= PLAYER_CONFIG.wallJumpCooldown) {
                 const dir = side === 'left' ? 1 : -1;
 
                 this.wallGrabbing = false;
@@ -77,7 +101,8 @@ export class Player {
                 this.body.setAllowGravity(true);
                 this.body.setVelocityX(dir * PLAYER_CONFIG.wallJumpXVelocity);
                 this.body.setVelocityY(PLAYER_CONFIG.wallJumpYVelocity);
-                this.lastWallJumpTime = this.scene.time.now;
+                this.lastWallJumpTime = now;
+                this.jumpBufferUntil = 0;
                 this.squashBounce(1.3, 0.7);
             }
 
@@ -98,8 +123,10 @@ export class Player {
             this.body.setVelocityX(0);
         }
 
-        if (justJumped && this.onFloor) {
+        if (bufferReady && canGroundJump) {
             this.body.setVelocityY(PLAYER_CONFIG.jumpVelocity);
+            this.jumpBufferUntil = 0;
+            this.lastOnFloorTime = -Infinity;
             this.squashBounce(1.3, 0.7);
         }
     }
