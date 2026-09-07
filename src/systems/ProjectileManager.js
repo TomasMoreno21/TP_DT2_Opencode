@@ -3,26 +3,41 @@ import { Projectile, PROJECTILE_CONFIG } from '../entities/Projectile';
 import { LEVEL } from '../assets/level';
 
 export const PROJECTILE_SPAWN_CONFIG = {
-    interval: 1400
+    initialInterval: 1400,
+    minInterval: 450,
+    maxSpeedMultiplier: 2
 };
 
 export class ProjectileManager {
-    constructor(scene) {
+    constructor(scene, totalDurationMs) {
         this.scene = scene;
         this.group = scene.physics.add.group();
         this.projectiles = [];
+        this.totalDurationMs = totalDurationMs;
+        this.startTime = scene.time.now;
+        this.nextSpawnTime = 0;
+    }
 
-        this.spawnEvent = scene.time.addEvent({
-            delay: PROJECTILE_SPAWN_CONFIG.interval,
-            loop: true,
-            callback: () => this.spawn()
-        });
+    get progress() {
+        const elapsed = this.scene.time.now - this.startTime;
+        return Math.min(elapsed / this.totalDurationMs, 1);
+    }
 
-        this.spawn();
+    get intervalMs() {
+        const base = PROJECTILE_SPAWN_CONFIG.initialInterval;
+        const min = PROJECTILE_SPAWN_CONFIG.minInterval;
+
+        return base - (base - min) * this.progress;
+    }
+
+    get speedMultiplier() {
+        return 1 + (PROJECTILE_SPAWN_CONFIG.maxSpeedMultiplier - 1) * this.progress;
     }
 
     spawn() {
         const side = PhaserMath.RND.pick(['left', 'right', 'top']);
+        const speed = PROJECTILE_CONFIG.speed * this.speedMultiplier;
+
         let x = 0;
         let y = 0;
         let vx = 0;
@@ -31,18 +46,18 @@ export class ProjectileManager {
         if (side === 'left') {
             x = -20;
             y = PhaserMath.Between(80, 650);
-            vx = PROJECTILE_CONFIG.speed;
+            vx = speed;
             vy = PhaserMath.Between(-60, 60);
         } else if (side === 'right') {
             x = LEVEL.width + 20;
             y = PhaserMath.Between(80, 650);
-            vx = -PROJECTILE_CONFIG.speed;
+            vx = -speed;
             vy = PhaserMath.Between(-60, 60);
         } else {
             x = PhaserMath.Between(60, LEVEL.width - 60);
             y = -20;
             vx = PhaserMath.Between(-60, 60);
-            vy = PROJECTILE_CONFIG.speed;
+            vy = speed;
         }
 
         const projectile = new Projectile(this.scene, x, y, vx, vy);
@@ -58,6 +73,11 @@ export class ProjectileManager {
                 projectile.destroy();
                 this.projectiles.splice(i, 1);
             }
+        }
+
+        if (this.scene.time.now >= this.nextSpawnTime) {
+            this.spawn();
+            this.nextSpawnTime = this.scene.time.now + this.intervalMs;
         }
     }
 }

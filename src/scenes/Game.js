@@ -43,7 +43,7 @@ export class Game extends Scene
         this.hud.setTime(this.timer.remainingSeconds, TIMER_CONFIG.duration);
 
         this.pointSpawner = new PointSpawner(this);
-        this.projectileManager = new ProjectileManager(this);
+        this.projectileManager = new ProjectileManager(this, TIMER_CONFIG.duration * 1000);
 
         this.physics.add.overlap(this.player.rect, this.pointSpawner.points.map((point) => point.circle), (player, circle) => {
             const point = this.pointSpawner.getPointByCircle(circle);
@@ -55,6 +55,7 @@ export class Game extends Scene
             const gained = this.scoreManager.scorePoint(point.value, this.time.now);
             this.hud.setScore(this.scoreManager.score);
             this.hud.setMultiplier(this.scoreManager.multiplier);
+            this.player.setMultiplier(this.scoreManager.multiplier);
             this.burstAt(point.circle.x, point.circle.y, point.color);
             this.floatingText.show(point.circle.x, point.circle.y - 20, `+${gained}`, this.scoreManager.multiplier > 1 ? '#ff6622' : '#ffdd44');
             point.deactivate();
@@ -93,7 +94,16 @@ export class Game extends Scene
         }
 
         this.gameEnded = true;
-        this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'hit' });
+        this.player.rect.setFillStyle(0xff4455);
+
+        this.cameras.main.shake(400, 0.02);
+        this.cameras.main.flash(300, 255, 40, 40);
+
+        this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡Impacto!', '#ff4455', 26);
+
+        this.time.delayedCall(600, () => {
+            this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'hit' });
+        });
     }
 
     burstAt(x, y, color) {
