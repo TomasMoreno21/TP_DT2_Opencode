@@ -3,7 +3,7 @@ import { Level } from '../systems/Level';
 import { Player } from '../entities/Player';
 import { PointSpawner } from '../systems/PointSpawner';
 import { ScoreManager } from '../systems/ScoreManager';
-import { GameTimer } from '../systems/GameTimer';
+import { GameTimer, TIMER_CONFIG } from '../systems/GameTimer';
 import { Hud } from '../systems/Hud';
 import { ProjectileManager } from '../systems/ProjectileManager';
 import { FloatingText } from '../systems/FloatingText';
@@ -40,7 +40,7 @@ export class Game extends Scene
         this.floatingText = new FloatingText(this);
 
         this.hud.setScore(this.scoreManager.score);
-        this.hud.setTime(this.timer.remainingSeconds);
+        this.hud.setTime(this.timer.remainingSeconds, TIMER_CONFIG.duration);
 
         this.pointSpawner = new PointSpawner(this);
         this.projectileManager = new ProjectileManager(this);
@@ -72,7 +72,7 @@ export class Game extends Scene
         const seconds = this.timer.remainingSeconds;
         if (seconds !== this.lastSecond) {
             this.lastSecond = seconds;
-            this.hud.setTime(seconds);
+            this.hud.setTime(seconds, TIMER_CONFIG.duration);
         }
     }
 
