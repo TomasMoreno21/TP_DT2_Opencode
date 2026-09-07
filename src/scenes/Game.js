@@ -52,10 +52,11 @@ export class Game extends Scene
                 return;
             }
 
-            this.scoreManager.add(point.value);
+            const gained = this.scoreManager.scorePoint(point.value, this.time.now);
             this.hud.setScore(this.scoreManager.score);
+            this.hud.setMultiplier(this.scoreManager.multiplier);
             this.burstAt(point.circle.x, point.circle.y, point.color);
-            this.floatingText.show(point.circle.x, point.circle.y - 20, `+${point.value}`, '#ffdd44');
+            this.floatingText.show(point.circle.x, point.circle.y - 20, `+${gained}`, this.scoreManager.multiplier > 1 ? '#ff6622' : '#ffdd44');
             point.deactivate();
         });
 
