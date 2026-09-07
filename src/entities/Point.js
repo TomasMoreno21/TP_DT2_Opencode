@@ -8,6 +8,7 @@ export class Point {
     constructor(scene, x, y) {
         this.scene = scene;
         this.value = POINT_CONFIG.value;
+        this.color = POINT_CONFIG.color;
 
         this.circle = scene.add.circle(x, y, POINT_CONFIG.radius, POINT_CONFIG.color);
         this.circle.setStrokeStyle(2, 0xffffff);
