@@ -17,11 +17,13 @@ export const LEVEL = {
         { x: 170, y: 645, w: 220, h: 20, color: 0x3a3a5c },
         { x: 854, y: 645, w: 220, h: 20, color: 0x3a3a5c },
 
-        // Escalera central amplia y suave
-        { x: 512, y: 590, w: 260, h: 20, color: 0x3a3a5c },
-        { x: 512, y: 510, w: 240, h: 20, color: 0x3a3a5c },
-        // Corona central
-        { x: 512, y: 420, w: 220, h: 20, color: 0x5a5a8c }
+        // Fila central a la misma altura: dos a los costados, una al centro
+        { x: 300, y: 590, w: 160, h: 20, color: 0x3a3a5c },
+        { x: 512, y: 590, w: 160, h: 20, color: 0x3a3a5c },
+        { x: 724, y: 590, w: 160, h: 20, color: 0x3a3a5c },
+
+        // Corona central (encima de la fila, un salto desde el centro)
+        { x: 512, y: 490, w: 200, h: 20, color: 0x5a5a8c }
     ],
     pointSpots: [
         // Piso (pasables por abajo)
@@ -31,11 +33,12 @@ export const LEVEL = {
         // Plataformas bajas
         { x: 170, y: 621 },
         { x: 854, y: 621 },
-        // Escalera central
+        // Fila central
+        { x: 300, y: 566 },
         { x: 512, y: 566 },
-        { x: 512, y: 486 },
+        { x: 724, y: 566 },
         // Corona central
-        { x: 512, y: 396 },
+        { x: 512, y: 466 },
         // Topes de las paredes (recompensa de wall jump)
         { x: 140, y: 176 },
         { x: 884, y: 176 }
