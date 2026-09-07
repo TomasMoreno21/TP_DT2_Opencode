@@ -50,8 +50,12 @@ export class Player {
         const wasOnFloor = this.onFloor;
         this.onFloor = this.body.blocked.down;
 
-        if (!wasOnFloor && this.onFloor) {
-            this.squashBounce(0.7, 1.4);
+        if (!wasOnFloor && this.onFloor && this.rect.scaleX !== 1) {
+            if (this.squashTween) {
+                this.squashTween.stop();
+            }
+
+            this.rect.setScale(1, 1);
         }
 
         const againstLeftWall = this.body.blocked.left && left;
