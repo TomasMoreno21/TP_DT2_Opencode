@@ -1,6 +1,6 @@
 {
   "name": "fast-move",
-  "description": "Fast Move - un videojuego de plataformas time-attack desarrollado con Phaser 3 y Vite.",
+  "description": "Fast Move - un videojuego de plataformas time-attack desarrollado con Phaser 4 y Vite.",
   "version": "1.0.0",
   "type": "module",
   "repository": {
