@@ -26,21 +26,21 @@ export class MainMenu extends Scene
         this.cameras.main.setBackgroundColor(0x16132a);
         this.drawBackground();
 
-        const title = this.add.text(512, 170, 'FAST MOVE', {
-            fontFamily: 'Arial Black', fontSize: 84, color: COLORS.teal,
+        const title = this.add.text(512, 145, 'FAST MOVE', {
+            fontFamily: 'Arial Black', fontSize: 80, color: COLORS.teal,
             stroke: '#000000', strokeThickness: 12,
             shadow: { offsetX: 0, offsetY: 6, color: '#004f42', blur: 10, stroke: true, fill: true }
         }).setOrigin(0.5);
 
-        this.tweens.add({ targets: title, y: 162, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.tweens.add({ targets: title, y: 138, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-        this.add.text(512, 242, 'Conseguí la mayor cantidad de puntos en 60 segundos', {
+        this.add.text(512, 228, 'Conseguí la mayor cantidad de puntos en 60 segundos', {
             fontFamily: 'Arial', fontSize: 20, color: COLORS.grey
         }).setOrigin(0.5);
 
         this.drawControlsPanel();
 
-        this.add.text(512, 500, `Mejor puntaje: ${HighScore.get()}`, {
+        this.add.text(512, 510, `Mejor puntaje: ${HighScore.get()}`, {
             fontFamily: 'Arial Black', fontSize: 22, color: COLORS.gold,
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
@@ -79,14 +79,17 @@ export class MainMenu extends Scene
     drawControlsPanel () {
         const panel = this.add.graphics();
         panel.fillStyle(COLORS.panel, 1);
-        panel.fillRoundedRect(262, 290, 500, 190, 18);
+        panel.fillRoundedRect(262, 282, 500, 194, 18);
         panel.lineStyle(2, COLORS.panelBorder, 1);
-        panel.strokeRoundedRect(262, 290, 500, 190, 18);
+        panel.strokeRoundedRect(262, 282, 500, 194, 18);
 
-        this.add.text(512, 308, 'Controles', {
+        this.add.text(512, 300, 'Controles', {
             fontFamily: 'Arial Black', fontSize: 26, color: COLORS.gold,
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
+
+        panel.lineStyle(2, COLORS.panelBorder, 1);
+        panel.lineBetween(302, 320, 722, 320);
 
         const rows = [
             ['Mover', 'A / D  o  ← / →'],
@@ -96,15 +99,16 @@ export class MainMenu extends Scene
         ];
 
         rows.forEach(([action, controls], i) => {
-            const y = 350 + i * 30;
+            const y = 346 + i * 32;
 
-            this.add.text(300, y, action, {
+            this.add.text(430, y, action, {
                 fontFamily: 'Arial', fontSize: 18, color: COLORS.teal, fontStyle: 'bold'
-            }).setOrigin(0.5);
+            }).setOrigin(1, 0.5);
 
-            this.add.text(725, y, controls, {
-                fontFamily: 'Arial', fontSize: 15, color: COLORS.text
-            }).setOrigin(0.5);
+            this.add.text(444, y, controls, {
+                fontFamily: 'Arial', fontSize: 16, color: COLORS.text,
+                wordWrap: { width: 300, useAdvancedWrap: true }, align: 'left'
+            }).setOrigin(0, 0.5);
         });
     }
 
@@ -117,13 +121,13 @@ export class MainMenu extends Scene
             g.destroy();
         }
 
-        const btn = this.add.image(512, 592, 'playButton').setInteractive({ useHandCursor: true });
-        const label = this.add.text(512, 592, 'JUGAR', {
+        const btn = this.add.image(512, 600, 'playButton').setInteractive({ useHandCursor: true });
+        const label = this.add.text(512, 600, 'JUGAR', {
             fontFamily: 'Arial Black', fontSize: 34, color: '#00382c'
         }).setOrigin(0.5);
 
-        this.tweens.add({ targets: btn, y: 586, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-        this.tweens.add({ targets: label, y: 586, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.tweens.add({ targets: btn, y: 594, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.tweens.add({ targets: label, y: 594, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
         btn.on('pointerover', () => {
             btn.setTint(0xccfff5);
