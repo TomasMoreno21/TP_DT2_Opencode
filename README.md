@@ -5,7 +5,7 @@ Fast Move es un videojuego de plataformas *time-attack*: en 60 segundos hay que 
 ## Integrantes
 
 - Tomas Moreno
-- [Nombre del segundo integrante]
+- Facundo Ibañez
 
 ## Tecnologías
 
