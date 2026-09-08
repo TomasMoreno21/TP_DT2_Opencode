@@ -34,7 +34,7 @@ npm run build
 
 ## Gameplay
 
-Cada partida dura 60 segundos. En el escenario aparecen puntos en posiciones fijas que rotan su activación. El jugador debe moverse, saltar y agarrarse a las paredes para recolectarlos antes de que el tiempo termine. Al mismo tiempo, proyectiles entran desde fuera de la pantalla: recibir un impacto termina la partida.
+Cada partida dura 60 segundos. En el escenario aparecen puntos en spots fijos: al recolectar uno se activa otro al azar. El jugador debe moverse, saltar y hacer wall grab / wall jump para recolectarlos antes de que el tiempo termine, encadenando recolecciones para subir el multiplicador de combo (hasta x5). Al mismo tiempo, proyectiles que nacen en las paredes de los bordes homing ~0,5s y luego viajan en línea recta acelerada: recibir un impacto termina la partida.
 
 ### Objetivo
 
@@ -42,9 +42,9 @@ Conseguir la mayor cantidad de puntos en un minuto y batir el mejor puntaje.
 
 ### Mecánicas principales
 
-- Recolección de puntos (spots fijos con activación rotativa).
-- Movimiento, salto y wall grab (agarrarse a las paredes).
-- Esquiva de proyectiles que entran desde fuera de la pantalla.
+- Recolección de puntos (spots fijos, al recoger se activa otro al azar) con combo y multiplicador hasta x5.
+- Movimiento, salto, wall grab y wall jump (agarrarse e impulsarse en las paredes).
+- Esquiva de proyectiles que nacen en las paredes de los bordes (homing y luego línea recta acelerada).
 - Récord personal persistente (localStorage).
 
 ## Controles
@@ -53,7 +53,8 @@ Conseguir la mayor cantidad de puntos en un minuto y batir el mejor puntaje.
 |---|---|
 | Mover | A / D o Flechas Izquierda / Derecha |
 | Saltar | Espacio o Flecha Arriba / W |
-| Agarrarse a pared | Mantener la dirección contra la pared |
+| Agarrarse a pared (wall grab) | Mantener la dirección contra la pared |
+| Wall jump | Saltar mientras se toca una pared (impulsa al lado opuesto) |
 
 ## Arquitectura
 

@@ -22,9 +22,9 @@ Desarrollar un videojuego pequeño aplicando:
 - **Género**: plataformas 2D, time-attack.
 - **Objetivo**: conseguir la máxima cantidad de puntos en 60 segundos.
 - **Mapa**: escenario fijo a pantalla única, con plataformas y paredes.
-- **Jugador**: movimiento, salto y wall grab.
-- **Puntos**: aparecen en spots fijos que rotan su activación (híbrido).
-- **Obstáculos**: proyectiles que entran desde fuera de la pantalla.
+- **Jugador**: movimiento, salto (variable, con coyote time y buffer) y wall grab / wall jump.
+- **Puntos**: aparecen en spots fijos; al recolectar uno se activa otro spot al azar, con combo y multiplicador hasta x5.
+- **Obstáculos**: proyectiles que nacen en las paredes de los bordes (homing ~0,5s y luego línea recta acelerada), con dificultad progresiva.
 - **Derrota**: recibir el impacto de un proyectil -> pantalla con opciones Reiniciar/Salir.
 - **Fin de partida**: al cumplirse el minuto se muestra el resumen con el puntaje final y el mejor puntaje (localStorage).
 - **Flujo**: iniciar -> jugar -> victoria/derrota -> reiniciar.
