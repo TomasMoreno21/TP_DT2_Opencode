@@ -62,16 +62,14 @@ El código se organiza en `src/` con responsabilidades separadas:
 - `src/scenes/` — escenas de Phaser (Boot, Preloader, MainMenu, Game, GameOver).
 - `src/entities/` — entidades del juego (Player, Point, etc.).
 - `src/systems/` — sistemas (ScoreManager, PointSpawner, ProjectileManager, etc.).
-- `src/patterns/` — patrones de diseño de comportamiento.
+- `src/patterns/` — patrones de diseño (EntityFactory: patrón Factory para crear Point y Projectile, desacopla spawners de las clases concretas).
 - `src/assets/` — recursos del juego.
 
 ```
 GameScene
  ├── Player
- ├── PointSpawner
- │   └── Point
- ├── ProjectileManager
- │   └── Projectile
+ ├── PointSpawner ──► EntityFactory ──► Point
+ ├── ProjectileManager ──► EntityFactory ──► Projectile
  ├── ScoreManager
  ├── GameTimer
  └── Hud

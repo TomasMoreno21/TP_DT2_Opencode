@@ -1,5 +1,5 @@
 import { Math as PhaserMath } from 'phaser';
-import { Projectile } from '../entities/Projectile';
+import { EntityFactory } from '../patterns/EntityFactory';
 
 export const PROJECTILE_SPAWN_CONFIG = {
     initialInterval: 1700,
@@ -41,7 +41,7 @@ export class ProjectileManager {
             ? PROJECTILE_SPAWN_CONFIG.wallGapX
             : this.scene.scale.width - PROJECTILE_SPAWN_CONFIG.wallGapX;
 
-        const projectile = new Projectile(this.scene, x, y, this.scene.player.rect, this.speedMultiplier);
+        const projectile = EntityFactory.createProjectile(this.scene, x, y, this.scene.player.rect, this.speedMultiplier);
         this.projectiles.push(projectile);
         this.group.add(projectile.circle);
     }

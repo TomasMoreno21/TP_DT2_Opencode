@@ -1,6 +1,6 @@
 import { Math as PhaserMath } from 'phaser';
-import { Point } from '../entities/Point';
 import { LEVEL } from '../assets/level';
+import { EntityFactory } from '../patterns/EntityFactory';
 
 export const POINT_SPAWN_CONFIG = {
     initialActive: 2
@@ -9,7 +9,7 @@ export const POINT_SPAWN_CONFIG = {
 export class PointSpawner {
     constructor(scene) {
         this.scene = scene;
-        this.points = LEVEL.pointSpots.map((spot) => new Point(scene, spot.x, spot.y));
+        this.points = EntityFactory.createPoints(scene, LEVEL.pointSpots);
 
         for (let i = 0; i < POINT_SPAWN_CONFIG.initialActive; i++) {
             this.activateAnother();
