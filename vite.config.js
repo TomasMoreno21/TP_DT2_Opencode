@@ -1,17 +1,51 @@
 import { defineConfig } from 'vite';
 
-export default defineConfig({
-    base: './',
-    build: {
-        rollupOptions: {
-            output: {
-                manualChunks: {
-                    phaser: ['phaser']
-                }
-            }
+const phasermsg = () => {
+    return {
+        name: 'phasermsg',
+        buildStart() {
+            process.stdout.write(`Building for production...\n`);
+        },
+        buildEnd() {
+            const line = "---------------------------------------------------------";
+            const msg = `❤️❤️❤️ Tell us about your game! - games@phaser.io ❤️❤️❤️`;
+            process.stdout.write(`${line}\n${msg}\n${line}\n`);
+
+            process.stdout.write(`✨ Done ✨\n`);
         }
-    },
-    server: {
-        port: 8080
     }
+}
+
+export default defineConfig(({ command }) => {
+    const isBuild = command === 'build';
+
+    return {
+        base: './',
+        ...(isBuild ? { logLevel: 'warn' } : {}),
+        build: {
+            rollupOptions: {
+                output: {
+                    manualChunks: {
+                        phaser: ['phaser']
+                    }
+                }
+            },
+            ...(isBuild ? {
+                minify: 'terser',
+                terserOptions: {
+                    compress: {
+                        passes: 2
+                    },
+                    mangle: true,
+                    format: {
+                        comments: false
+                    }
+                }
+            } : {})
+        },
+        server: {
+            port: 8080
+        },
+        plugins: isBuild ? [phasermsg()] : []
+    };
 });
