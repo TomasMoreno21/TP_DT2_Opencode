@@ -3,9 +3,9 @@ export const TIMER_CONFIG = {
 };
 
 export class GameTimer {
-    constructor(scene, onComplete = null) {
+    constructor(scene, onComplete = null, durationSeconds = TIMER_CONFIG.duration) {
         this.scene = scene;
-        this.durationMs = TIMER_CONFIG.duration * 1000;
+        this.durationMs = durationSeconds * 1000;
         this.onComplete = onComplete;
         this.startTime = scene.time.now;
         this.finished = false;

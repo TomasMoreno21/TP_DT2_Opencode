@@ -9,8 +9,9 @@ export const PROJECTILE_SPAWN_CONFIG = {
 };
 
 export class ProjectileManager {
-    constructor(scene, totalDurationMs) {
+    constructor(scene, totalDurationMs, config = PROJECTILE_SPAWN_CONFIG) {
         this.scene = scene;
+        this.config = config;
         this.group = scene.physics.add.group();
         this.projectiles = [];
         this.totalDurationMs = totalDurationMs;
@@ -24,22 +25,22 @@ export class ProjectileManager {
     }
 
     get intervalMs() {
-        const base = PROJECTILE_SPAWN_CONFIG.initialInterval;
-        const min = PROJECTILE_SPAWN_CONFIG.minInterval;
+        const base = this.config.initialInterval;
+        const min = this.config.minInterval;
 
         return base - (base - min) * this.progress;
     }
 
     get speedMultiplier() {
-        return 1 + (PROJECTILE_SPAWN_CONFIG.maxSpeedMultiplier - 1) * this.progress;
+        return 1 + (this.config.maxSpeedMultiplier - 1) * this.progress;
     }
 
     spawn() {
         const side = PhaserMath.RND.pick(['left', 'right']);
         const y = PhaserMath.Between(140, 700);
         const x = side === 'left'
-            ? PROJECTILE_SPAWN_CONFIG.wallGapX
-            : this.scene.scale.width - PROJECTILE_SPAWN_CONFIG.wallGapX;
+            ? this.config.wallGapX
+            : this.scene.scale.width - this.config.wallGapX;
 
         const projectile = EntityFactory.createProjectile(this.scene, x, y, this.scene.player.rect, this.speedMultiplier);
         this.projectiles.push(projectile);

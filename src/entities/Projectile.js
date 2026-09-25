@@ -1,5 +1,3 @@
-import { LEVEL } from '../assets/level';
-
 export const PROJECTILE_CONFIG = {
     radius: 8,
     color: 0xff4455,
@@ -62,8 +60,8 @@ export class Projectile {
     }
 
     isOutOfBounds(margin = 40) {
-        return this.circle.x < -margin || this.circle.x > LEVEL.width + margin ||
-            this.circle.y < -margin || this.circle.y > LEVEL.height + margin;
+        return this.circle.x < -margin || this.circle.x > this.scene.scale.width + margin ||
+            this.circle.y < -margin || this.circle.y > this.scene.scale.height + margin;
     }
 
     destroy() {

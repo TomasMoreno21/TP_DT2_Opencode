@@ -12,6 +12,7 @@ export class GameOver extends Scene
     {
         this.score = data.score ?? 0;
         this.reason = data.reason ?? 'timeout';
+        this.levelIndex = data.levelIndex ?? 0;
         this.best = HighScore.update(this.score);
         this.isNewRecord = this.score > 0 && this.score >= this.best;
     }
@@ -20,11 +21,14 @@ export class GameOver extends Scene
     {
         this.cameras.main.setBackgroundColor(0x0f0f1a);
 
-        const title = this.reason === 'hit' ? '¡Perdiste!' : '¡Tiempo!';
-        const titleColor = this.reason === 'hit' ? '#ff4455' : '#ffdd44';
+        const config = {
+            hit: { title: '¡Perdiste!', color: '#ff4455' },
+            timeout: { title: '¡Tiempo!', color: '#ffdd44' },
+            victory: { title: '¡Victoria!', color: '#00ff88' }
+        }[this.reason] ?? { title: '¡Perdiste!', color: '#ff4455' };
 
-        this.add.text(512, 260, title, {
-            fontFamily: 'Arial Black', fontSize: 64, color: titleColor,
+        this.add.text(512, 260, config.title, {
+            fontFamily: 'Arial Black', fontSize: 64, color: config.color,
             stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5);
 
@@ -45,11 +49,15 @@ export class GameOver extends Scene
             }).setOrigin(0.5);
         }
 
-        this.add.text(512, 520, 'Reiniciar', {
+        const primaryLabel = this.reason === 'victory' ? 'Jugar de nuevo' : 'Reintentar nivel';
+
+        this.add.text(512, 520, primaryLabel, {
             fontFamily: 'Arial Black', fontSize: 34, color: '#00d1b2',
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5).setInteractive({ useHandCursor: true })
-          .on('pointerdown', () => this.scene.start('Game'));
+          .on('pointerdown', () => this.scene.start('Game', {
+              levelIndex: this.reason === 'victory' ? 0 : this.levelIndex
+          }));
 
         this.add.text(512, 590, 'Salir', {
             fontFamily: 'Arial Black', fontSize: 34, color: '#aaaaaa',

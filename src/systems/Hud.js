@@ -17,6 +17,16 @@ export class Hud {
             stroke: '#000000', strokeThickness: 6
         }).setScrollFactor(0);
 
+        this.quotaText = scene.add.text(16, 52, 'Meta: 0/0', {
+            fontFamily: 'Arial', fontSize: 18, color: '#cccccc',
+            stroke: '#000000', strokeThickness: 4
+        }).setScrollFactor(0);
+
+        this.levelText = scene.add.text(1008, 16, 'Nivel 1/1', {
+            fontFamily: 'Arial Black', fontSize: 22, color: '#ffffff',
+            stroke: '#000000', strokeThickness: 6
+        }).setOrigin(1, 0).setScrollFactor(0);
+
         this.comboText = scene.add.text(512, 68, 'x1', {
             fontFamily: 'Arial Black', fontSize: 22, color: '#ffdd44',
             stroke: '#000000', strokeThickness: 6
@@ -30,6 +40,16 @@ export class Hud {
 
     setScore(value) {
         this.scoreText.setText(`Puntos: ${value}`);
+    }
+
+    setQuota(collected, quota) {
+        const met = collected >= quota;
+        this.quotaText.setText(`Meta: ${collected}/${quota}`);
+        this.quotaText.setColor(met ? '#00ff88' : '#cccccc');
+    }
+
+    setLevel(current, total) {
+        this.levelText.setText(`Nivel ${current}/${total}`);
     }
 
     formatTime(seconds) {

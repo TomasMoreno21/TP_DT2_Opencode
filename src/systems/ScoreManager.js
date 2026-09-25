@@ -5,6 +5,16 @@ export class ScoreManager {
         this.multiplier = 1;
         this.comboWindowMs = 3000;
         this.lastCollectionTime = 0;
+        this.collected = 0;
+        this.quota = 8;
+    }
+
+    setQuota(quota) {
+        this.quota = quota;
+    }
+
+    get quotaMet() {
+        return this.collected >= this.quota;
     }
 
     scorePoint(value, now) {
@@ -19,6 +29,7 @@ export class ScoreManager {
 
         const gained = value * this.multiplier;
         this.score += gained;
+        this.collected += 1;
         return gained;
     }
 
@@ -27,5 +38,7 @@ export class ScoreManager {
         this.combo = 0;
         this.multiplier = 1;
         this.lastCollectionTime = 0;
+        this.collected = 0;
+        this.quota = 8;
     }
 }

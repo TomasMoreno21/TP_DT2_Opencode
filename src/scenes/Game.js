@@ -3,10 +3,11 @@ import { Level } from '../systems/Level';
 import { Player } from '../entities/Player';
 import { PointSpawner } from '../systems/PointSpawner';
 import { ScoreManager } from '../systems/ScoreManager';
-import { GameTimer, TIMER_CONFIG } from '../systems/GameTimer';
+import { GameTimer } from '../systems/GameTimer';
 import { Hud } from '../systems/Hud';
 import { ProjectileManager } from '../systems/ProjectileManager';
 import { FloatingText } from '../systems/FloatingText';
+import { LEVELS } from '../assets/levels';
 
 export class Game extends Scene
 {
@@ -15,9 +16,15 @@ export class Game extends Scene
         super('Game');
     }
 
+    init (data)
+    {
+        this.levelIndex = data.levelIndex ?? 0;
+    }
+
     create ()
     {
         this.gameEnded = false;
+        this.levelComplete = false;
         this.lastSecond = null;
 
         if (!this.textures.exists('particle')) {
@@ -29,21 +36,26 @@ export class Game extends Scene
 
         this.cameras.main.setBackgroundColor(0x1a1a2e);
 
-        this.level = new Level(this);
+        const levelConfig = LEVELS[this.levelIndex] ?? LEVELS[0];
+
+        this.level = new Level(this, levelConfig);
         this.player = new Player(this, 200, 650);
 
         this.physics.add.collider(this.player.rect, this.level.platforms);
 
         this.scoreManager = new ScoreManager();
-        this.timer = new GameTimer(this, () => this.onTimeUp());
+        this.scoreManager.setQuota(levelConfig.quota);
+        this.timer = new GameTimer(this, () => this.onTimeUp(), levelConfig.durationSeconds);
         this.hud = new Hud(this);
         this.floatingText = new FloatingText(this);
 
         this.hud.setScore(this.scoreManager.score);
-        this.hud.setTime(this.timer.remainingSeconds, TIMER_CONFIG.duration);
+        this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
+        this.hud.setLevel(this.levelIndex + 1, LEVELS.length);
+        this.hud.setTime(this.timer.remainingSeconds);
 
-        this.pointSpawner = new PointSpawner(this);
-        this.projectileManager = new ProjectileManager(this, TIMER_CONFIG.duration * 1000);
+        this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots);
+        this.projectileManager = new ProjectileManager(this, this.timer.durationMs, levelConfig.projectiles);
 
         this.physics.add.overlap(this.player.rect, this.pointSpawner.points.map((point) => point.circle), (player, circle) => {
             const point = this.pointSpawner.getPointByCircle(circle);
@@ -54,12 +66,17 @@ export class Game extends Scene
 
             const gained = this.scoreManager.scorePoint(point.value, this.time.now);
             this.hud.setScore(this.scoreManager.score);
+            this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
             this.hud.setMultiplier(this.scoreManager.multiplier);
             this.player.setMultiplier(this.scoreManager.multiplier);
             this.burstAt(point.circle.x, point.circle.y, point.color);
             this.floatingText.show(point.circle.x, point.circle.y - 20, `+${gained}`, this.scoreManager.multiplier > 1 ? '#ff6622' : '#ffdd44');
             point.deactivate();
             this.pointSpawner.activateAnother();
+
+            if (this.scoreManager.quotaMet) {
+                this.onQuotaMet();
+            }
         });
 
         this.physics.add.overlap(this.player.rect, this.projectileManager.group, () => this.onHit());
@@ -78,6 +95,25 @@ export class Game extends Scene
         }
     }
 
+    onQuotaMet ()
+    {
+        if (this.gameEnded || this.levelComplete) {
+            return;
+        }
+
+        this.levelComplete = true;
+
+        this.floatingText.show(512, 320, `Nivel ${this.levelIndex + 1} superado`, '#00ff88', 32);
+
+        this.time.delayedCall(1400, () => {
+            if (this.levelIndex + 1 < LEVELS.length) {
+                this.scene.start('Game', { levelIndex: this.levelIndex + 1 });
+            } else {
+                this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'victory', levelIndex: this.levelIndex });
+            }
+        });
+    }
+
     onTimeUp ()
     {
         if (this.gameEnded) {
@@ -85,7 +121,7 @@ export class Game extends Scene
         }
 
         this.gameEnded = true;
-        this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'timeout' });
+        this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'timeout', levelIndex: this.levelIndex });
     }
 
     onHit ()
@@ -103,7 +139,7 @@ export class Game extends Scene
         this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡Impacto!', '#ff4455', 26);
 
         this.time.delayedCall(600, () => {
-            this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'hit' });
+            this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'hit', levelIndex: this.levelIndex });
         });
     }
 
