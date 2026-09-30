@@ -1,11 +1,11 @@
-# Plan de trabajo — Fast Move (campaña de 5 niveles)
+# Plan de trabajo — Fast Move (campaña de 5 niveles + expansión)
 
 > Documento único y centralizado: acá vive **todo** lo planificado para el proyecto.
 > Se actualiza al cerrar cada fase (estado, commit, decisiones nuevas).
 > Fuente de diseño: [`docs/GDD.pdf`](./GDD.pdf). Reglas del repo: [`AGENTS.md`](../AGENTS.md).
 
-**Estado actual:** flujo de escenas completo y verificado (commit `f782b10`).
-**Fase siguiente propuesta:** trampolines (nivel 2).
+**Estado:** flujo de escenas completo y verificado (`f782b10`); expansión **aprobada** por el equipo (`de212a1`).
+**Siguiente fase a ejecutar:** E1 — Trampolines con rebote perfecto (nivel 2).
 
 ---
 
@@ -13,8 +13,32 @@
 
 - **Stack fijo:** JavaScript + Vite + Phaser 4. Sin TypeScript, sin dependencias nuevas.
 - **Reglas del repo:** clases chicas con responsabilidad clara, nada de lógica concentrada en `Game`, evitar duplicación y variables globales, y **no modificar controles ni mecánicas centrales sin avisar**.
-- **Principio de diseño:** la esencia original (*time-attack*, puntos, combo, proyectiles, wall grab/jump) queda **intacta**; la campaña de 5 niveles y las mecánicas nuevas se agregan encima.
+- **Controles:** la expansión agrega el **dash (Shift)** y los atajos **R** (reintentar) y **M** (mute). Están **aprobados explícitamente por el equipo**, por lo que la regla de avisar queda satisfecha; igual, cualquier control nuevo fuera de estos requiere aviso previo.
+- **Principio de diseño:** la esencia original (*time-attack*, puntos, combo, proyectiles, wall grab/jump) queda **intacta**; la campaña de 5 niveles y la expansión se agregan encima.
+- **Datos:** en `assets/levels.js` solo datos puros (posición, tamaño, color, tiempos). No se agrega un campo de mecánica hasta que esa mecánica esté implementada.
 - **Flujo por fase:** análisis → plan → implementación → verificación → **commit + push** → revisión.
+
+### Dónde vive cada cosa
+
+```
+src/
+├── main.js               arranque, config global (gravedad, tamaño)
+├── scenes/               Boot, Preloader, MainMenu, Game, GameOver
+├── entities/             Player, Point, Projectile, Goal + las nuevas
+├── systems/              Level, ScoreManager, ProjectileManager, Hud, GameTimer, PointSpawner, FloatingText, HighScore + las nuevas
+├── patterns/EntityFactory.js   creación de entidades por tipo
+└── assets/levels.js      datos de los 5 niveles
+```
+
+### Receta para agregar una entidad nueva (mecánicas, portal, gemas, escudo…)
+
+1. `src/entities/<Nombre>.js`: clase chica, configuración por constructor, sin estado global.
+2. `src/patterns/EntityFactory.js`: `create<Nombre>(scene, data)` con el mismo estilo que las existentes.
+3. `src/systems/Level.js`: `materialize<Nombre>s()` que lee la config del nivel y llama a la factory.
+4. `src/assets/levels.js`: datos puros de dónde va cada instancia.
+5. `scenes/Game.js`: solo el wiring (collider / overlap y qué pasa al tocarlo). Si el wiring crece demasiado, la lógica se extrae a su propio handler.
+6. `systems/Audio.js` (cuando exista): una línea para el sonido del evento.
+7. Verificar con el checker de alcanzabilidad y con un recorrido en el navegador.
 
 ---
 
@@ -55,80 +79,68 @@
 
 Los valores de timer, quota y proyectiles son **de balance inicial** y se ajustan al final.
 
-### Fases pendientes
+**F1 — Trampolines (nivel 2)** · `entities/Trampoline.js`, datos en `levels.js`, `systems/Level.js`, `EntityFactory.js`, wiring en `Game.js`.
+Aceptación: el trampolín permite alcanzar una zona alta sin romper el recorrido a pie, y el impulso no deja atravesar el techo del mapa.
 
-Cada fase se cierra con commit + push y revisión.
+**F2 — Plataformas móviles (nivel 3)** · `entities/MovingPlatform.js`, `Level.js`, `EntityFactory.js`, datos.
+Aceptación: el jugador se mueve con la plataforma sin caerse, los puntos sobre ella siguen siendo recolectables y hay al menos un salto que hay que cronometrar.
 
-**F1 — Trampolines (nivel 2)**
-- Qué: entidad `Trampoline` (banda elástica) que al ser pisada por arriba aplica un impulso vertical grande.
-- Archivos: `entities/Trampoline.js`, `levels.js` (datos), `systems/Level.js` (materializar), `patterns/EntityFactory.js`, `scenes/Game.js` (overlap/collider).
-- Aceptación: se puede alcanzar con el trampolín una zona alta; no rompe el recorrido a pie; el impulso no permite atravesar el techo del mapa.
+**F3 — Pinchos y escudo (nivel 4)** · `entities/Hazard.js`, `entities/PowerUp.js`, `systems/Level.js`, `EntityFactory.js`, `systems/Hud.js` (indicador de escudo), wiring en `Game.js`, estado del escudo en `Player`/`ScoreManager`.
+Aceptación: el escudo se ve en el HUD mientras está activo, absorbe un impacto y se puede volver a obtener; tocar un pincho sin escudo equivale a recibir un impacto.
 
-**F2 — Plataformas móviles (nivel 3)**
-- Qué: entidad `MovingPlatform` (eje X y/o Y, ida y vuelta) que arrastra al jugador que va montado en ella.
-- Archivos: `entities/MovingPlatform.js`, `Level.js`, `EntityFactory.js`, datos de nivel.
-- Aceptación: el jugador se mueve con la plataforma sin caerse; los puntos sobre ella siguen siendo recolectables; hay al menos un salto cronometrado obligatorio.
+**F4 — Portales y combinación (nivel 5)** · `entities/Portal.js`, `Level.js`, `EntityFactory.js`, datos.
+Aceptación: el nivel 5 usa trampolines + móviles + pinchos + portales combinados, y los portales ahorran tiempo real de recorrido.
 
-**F3 — Pinchos y escudo (nivel 4)**
-- Qué: entidad `Hazard` (pinchos) — tocarlo equivale a impacto; entidad `PowerUp` (escudo) que absorbe **un** impacto (proyectil o pincho) antes de caer.
-- Archivos: `entities/Hazard.js`, `entities/PowerUp.js`, `systems/Level.js`, `EntityFactory.js`, `systems/Hud.js` (indicador de escudo), `scenes/Game.js`, `ScoreManager`/`Player` para el estado del escudo.
-- Aceptación: el escudo se ve en el HUD mientras está activo, se consume en un impacto y se puede volver a obtener; con escudo el impacto no termina el nivel.
-
-**F4 — Portales y combinación (nivel 5)**
-- Qué: entidad `Portal` (par A/B con color propio) que teletransporta al punto gemelo.
-- Archivos: `entities/Portal.js`, `Level.js`, `EntityFactory.js`, datos de nivel.
-- Aceptación: el nivel 5 usa trampolines + móviles + pinchos + portales combinados; los portales ahorran tiempo real de recorrido.
-
-**F5 — Balance, pulido y docs**
-- Qué: ajustar timers/quotas/proyectiles con lo que salga del playtest, actualizar `README.md` y la sección de diseño de `AGENTS.md` (hoy describen el time-attack de 60 s sin niveles ni quota) y refrescar la tabla de controles.
-- Aceptación: los 5 niveles se completan de forma secuencial y la dificultad se nota; docs alineadas con el juego real.
+**F5 — Balance, pulido y docs** · ajustar timers/quotas/proyectiles con lo que salga del playtest, alinear `README.md` y la sección de diseño de `AGENTS.md`, refrescar la tabla de controles.
 
 ---
 
-## 4. Propuesta de expansión
+## 4. Propuesta de expansión (aprobada)
 
-Además de las mecánicas del GDD, esta es la propuesta para **elevar la calidad visual, la profundidad y la sensación de juego**. Cada ítem indica impacto, esfuerzo y si requiere confirmación.
+Cada ítem tiene esfuerzo y **criterio de aceptación** para poder cerrarlo sin ambigüedad.
+
+Numeración: **V** = visual, **M** = mecánica, **G** = game feel (se usa **G** para no chocar con las fases F1–F5 del GDD).
 
 ### 4.1 Visual
 
-| # | Propuesta | Detalle | Impacto | Esfuerzo |
+| # | Propuesta | Detalle | Criterio de aceptación | Esfuerzo |
 |---|---|---|---|---|
-| V1 | **Fondo con parallax procedural** | 3 capas generadas con `Graphics` (degradado de cielo, siluetas lejanas, partículas/estrellas) que se mueven un 4–10 % según la posición del jugador. Sin assets nuevos ni scroll | Alto | Bajo |
-| V2 | **Identidad visual por nivel** | `theme` en cada config (`bgTop`, `bgBottom`, `accent`, `glow`): cada nivel se ve distinto y se reconoce de un vistazo | Alto | Bajo |
-| V3 | **Portal de salida animado** | El `Goal` actual es un rectángulo: convertirlo en anillos concéntricos que rotan, con partículas entrantes y un destello al abrirse | Alto | Bajo |
-| V4 | **Paleta de puntaje por valor** | Los puntos valiosos (ver M6) se distinguen por color y brillo, no solo por valor | Medio | Bajo |
-| V5 | **Feedback de movimiento** | Estela (fantasmas) al mover rápido, polvo al aterrizar, y glow en los bordes de las plataformas | Medio | Medio |
-| V6 | **HUD con barra de quota** | Hoy es "9/10": sumar una barrita de progreso, pop de score al sumar y color del timer pulsando en los últimos 10 s (el pulso ya existe, parcial) | Medio | Bajo |
-| V7 | **Pantallas con más carácter** | Victoria con partículas tipo fuegos artificiales (reusando `add.particles` de `burstAt`), derrota con desintegración del jugador, transición de nivel con wipe corto | Medio | Bajo |
-| V8 | **Viñeta y contraste** | Viñeta suave en los bordes para dirigir la mirada al centro de la acción | Bajo | Bajo |
+| V1 | **Fondo con parallax procedural** | 3 capas generadas con `Graphics` (degradado de cielo, siluetas lejanas, partículas/estrellas) que se mueven un 4–10 % según la posición del jugador. Sin assets nuevos ni scroll | Las 3 capas se desplazan de forma visible y proporcional a la posición del jugador, sin caída de fps | Bajo |
+| V2 | **Identidad visual por nivel** | `theme` en cada config (`bgTop`, `bgBottom`, `accent`, `glow`) aplicado al fondo y a la `Hud` | Cada nivel se distingue de un vistazo solo por su paleta | Bajo |
+| V3 | **Salida animada** | El `Goal` actual es un rectángulo: pasa a ser anillos concéntricos que rotan, con partículas entrantes | Anillos girando; al abrir se ve un destello y el cambio de color es inequívoco | Bajo |
+| V4 | **Paleta de gemas** | Las gemas (M5) se distinguen de los puntos normales por color y brillo | La diferencia se entiende sin leer texto | Bajo |
+| V5 | **Feedback de movimiento** | Estela (fantasmas) al mover rápido, polvo al aterrizar y glow en los bordes de las plataformas | Los tres efectos aparecen solo cuando corresponde y no saturan la pantalla | Medio |
+| V6 | **HUD con barra de quota** | Hoy es "9/10": sumar barrita de progreso, pop de score al sumar, indicador de escudo y timer pulsando en rojo en los últimos 10 s | La quota se lee de un vistazo y el pop no tapa la acción | Bajo |
+| V7 | **Pantallas con más carácter** | Victoria con partículas tipo fuegos artificiales (reusando `burstAt`), derrota con desintegración del jugador, wipe corto entre niveles | Las tres transiciones se ven pulidas y ninguna tarda lo suficiente como para molestar | Bajo |
+| V8 | **Viñeta** | Viñeta suave en los bordes para dirigir la mirada al centro | Baja el contraste en los bordes sin estorbar la lectura del HUD | Bajo |
 
 ### 4.2 Mecánica
 
-| # | Propuesta | Detalle | Impacto | Esfuerzo | Confirmación |
-|---|---|---|---|---|---|
-| M1 | Trampolín con **timing** | Rebote base + "rebote perfecto" al pisarlo en el centro (más alto + destello). Sube el techo de skill sin endurecer el mapa | Alto | Bajo | — |
-| M2 | Móvil con **ruta visible** | Una línea/ghost marca el trayecto de la plataforma móvil para poder planear el salto | Medio | Bajo | — |
-| M3 | Pinchos **cíclicos** | Aviso (temblor) → extendidos → retraídos, en vez de siempre activos: abre rutas con timing | Alto | Medio | — |
-| M4 | **Portales** que conservan impulso | Al salir del portal se conserva parte de la velocidad: son atajos, no teletransporte gratis | Medio | Bajo | — |
-| M5 | **Gemas / puntos valiosos** | 1–2 por nivel: valen más (25) y dan **+2 s** al timer. Fomentan risk/reward sin tocar la quota | Alto | Bajo | **Sí** (agrega contenido) |
-| M6 | **Bonus "sin pies en el suelo"** | La cadena de combo se mantiene mientras no se toque el piso; al aterrizar se corta. Recompensa el estilo agresivo, muy on-brand con "Fast Move" | Alto | Medio | **Sí** (mecánica nueva) |
-| M7 | **Variantes de proyectil** | En niveles 4–5 sumar un patrón más a la misma clase `Projectile` (ej. "ricochet" o "rastra"), configurado por nivel | Medio | Medio | — |
-| M8 | **Dash (Shift)** | Empuje horizontal corto, cooldown ~1,2 s, se resetea al tocar suelo o wall jump, indicador en el HUD | Alto | Medio | **Sí** (control nuevo) |
-| M9 | **Recordar último nivel** | Guardar en `localStorage` el nivel alcanzado y ofrecer "Continuar campaña" en el menú | Bajo | Bajo | — |
+| # | Propuesta | Detalle | Criterio de aceptación | Esfuerzo |
+|---|---|---|---|---|
+| M1 | **Trampolín con timing** | Rebote base + "rebote perfecto" al pisarlo en el centro (más alto + destello). Sube el techo de skill sin endurecer el mapa | El rebote base siempre funciona; en el centro el salto es claramente más alto y se señala con destello y sonido | Bajo |
+| M2 | **Móvil con ruta visible** | Una línea o silueta marca el trayecto de la plataforma móvil | Se puede planificar el salto antes de subirse | Bajo |
+| M3 | **Pinchos cíclicos** | Aviso (temblor) → extendidos → retraídos, en vez de siempre activos: abre rutas con timing | Se puede pasar en la ventana retraída sin recibir daño, y el aviso se ve antes de que se active | Medio |
+| M4 | **Portales que conservan impulso** | Al salir del portal se conserva parte de la velocidad | El atajo ahorra tiempo real de recorrido y se siente fluido, no un corte | Bajo |
+| M5 | **Gemas / puntos valiosos** | 1–2 por nivel: valen más (25) y dan **+2 s** al timer. Fomentan risk/reward | Hay al menos una por nivel, no altera la quota y el tiempo extra se ve en el timer | Bajo |
+| M6 | **Bonus "sin pies en el suelo"** | La cadena se mantiene mientras no se toque el piso; al aterrizar se corta. Recompensa el estilo agresivo, muy on-brand con "Fast Move" | La cadena se mantiene en el aire, se corta al tocar el piso y el bonus se comunica en el HUD | Medio |
+| M7 | **Variantes de proyectil** | En niveles 4–5 sumar al menos un patrón más a la misma clase `Projectile` (ej. "ricochet" o "rastra"), configurado por nivel | La variante se activa por configuración de nivel, sin condicionales dentro del update | Medio |
+| M8 | **Dash (Shift)** | Empuje horizontal corto (~420 px/s extra, ~0,18 s), cooldown ~1,2 s, se resetea al tocar suelo o hacer wall jump, con indicador en el HUD | El dash es utilizable pero no rompe el recorrido (no permite saltarse el mapa); el indicador refleja el cooldown | Medio |
+| M9 | **Recordar último nivel** | Guardar en `localStorage` el nivel alcanzado y ofrecer "Continuar campaña" en el menú | El menú ofrece continuar desde el último nivel y arranca limpio si se elige empezar de nuevo | Bajo |
 
 ### 4.3 Game feel
 
-| # | Propuesta | Detalle | Impacto | Esfuerzo | Confirmación |
-|---|---|---|---|---|---|
-| F1 | **Hitstop / time scale** | 60–90 ms de congelación al impacto, ~30 ms al recoger punto, y cámara en cámara lenta breve al morir | **Muy alto** | Bajo | — |
-| F2 | **Cámara con follow suave** | Follow con lerp y deadzone chiquito (respetando los límites de 1024×768). El HUD queda fijo con `setScrollFactor(0)` | Alto | Bajo | — |
-| F3 | **Zoom por combo** | La cámara hace un zoom sutil (x1.00→x1.03) al llegar a multiplicadores altos y vuelve | Medio | Bajo | — |
-| F4 | **Anticipación (telegraphs)** | Pinchos, portales y la apertura de la salida avisan antes de activarse | Alto | Medio | — |
-| F5 | **Audio procedural (WebAudio)** | Blip ascendente por punto (pitch según el multiplicador), "boing" del trampolín, whoosh de portal, impacto y jingle de victoria, con **sin assets ni dependencias** (`systems/Audio.js`, un solo punto de entrada `Audio.play(...)`). Tocar en el primer input (autoplay policy) | **Muy alto** | Medio | **Sí** (nueva dimensión) |
-| F6 | **Curva de input: turn boost** | Invertir la dirección horizontal en el aire da un empujón corto (~15 % de velocidad, 120 ms). Clásico del género | Alto | Bajo | — |
-| F7 | **Ventanas de gracia visibles** | El coyote time y el buffer ya existen: mostrarlo (squash al final del coyote, destello al buffered) para que el jugador sienta la asistencia | Medio | Bajo | — |
-| F8 | **Contexto en la derrota** | Mostrar el **mejor combo** alcanzado en la partida (requiere registrar el máximo en `ScoreManager`) | Bajo | Bajo | — |
-| F9 | **Tutorial contextual (nivel 1)** | 3 hints que aparecen y desaparecen al usar la mecánica (mover → wall grab → wall jump) | Medio | Medio | — |
+| # | Propuesta | Detalle | Criterio de aceptación | Esfuerzo |
+|---|---|---|---|---|
+| G1 | **Hitstop / time scale** | 60–90 ms de congelación al impacto, ~30 ms al recoger punto y cámara lenta breve al morir | Los tres momentos se perciben distintos y ninguno interrumpe el control más de lo debido | Bajo |
+| G2 | **Cámara con follow suave** | Follow con lerp y deadzone chico, respetando los límites de 1024×768. El HUD queda fijo con `setScrollFactor(0)` | La cámara reacciona al jugador sin revelar fuera del mapa y el HUD nunca se mueve | Bajo |
+| G3 | **Zoom por combo** | Zoom sutil (x1.00→x1.03) al llegar a multiplicadores altos, y de vuelta al normal | El cambio se nota pero no corta la lectura de los proyectiles | Bajo |
+| G4 | **Anticipación (telegraphs)** | Pinchos, portales y la apertura de la salida avisan antes de activarse | Cada activador tiene un aviso perceptible ~0,3–0,4 s antes | Medio |
+| G5 | **Audio procedural (WebAudio)** | Blip ascendente por punto (pitch según el multiplicador), "boing" del trampolín, whoosh de portal, impacto y jingle de victoria, en `systems/Audio.js` con un único punto de entrada `Audio.play(...)`. Sin assets ni dependencias; el contexto se crea en el primer input (autoplay policy) y hay mute con M | Cada evento suena con un timbre coherente, no hay clicks ni errores en consola y el mute funciona | Medio |
+| G6 | **Curva de input: turn boost** | Invertir la dirección horizontal en el aire da un empujón corto (~15 % de velocidad, 120 ms) | Se siente un pequeño "punto" al girar en el aire, sin controlar la inercia normal | Bajo |
+| G7 | **Ventanas de gracia visibles** | El coyote time y el buffer ya existen: mostrarlo (squash al final del coyote, destello al buffered) | Se percibe cuándo el coyote o el buffer están activos | Bajo |
+| G8 | **Contexto en la derrota** | Mostrar el mejor combo alcanzado (registrando el máximo en `ScoreManager`) | La pantalla de derrota muestra el combo máximo de la partida | Bajo |
+| G9 | **Tutorial contextual (nivel 1)** | 3 hints que aparecen y desaparecen al usar la mecánica (mover → wall grab → wall jump) | Los hints no estorban y desaparecen una vez usada la mecánica | Medio |
 
 ### Fuera de alcance (para cuidar el proyecto)
 
@@ -136,32 +148,69 @@ Sin enemigos con IA compleja, sin scroll, sin multijugador, sin más de 5 nivele
 
 ---
 
-## 5. Puertas de calidad (qué se verifica antes de cerrar cada fase)
+## 5. Orden de ejecución consolidado
+
+Cada fila es una fase: **un commit, un push y revisión** antes de pasar a la siguiente.
+
+| # | Fase | Ítems | Depende de | Esfuerzo |
+|---|---|---|---|---|
+| E1 | **Trampolines + rebote perfecto** (nivel 2) | F1, M1 | — | Bajo |
+| E2 | **Audio procedural** (con el "boing" del trampolín ya integrado) | G5 | E1 | Medio |
+| E3 | **Sensación base**: hitstop, follow de cámara, zoom por combo | G1, G2, G3 | — | Bajo |
+| E4 | **Plataformas móviles con ruta visible** (nivel 3) | F2, M2 | E1 | Medio |
+| E5 | **Pinchos cíclicos con aviso** (nivel 4) | F3, M3, G4 | — | Medio |
+| E6 | **Escudo + indicador en el HUD** (nivel 4) | F3, V6 | E2 | Medio |
+| E7 | **Portales que conservan impulso** (nivel 5) | F4, M4, G4 | E4, E5 | Medio |
+| E8 | **Gemas + bonus sin pies en el suelo** | M5, M6 | E2 | Medio |
+| E9 | **Variantes de proyectil** | M7 | — | Medio |
+| E10 | **Dash con Shift + atajos R y M** (controles nuevos, aprobados) | M8 | E3 | Medio |
+| E11 | **Identidad por nivel + parallax + viñeta** | V1, V2, V8 | E4, E5 | Medio |
+| E12 | **Salida animada + paleta de gemas + feedback de movimiento** | V3, V4, V5 | E1, E8 | Medio |
+| E13 | **HUD**: barra de quota y pop de score | V6 | E6 | Bajo |
+| E14 | **Pantallas, transiciones y mejor combo en la derrota** | V7, G8 | E2 | Bajo |
+| E15 | **Game feel fino**: turn boost, ventanas visibles, tutorial del nivel 1 | G6, G7, G9 | E3 | Medio |
+| E16 | **Recordar último nivel** | M9 | E1 | Bajo |
+| E17 | **Balance final + docs + tabla de controles** | F5 (GDD), `README.md`, `AGENTS.md` | todas | Bajo |
+
+Notas de orden:
+
+- **E2 antes que las mecánicas**: con el audio centralizado, cada mecánica nueva solo agrega una llamada a `Audio.play(...)` y se evita tocar cada entidad dos veces.
+- **E3 agrupa la "base de sensación"**: son tres sistemas centrales, sin tocar entidades, y el playtest de E4 en adelante ya se siente como el juego final.
+- **E10 concentra los controles nuevos** para que la tabla de controles de `README.md` se actualice una sola vez.
+- **E17 al final** porque el balance depende de cómo se juega todo lo anterior.
+
+---
+
+## 6. Puertas de calidad (qué se verifica antes de cerrar cada fase)
 
 - [ ] `npm run build-nolog` compila sin errores.
 - [ ] Consola del navegador sin errores ni warnings.
 - [ ] Recorrido manual de la fase en el dev server.
 - [ ] Tests de flujo en el navegador: quota → salida → avance → victoria, y ambas derrotas.
 - [ ] Checker de alcanzabilidad: todos los spots y la salida del nivel siguen siendo alcanzables (crítico con quota).
-- [ ] Revisión de rendimiento: 60 fps estables y sin fugas de objetos/timers entre niveles.
+- [ ] Revisión de rendimiento: 60 fps estables y sin fugas de objetos ni timers entre niveles.
 - [ ] `git status` limpio, commit con mensaje descriptivo y push a `master`.
 
 ---
 
-## 6. Decisiones abiertas (requieren tu confirmación)
+## 7. Decisiones tomadas
 
-1. **Audio procedural (F5)** — ¿lo sumamos? Es la mejora de game feel con más impacto y no requiere assets.
-2. **Bonus "sin pies en el suelo" (M6)** — ¿entra en el alcance del trabajo? Es mecánica nueva, no solo pulido.
-3. **Gemas / puntos valiosos (M5)** — ¿entran? Agregan contenido y decisiones de diseño.
-4. **Dash con Shift (M8)** — es un control nuevo; requiere tu OK explícito.
-5. **Atajo de reintento y mute** — si se aceptan, se agregan teclas (R y M). Requieren tu OK.
-6. **Recordar último nivel (M9)** — ¿lo sumamos al menú?
-7. **Balance** — los timers/quota/proyectiles actuales son de arranque; ¿los ajustamos al final con datos del playtest?
+Aprobadas por el equipo (Tomas Moreno) el **30/09/2026**:
+
+1. **Audio procedural (G5)** — entra. Es la mejora de game feel con más impacto y no requiere assets.
+2. **Bonus "sin pies en el suelo" (M6)** — entra. Es mecánica nueva y está aprobada como tal.
+3. **Gemas / puntos valiosos (M5)** — entran. Agregan contenido y decisiones de diseño propias.
+4. **Dash con Shift (M8)** — entra. Control nuevo aprobado explícitamente.
+5. **Atajos R (reintentar nivel) y M (mute)** — entran.
+6. **Recordar último nivel (M9)** — entra al menú.
+7. **Balance** — timers, quotas y proyectiles se ajustan al final con datos del playtest (E17).
+
+Queda en firme la regla: cualquier control o mecánica central **fuera** de los aprobados requiere aviso previo.
 
 ---
 
-## 7. Backlog posterior
+## 8. Backlog posterior
 
-- Guardar en `localStorage` estadísticas por nivel (mejor tiempo, mejor combo).
+- Estadísticas por nivel en `localStorage` (mejor tiempo, mejor combo).
 - Rejugar un nivel ya superado ("modo práctica") sin afectar el récord de campaña.
 - Niveles extra (6+) o variantes de mapa.
