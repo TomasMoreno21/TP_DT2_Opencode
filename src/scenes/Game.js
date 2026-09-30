@@ -7,6 +7,7 @@ import { GameTimer } from '../systems/GameTimer';
 import { Hud } from '../systems/Hud';
 import { ProjectileManager } from '../systems/ProjectileManager';
 import { FloatingText } from '../systems/FloatingText';
+import { GamePace } from '../systems/GamePace';
 import { Audio } from '../systems/Audio';
 import { LEVELS } from '../assets/levels';
 
@@ -40,10 +41,17 @@ export class Game extends Scene
 
         const levelConfig = LEVELS[this.levelIndex] ?? LEVELS[0];
 
+        this.pace = new GamePace(this);
+        this.zoomLevel = 1;
+
         this.level = new Level(this, levelConfig);
         this.player = new Player(this, levelConfig.spawn.x, levelConfig.spawn.y);
 
         this.physics.add.collider(this.player.rect, this.level.platforms);
+
+        this.cameras.main.setBounds(0, 0, 1024, 768);
+        this.cameras.main.startFollow(this.player.rect, true, 0.12, 0.12);
+        this.cameras.main.setDeadzone(80, 120);
 
         if (this.level.trampolineList.length) {
             this.physics.add.collider(this.player.rect, this.level.trampolines);
@@ -91,6 +99,8 @@ export class Game extends Scene
             this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
             this.hud.setMultiplier(this.scoreManager.multiplier);
             this.player.setMultiplier(this.scoreManager.multiplier);
+            this.pace.hitstop(30);
+            this.applyComboZoom();
             Audio.play('point', { combo: this.scoreManager.multiplier });
             this.burstAt(point.circle.x, point.circle.y, point.color);
             this.floatingText.show(point.circle.x, point.circle.y - 20, `+${gained}`, this.scoreManager.multiplier > 1 ? '#ff6622' : '#ffdd44');
@@ -195,6 +205,8 @@ export class Game extends Scene
         }
 
         this.gameEnded = true;
+        this.pace.hitstop(80);
+        this.pace.slowmo(700, 0.35);
         Audio.play('hit');
         this.player.rect.setFillStyle(0xff4455);
 
@@ -225,5 +237,16 @@ export class Game extends Scene
             emitting: false,
             tint: hexColor
         }).explode(10, x, y);
+    }
+
+    applyComboZoom() {
+        const target = this.scoreManager.multiplier >= 4 ? 1.03 : 1;
+
+        if (target === this.zoomLevel) {
+            return;
+        }
+
+        this.zoomLevel = target;
+        this.cameras.main.zoomTo(target, 300, 'Sine.easeInOut');
     }
 }

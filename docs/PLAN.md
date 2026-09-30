@@ -5,7 +5,7 @@
 > Fuente de diseño: [`docs/GDD.pdf`](./GDD.pdf). Reglas del repo: [`AGENTS.md`](../AGENTS.md).
 
 **Estado:** flujo de escenas completo y verificado (`f782b10`); expansión **aprobada** por el equipo (`de212a1`).
-**Siguiente fase a ejecutar:** E3 — Sensación base (hitstop, follow de cámara, zoom por combo).
+**Siguiente fase a ejecutar:** E4 — Plataformas móviles con ruta visible (nivel 3).
 
 ---
 
@@ -51,7 +51,8 @@ src/
 | P1 — Datos de 5 niveles | 5 configs con plataformas, 12 spots, spawn, salida, timer, quota y proyectiles | **Hecho** | `f782b10` |
 | P2 — Salida / flujo de escenas | Entidad `Goal` cerrada hasta cumplir la quota; el nivel termina al pisarla; victoria al completar el 5º; derrota con "Reintentar nivel" / "Salir"; puntaje de campaña acumulado | **Hecho** | `f782b10` |
 | E1 — Trampolines + rebote perfecto (nivel 2) | `entities/Trampoline.js` con zona perfecta central (más alto + destello), techo del mapa clampado, 4 trampolines en el nivel 2 (3 en el piso + 1 sobre el remate) | **Hecho** | `22868b8` |
-| E2 — Audio procedural | `systems/Audio.js` (WebAudio, sin assets): `Audio.play(evento)` como único punto de entrada, contexto creado en el primer input, mute persistente con M; blips por punto/combo, boing de trampolín, perfect, hit, meta, salida, victoria y clics de UI | **Hecho** | próx. commit |
+| E2 — Audio procedural | `systems/Audio.js` (WebAudio, sin assets): `Audio.play(evento)` como único punto de entrada, contexto creado en el primer input, mute persistente con M; blips por punto/combo, boing de trampolín, perfect, hit, meta, salida, victoria y clics de UI | **Hecho** | `98f4f50` |
+| E3 — Sensación base | `systems/GamePace.js` (hitstop 30 ms al punto / 80 ms al impacto + cámara lenta 0.35 al morir), camera follow con lerp y deadzone dentro de 1024×768 (HUD fijo con setScrollFactor 0), zoom sutil x1→x1.03 con multiplicador ≥4 | **Hecho** | próx. commit |
 
 ### Reglas de puntaje acordadas
 
