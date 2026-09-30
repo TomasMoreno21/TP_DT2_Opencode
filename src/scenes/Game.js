@@ -179,6 +179,10 @@ export class Game extends Scene
                 this.burstAt(gem.x, gem.y, gem.color);
                 this.floatingText.show(gem.x, gem.y - 24, `+${gained}`, '#66ff88', 20);
 
+                if (airBonus > 0) {
+                    this.floatingText.show(gem.x, gem.y - 44, `VOLANDO +${airBonus}`, '#66ff88', 14);
+                }
+
                 if (this.scoreManager.quotaMet) {
                     this.onQuotaMet();
                 }

@@ -30,7 +30,8 @@ export class GameTimer {
         }
     }
 
+    // Suma tiempo al reloj: se adelanta startTime para que el elapsedSea menor.
     addSeconds(seconds) {
-        this.startTime -= seconds * 1000;
+        this.startTime += seconds * 1000;
     }
 }

@@ -29,8 +29,10 @@ export class PowerUp {
         this.available = true;
         this.respawnTimer = null;
 
+        // Solo se anima la capa visual: el circulo con cuerpo fisico mantiene su
+        // posicion fija para no pelearse con el motor y provocar vibracion.
         this.bobTween = scene.tweens.add({
-            targets: [this.circle, this.ring],
+            targets: this.ring,
             y: this.baseY + POWERUP_CONFIG.bobHeight,
             duration: POWERUP_CONFIG.bobDuration,
             yoyo: true,

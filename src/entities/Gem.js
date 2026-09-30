@@ -30,8 +30,10 @@ export class Gem {
         this.body.setAllowGravity(false);
         this.body.setImmovable(true);
 
+        // Solo se animan las capas visuales: el circulo con cuerpo fisico mantiene
+        // su posicion fija para no pelearse con el motor y provocar vibracion.
         this.bobTween = scene.tweens.add({
-            targets: [this.circle, this.glow, this.diamond],
+            targets: [this.glow, this.diamond],
             y: this.baseY + GEM_CONFIG.bobHeight,
             duration: GEM_CONFIG.bobDuration,
             yoyo: true,
