@@ -206,6 +206,16 @@ export const LEVELS = [
             // Remate central
             { x: 512, y: 268, w: 150, h: 20, color: 0x3a3a5c }
         ],
+        hazards: [
+            // Sobre el piso (desfasados entre sí)
+            { x: 260, y: 708, w: 110 },
+            { x: 512, y: 708, w: 110, offsetMs: 700 },
+            { x: 760, y: 708, w: 110, offsetMs: 1400 },
+            // Paso por la fila 1 central
+            { x: 512, y: 622, w: 110, offsetMs: 350 },
+            // Fila 2 derecha (obliga a cronometrar el cruce al remate)
+            { x: 724, y: 530, w: 90, offsetMs: 1050 }
+        ],
         pointSpots: [
             { x: 280, y: 688 },
             { x: 740, y: 688 },

@@ -3,6 +3,7 @@ import { Point } from '../entities/Point';
 import { Projectile } from '../entities/Projectile';
 import { Trampoline } from '../entities/Trampoline';
 import { MovingPlatform } from '../entities/MovingPlatform';
+import { Hazard } from '../entities/Hazard';
 
 export class EntityFactory {
     static createPoint(scene, x, y) {
@@ -27,5 +28,9 @@ export class EntityFactory {
 
     static createMovingPlatform(scene, data) {
         return new MovingPlatform(scene, data);
+    }
+
+    static createHazard(scene, data) {
+        return new Hazard(scene, data);
     }
 }

@@ -118,6 +118,10 @@ export class Game extends Scene
 
         this.physics.add.overlap(this.player.rect, this.projectileManager.group, () => this.onHit());
 
+        if (this.level.hazardList.length) {
+            this.physics.add.overlap(this.player.rect, this.level.hazards, () => this.onHit());
+        }
+
         this.physics.add.overlap(this.player.rect, this.level.goal.frame, () => {
             if (this.level.goal.isOpen) {
                 this.onGoalReached();
@@ -131,6 +135,7 @@ export class Game extends Scene
         this.timer.update();
         this.projectileManager.update(delta);
         this.updateMovingPlatforms();
+        this.updateHazards();
 
         const seconds = this.timer.remainingSeconds;
         if (seconds !== this.lastSecond) {
@@ -167,6 +172,17 @@ export class Game extends Scene
                     this.player.body.y += delta;
                 }
             }
+        }
+    }
+
+    // Actualiza el ciclo de los pinchos y detecta daño en su fase activa.
+    updateHazards() {
+        if (this.level.hazardList.length === 0) {
+            return;
+        }
+
+        for (const hazard of this.level.hazardList) {
+            hazard.update();
         }
     }
 
