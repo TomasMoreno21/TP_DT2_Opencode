@@ -16,6 +16,7 @@ export class Level {
         this.goal = EntityFactory.createGoal(scene, config.goal.x, config.goal.y);
 
         this.materializeTrampolines();
+        this.materializeMovingPlatforms();
     }
 
     materializeTrampolines() {
@@ -26,6 +27,17 @@ export class Level {
             const trampoline = EntityFactory.createTrampoline(this.scene, t);
             this.trampolines.add(trampoline.rect);
             this.trampolineList.push(trampoline);
+        }
+    }
+
+    materializeMovingPlatforms() {
+        this.movingPlatforms = this.scene.physics.add.group();
+        this.movingPlatformList = [];
+
+        for (const p of this.config.movingPlatforms ?? []) {
+            const platform = EntityFactory.createMovingPlatform(this.scene, p);
+            this.movingPlatforms.add(platform.rect);
+            this.movingPlatformList.push(platform);
         }
     }
 }

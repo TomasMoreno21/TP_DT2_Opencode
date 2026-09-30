@@ -65,6 +65,10 @@ export class Game extends Scene
             });
         }
 
+        if (this.level.movingPlatformList.length) {
+            this.physics.add.collider(this.player.rect, this.level.movingPlatforms);
+        }
+
         this.scoreManager = new ScoreManager();
         this.scoreManager.setQuota(levelConfig.quota);
         this.timer = new GameTimer(this, () => this.onTimeUp(), levelConfig.durationSeconds);
@@ -126,11 +130,43 @@ export class Game extends Scene
         this.player.update();
         this.timer.update();
         this.projectileManager.update(delta);
+        this.updateMovingPlatforms();
 
         const seconds = this.timer.remainingSeconds;
         if (seconds !== this.lastSecond) {
             this.lastSecond = seconds;
             this.hud.setTime(seconds);
+        }
+    }
+
+    // Arrastra al jugador parado sobre una plataforma móvil para que viaje con ella.
+    updateMovingPlatforms() {
+        if (this.level.movingPlatformList.length === 0) {
+            return;
+        }
+
+        const playerRect = this.player.rect;
+
+        for (const platform of this.level.movingPlatformList) {
+            const delta = platform.update();
+
+            if (delta === 0) {
+                continue;
+            }
+
+            const platformTop = platform.rect.y - platform.rect.height / 2;
+            const playerBottom = playerRect.y + playerRect.height / 2;
+            const touchesTop = Math.abs(playerBottom - platformTop) < 10;
+            const withinX = Math.abs(playerRect.x - platform.rect.x) <= (platform.rect.width + playerRect.width) / 2;
+            const standing = this.player.body.blocked.down && touchesTop && withinX;
+
+            if (standing) {
+                if (platform.axis === 'x') {
+                    this.player.body.x += delta;
+                } else {
+                    this.player.body.y += delta;
+                }
+            }
         }
     }
 

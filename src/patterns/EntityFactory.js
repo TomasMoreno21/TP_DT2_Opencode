@@ -2,6 +2,7 @@ import { Goal } from '../entities/Goal';
 import { Point } from '../entities/Point';
 import { Projectile } from '../entities/Projectile';
 import { Trampoline } from '../entities/Trampoline';
+import { MovingPlatform } from '../entities/MovingPlatform';
 
 export class EntityFactory {
     static createPoint(scene, x, y) {
@@ -22,5 +23,9 @@ export class EntityFactory {
 
     static createTrampoline(scene, data) {
         return new Trampoline(scene, data.x, data.y, data);
+    }
+
+    static createMovingPlatform(scene, data) {
+        return new MovingPlatform(scene, data);
     }
 }

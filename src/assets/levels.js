@@ -149,6 +149,12 @@ export const LEVELS = [
             // Corona
             { x: 512, y: 262, w: 170, h: 20, color: 0x3a3a5c }
         ],
+        movingPlatforms: [
+            // Horizontal: cruza el hueco entre fila 2 central y derecha
+            { x: 618, y: 538, w: 110, h: 20, distance: 170, speed: 80, axis: 'x' },
+            // Vertical: lleva del piso a la fila 3 derecha
+            { x: 790, y: 510, w: 50, h: 20, distance: 180, speed: 65, axis: 'y' }
+        ],
         pointSpots: [
             { x: 250, y: 688 },
             { x: 760, y: 688 },
