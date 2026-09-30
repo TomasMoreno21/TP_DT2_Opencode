@@ -6,6 +6,7 @@ import { MovingPlatform } from '../entities/MovingPlatform';
 import { Hazard } from '../entities/Hazard';
 import { PowerUp } from '../entities/PowerUp';
 import { Portal } from '../entities/Portal';
+import { Gem } from '../entities/Gem';
 
 export class EntityFactory {
     static createPoint(scene, x, y) {
@@ -42,5 +43,9 @@ export class EntityFactory {
 
     static createPortal(scene, data) {
         return new Portal(scene, data);
+    }
+
+    static createGem(scene, x, y) {
+        return new Gem(scene, x, y);
     }
 }

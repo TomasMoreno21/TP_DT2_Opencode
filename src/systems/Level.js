@@ -20,6 +20,7 @@ export class Level {
         this.materializeHazards();
         this.materializePowerUps();
         this.materializePortals();
+        this.materializeGems();
     }
 
     materializeTrampolines() {
@@ -82,6 +83,17 @@ export class Level {
         for (let i = 0; i + 1 < this.portalList.length; i += 2) {
             this.portalList[i].linked = this.portalList[i + 1];
             this.portalList[i + 1].linked = this.portalList[i];
+        }
+    }
+
+    materializeGems() {
+        this.gems = this.scene.physics.add.group();
+        this.gemList = [];
+
+        for (const g of this.config.gems ?? []) {
+            const gem = EntityFactory.createGem(this.scene, g.x, g.y);
+            this.gems.add(gem.circle);
+            this.gemList.push(gem);
         }
     }
 }

@@ -29,4 +29,8 @@ export class GameTimer {
             }
         }
     }
+
+    addSeconds(seconds) {
+        this.startTime -= seconds * 1000;
+    }
 }

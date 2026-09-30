@@ -7,6 +7,8 @@ export class ScoreManager {
         this.lastCollectionTime = 0;
         this.collected = 0;
         this.quota = 8;
+        this.airStreak = 0;
+        this.airBonusPerStep = 10;
     }
 
     setQuota(quota) {
@@ -17,7 +19,9 @@ export class ScoreManager {
         return this.collected >= this.quota;
     }
 
-    scorePoint(value, now) {
+    // Combo compartido por puntos y gemas. countQuota controla si la recolección
+    // suma a la meta; airborne acumula la cadena "sin pies en el suelo" (M6).
+    addValue(value, now, countQuota, airborne) {
         if (this.combo > 0 && now - this.lastCollectionTime > this.comboWindowMs) {
             this.combo = 0;
             this.multiplier = 1;
@@ -29,8 +33,35 @@ export class ScoreManager {
 
         const gained = value * this.multiplier;
         this.score += gained;
-        this.collected += 1;
-        return gained;
+
+        if (countQuota) {
+            this.collected += 1;
+        }
+
+        let airBonus = 0;
+
+        if (airborne) {
+            this.airStreak += 1;
+            airBonus = this.airStreak * this.airBonusPerStep;
+            this.score += airBonus;
+        } else {
+            this.airStreak = 0;
+        }
+
+        return { gained, airBonus };
+    }
+
+    scorePoint(value, now, { airborne = false } = {}) {
+        return this.addValue(value, now, true, airborne);
+    }
+
+    // Las gemas (M5) no cuentan para la quota: suman puntos y dan tiempo extra.
+    scoreGem(value, now, { airborne = false } = {}) {
+        return this.addValue(value, now, false, airborne);
+    }
+
+    resetAirStreak() {
+        this.airStreak = 0;
     }
 
     reset() {
@@ -40,5 +71,6 @@ export class ScoreManager {
         this.lastCollectionTime = 0;
         this.collected = 0;
         this.quota = 8;
+        this.airStreak = 0;
     }
 }

@@ -10,7 +10,7 @@ import { ProjectileManager } from '../systems/ProjectileManager';
 import { FloatingText } from '../systems/FloatingText';
 import { GamePace } from '../systems/GamePace';
 import { Audio } from '../systems/Audio';
-import { LEVELS } from '../assets/levels';
+import { LEVELS, WORLD } from '../assets/levels';
 
 export class Game extends Scene
 {
@@ -124,16 +124,23 @@ export class Game extends Scene
                 return;
             }
 
-            const gained = this.scoreManager.scorePoint(point.value, this.time.now);
+            const airborne = !this.player.body.blocked.down;
+            const { gained, airBonus } = this.scoreManager.scorePoint(point.value, this.time.now, { airborne });
             this.hud.setScore(this.scoreManager.score);
             this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
             this.hud.setMultiplier(this.scoreManager.multiplier);
+            this.hud.setAirStreak(this.scoreManager.airStreak);
             this.player.setMultiplier(this.scoreManager.multiplier);
             this.pace.hitstop(30);
             this.applyComboZoom();
             Audio.play('point', { combo: this.scoreManager.multiplier });
             this.burstAt(point.circle.x, point.circle.y, point.color);
             this.floatingText.show(point.circle.x, point.circle.y - 20, `+${gained}`, this.scoreManager.multiplier > 1 ? '#ff6622' : '#ffdd44');
+
+            if (airBonus > 0) {
+                this.floatingText.show(point.circle.x, point.circle.y - 44, `VOLEANDO +${airBonus}`, '#66ff88', 14);
+            }
+
             point.deactivate();
             this.pointSpawner.activateAnother();
 
@@ -141,6 +148,35 @@ export class Game extends Scene
                 this.onQuotaMet();
             }
         });
+
+        if (this.level.gemList.length) {
+            this.physics.add.overlap(this.player.rect, this.level.gems, (player, circle) => {
+                const gem = this.level.gemList.find((g) => g.circle === circle);
+
+                if (!gem || !gem.active) {
+                    return;
+                }
+
+                const airborne = !this.player.body.blocked.down;
+                const { gained, airBonus } = this.scoreManager.scoreGem(gem.value, this.time.now, { airborne });
+                this.timer.addSeconds(gem.bonusSeconds);
+                this.hud.setScore(this.scoreManager.score);
+                this.hud.setMultiplier(this.scoreManager.multiplier);
+                this.hud.setAirStreak(this.scoreManager.airStreak);
+                this.player.setMultiplier(this.scoreManager.multiplier);
+                this.pace.hitstop(30);
+                this.applyComboZoom();
+                Audio.play('gem');
+                this.burstAt(gem.x, gem.y, gem.color);
+                this.floatingText.show(gem.x, gem.y - 24, `+${gained}`, '#66ff88', 20);
+
+                if (this.scoreManager.quotaMet) {
+                    this.onQuotaMet();
+                }
+
+                gem.deactivate();
+            });
+        }
 
         this.physics.add.overlap(this.player.rect, this.projectileManager.group, (player, circle) => this.onHit(circle));
 
@@ -171,7 +207,18 @@ export class Game extends Scene
 
         this.hud.setShield(this.player.shieldUntil - this.time.now, this.shieldTotalMs);
 
+        this.updateAirStreak();
         this.updatePortals();
+    }
+
+    // M6: la cadena "sin pies en el suelo" se corta al aterrizar sobre el piso.
+    updateAirStreak() {
+        const onFloor = this.player.body.blocked.down && this.player.rect.y + this.player.rect.height / 2 >= WORLD.floorTop - 2;
+
+        if (onFloor && this.scoreManager.airStreak > 0) {
+            this.scoreManager.resetAirStreak();
+            this.hud.setAirStreak(0);
+        }
     }
 
     // Gestiona la carga de los portales: la cancela si el jugador se aleja y

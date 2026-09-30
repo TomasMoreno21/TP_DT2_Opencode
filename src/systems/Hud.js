@@ -32,6 +32,11 @@ export class Hud {
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5).setScrollFactor(0).setVisible(false);
 
+        this.airText = scene.add.text(512, 96, 'VOLANDO', {
+            fontFamily: 'Arial Black', fontSize: 16, color: '#66ff88',
+            stroke: '#000000', strokeThickness: 5
+        }).setOrigin(0.5).setScrollFactor(0).setVisible(false);
+
         this.shieldBar = scene.add.rectangle(16, 100, 130, 10, 0x1a1a2e, 0.85)
             .setOrigin(0, 0).setScrollFactor(0).setVisible(false);
         this.shieldBar.setStrokeStyle(1, 0x2dd4ff, 0.8);
@@ -140,5 +145,14 @@ export class Hud {
 
         const fraction = Math.max(Math.min(remainingMs / totalMs, 1), 0);
         this.shieldFill.setScale(fraction, 1);
+    }
+
+    setAirStreak(streak) {
+        if (streak > 0) {
+            this.airText.setText(`VOLANDO x${streak}`).setVisible(true);
+            return;
+        }
+
+        this.airText.setVisible(false);
     }
 }

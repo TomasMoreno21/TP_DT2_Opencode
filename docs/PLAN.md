@@ -5,7 +5,7 @@
 > Fuente de diseño: [`docs/GDD.pdf`](./GDD.pdf). Reglas del repo: [`AGENTS.md`](../AGENTS.md).
 
 **Estado:** flujo de escenas completo y verificado (`f782b10`); expansión **aprobada** por el equipo (`de212a1`).
-**Siguiente fase a ejecutar:** E8 — Gemas + bonus sin pies en el suelo.
+**Siguiente fase a ejecutar:** E9 — Variantes de proyectil.
 
 ---
 
@@ -56,7 +56,8 @@ src/
 | E4 — Plataformas móviles (nivel 3) | `entities/MovingPlatform.js` con eje x/y configurable, ruta visible (M2) con línea y ticks, arrastre del jugador parado; 2 plataformas en el nivel 3 (horizontal entre fila 2, vertical al piso→fila 3) | **Hecho** | `93be898` |
 | E5 — Pinchos cíclicos con aviso (nivel 4) | `entities/Hazard.js` con ciclo rest→warn→active (temblor y color de aviso G4/M3, daño solo en fase activa), offset de desfase configurable; 5 pinchos en el nivel 4 (piso + fila 1 central + fila 2 derecha) | **Hecho** | `3a531a6` |
 | E6 — Escudo + indicador en el HUD (nivel 4) | `entities/PowerUp.js` (pickup de escudo re-obtenible, bob + pulso), escudo temporal en `Player` (absorbe un impacto y da ventana de invulnerabilidad corta), proyectil absorbido se elimina del manager, indicador de escudo en `Hud` (V6); 3 power-ups en el nivel 4 | **Hecho** | `ca19193` |
-| E7 — Portales que conservan impulso (nivel 5) | `entities/Portal.js` (pares vinculados, sensor con aviso G4 de 350 ms al pisar, cancela si se sale, conserva 80 % del impulso con clamp M4, cooldown del destino); 2 pares en el nivel 5 (de cada lado del piso a la ruta lateral alta) + combinación trampolín/móvil/pinchos para F4 | **Hecho** | próx. commit |
+| E7 — Portales que conservan impulso (nivel 5) | `entities/Portal.js` (pares vinculados, sensor con aviso G4 de 350 ms al pisar, cancela si se sale, conserva 80 % del impulso con clamp M4, cooldown del destino); 2 pares en el nivel 5 (de cada lado del piso a la ruta lateral alta) + combinación trampolín/móvil/pinchos para F4 | **Hecho** | `70d3f65` |
+| E8 — Gemas + bonus sin pies en el suelo | `entities/Gem.js` (M5+V4: vale 25, +2 s al timer, no cuenta quota, bob+brillo), `ScoreManager.addValue` con flag `countQuota`/`airborne`, cadena aérea M6 (+10 × streak, texto "VOLANDO xN" en el HUD, se corta al tocar el piso); 1'2 gemas por nivel (1 en L1–L3, 3 en L5) | **Hecho** | próx. commit |
 
 ### Reglas de puntaje acordadas
 
