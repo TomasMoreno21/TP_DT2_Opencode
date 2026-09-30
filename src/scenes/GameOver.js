@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { HighScore } from '../systems/HighScore';
+import { Audio } from '../systems/Audio';
 import { LEVELS } from '../assets/levels';
 
 const ENDING_CONFIG = {
@@ -29,6 +30,10 @@ export class GameOver extends Scene
     create ()
     {
         this.cameras.main.setBackgroundColor(0x0f0f1a);
+
+        if (this.reason === 'victory') {
+            Audio.play('victory');
+        }
 
         const config = ENDING_CONFIG[this.reason] ?? ENDING_CONFIG.hit;
 

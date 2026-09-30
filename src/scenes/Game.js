@@ -7,6 +7,7 @@ import { GameTimer } from '../systems/GameTimer';
 import { Hud } from '../systems/Hud';
 import { ProjectileManager } from '../systems/ProjectileManager';
 import { FloatingText } from '../systems/FloatingText';
+import { Audio } from '../systems/Audio';
 import { LEVELS } from '../assets/levels';
 
 export class Game extends Scene
@@ -50,7 +51,8 @@ export class Game extends Scene
                 const trampoline = this.level.trampolineList.find((t) => t.rect === rect);
 
                 if (trampoline && player.body.velocity.y > -30) {
-                    trampoline.bounce(this.player.rect);
+                    const perfect = trampoline.bounce(this.player.rect);
+                    Audio.play(perfect ? 'perfect' : 'bounce');
                 }
             });
         }
@@ -68,6 +70,12 @@ export class Game extends Scene
 
         this.floatingText.showBanner(512, 240, `Nivel ${this.levelIndex + 1} - ${levelConfig.name}`, '#00d1b2', 34);
 
+        this.muteKey = this.input.keyboard.addKey('M');
+        this.muteKey.on('down', () => {
+            const isMuted = Audio.toggle();
+            this.floatingText.show(512, 120, isMuted ? 'MUTE' : 'SONIDO', '#ffffff', 18);
+        });
+
         this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots);
         this.projectileManager = new ProjectileManager(this, this.timer.durationMs, levelConfig.projectiles);
 
@@ -83,6 +91,7 @@ export class Game extends Scene
             this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
             this.hud.setMultiplier(this.scoreManager.multiplier);
             this.player.setMultiplier(this.scoreManager.multiplier);
+            Audio.play('point', { combo: this.scoreManager.multiplier });
             this.burstAt(point.circle.x, point.circle.y, point.color);
             this.floatingText.show(point.circle.x, point.circle.y - 20, `+${gained}`, this.scoreManager.multiplier > 1 ? '#ff6622' : '#ffdd44');
             point.deactivate();
@@ -128,6 +137,7 @@ export class Game extends Scene
         }
 
         this.level.goal.open();
+        Audio.play('goalOpen');
 
         this.floatingText.showBanner(512, 300, '¡META CUMPLIDA!', '#00ff88', 32);
         this.floatingText.showBanner(512, 348, 'Llegá a la salida', '#ffffff', 22, 700);
@@ -141,6 +151,7 @@ export class Game extends Scene
 
         this.levelComplete = true;
         this.gameEnded = true;
+        Audio.play('goalReached');
 
         const bankedScore = this.totalScore;
 
@@ -184,6 +195,7 @@ export class Game extends Scene
         }
 
         this.gameEnded = true;
+        Audio.play('hit');
         this.player.rect.setFillStyle(0xff4455);
 
         this.cameras.main.shake(400, 0.02);

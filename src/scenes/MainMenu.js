@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { HighScore } from '../systems/HighScore';
+import { Audio } from '../systems/Audio';
 import { LEVELS } from '../assets/levels';
 
 const COLORS = {
@@ -126,6 +127,8 @@ export class MainMenu extends Scene
         const label = this.add.text(512, 600, 'JUGAR', {
             fontFamily: 'Arial Black', fontSize: 34, color: '#00382c'
         }).setOrigin(0.5);
+
+        btn.on('pointerup', () => Audio.play('ui'));
 
         this.tweens.add({ targets: btn, y: 594, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         this.tweens.add({ targets: label, y: 594, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
