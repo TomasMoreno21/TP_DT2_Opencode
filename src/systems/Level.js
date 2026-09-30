@@ -18,6 +18,7 @@ export class Level {
         this.materializeTrampolines();
         this.materializeMovingPlatforms();
         this.materializeHazards();
+        this.materializePowerUps();
     }
 
     materializeTrampolines() {
@@ -50,6 +51,17 @@ export class Level {
             const hazard = EntityFactory.createHazard(this.scene, h);
             this.hazards.add(hazard.rect);
             this.hazardList.push(hazard);
+        }
+    }
+
+    materializePowerUps() {
+        this.powerUps = this.scene.physics.add.group();
+        this.powerUpList = [];
+
+        for (const p of this.config.powerUps ?? []) {
+            const powerUp = EntityFactory.createPowerUp(this.scene, p);
+            this.powerUps.add(powerUp.circle);
+            this.powerUpList.push(powerUp);
         }
     }
 }

@@ -32,6 +32,16 @@ export class Hud {
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5).setScrollFactor(0).setVisible(false);
 
+        this.shieldBar = scene.add.rectangle(16, 100, 130, 10, 0x1a1a2e, 0.85)
+            .setOrigin(0, 0).setScrollFactor(0).setVisible(false);
+        this.shieldBar.setStrokeStyle(1, 0x2dd4ff, 0.8);
+        this.shieldFill = scene.add.rectangle(18, 102, 126, 6, 0x2dd4ff, 0.9)
+            .setOrigin(0, 0).setScrollFactor(0).setVisible(false);
+        this.shieldLabel = scene.add.text(16, 84, 'ESCUDO', {
+            fontFamily: 'Arial Black', fontSize: 14, color: '#2dd4ff',
+            stroke: '#000000', strokeThickness: 4
+        }).setScrollFactor(0).setVisible(false);
+
         this.timerText = scene.add.text(HUD_CONFIG.timerX, HUD_CONFIG.timerY, '1:00', {
             fontFamily: 'Arial Black', fontSize: 56, color: this.normalColor,
             stroke: '#000000', strokeThickness: 8
@@ -115,5 +125,20 @@ export class Hud {
             duration: 200,
             ease: 'Quad.easeOut'
         });
+    }
+
+    setShield(remainingMs, totalMs) {
+        const active = remainingMs > 0;
+
+        this.shieldBar.setVisible(active);
+        this.shieldFill.setVisible(active);
+        this.shieldLabel.setVisible(active);
+
+        if (!active) {
+            return;
+        }
+
+        const fraction = Math.max(Math.min(remainingMs / totalMs, 1), 0);
+        this.shieldFill.setScale(fraction, 1);
     }
 }

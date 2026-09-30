@@ -5,7 +5,7 @@
 > Fuente de diseño: [`docs/GDD.pdf`](./GDD.pdf). Reglas del repo: [`AGENTS.md`](../AGENTS.md).
 
 **Estado:** flujo de escenas completo y verificado (`f782b10`); expansión **aprobada** por el equipo (`de212a1`).
-**Siguiente fase a ejecutar:** E6 — Escudo temporal (nivel 4).
+**Siguiente fase a ejecutar:** E7 — Portales que conservan impulso (nivel 5).
 
 ---
 
@@ -54,7 +54,8 @@ src/
 | E2 — Audio procedural | `systems/Audio.js` (WebAudio, sin assets): `Audio.play(evento)` como único punto de entrada, contexto creado en el primer input, mute persistente con M; blips por punto/combo, boing de trampolín, perfect, hit, meta, salida, victoria y clics de UI | **Hecho** | `98f4f50` |
 | E3 — Sensación base | `systems/GamePace.js` (hitstop 30 ms al punto / 80 ms al impacto + cámara lenta 0.35 al morir), camera follow con lerp y deadzone dentro de 1024×768 (HUD fijo con setScrollFactor 0), zoom sutil x1→x1.03 con multiplicador ≥4 | **Hecho** | `09b4375` |
 | E4 — Plataformas móviles (nivel 3) | `entities/MovingPlatform.js` con eje x/y configurable, ruta visible (M2) con línea y ticks, arrastre del jugador parado; 2 plataformas en el nivel 3 (horizontal entre fila 2, vertical al piso→fila 3) | **Hecho** | `93be898` |
-| E5 — Pinchos cíclicos con aviso (nivel 4) | `entities/Hazard.js` con ciclo rest→warn→active (temblor y color de aviso G4/M3, daño solo en fase activa), offset de desfase configurable; 5 pinchos en el nivel 4 (piso + fila 1 central + fila 2 derecha) | **Hecho** | próx. commit |
+| E5 — Pinchos cíclicos con aviso (nivel 4) | `entities/Hazard.js` con ciclo rest→warn→active (temblor y color de aviso G4/M3, daño solo en fase activa), offset de desfase configurable; 5 pinchos en el nivel 4 (piso + fila 1 central + fila 2 derecha) | **Hecho** | `3a531a6` |
+| E6 — Escudo + indicador en el HUD (nivel 4) | `entities/PowerUp.js` (pickup de escudo re-obtenible, bob + pulso), escudo temporal en `Player` (absorbe un impacto y da ventana de invulnerabilidad corta), proyectil absorbido se elimina del manager, indicador de escudo en `Hud` (V6); 3 power-ups en el nivel 4 | **Hecho** | próx. commit |
 
 ### Reglas de puntaje acordadas
 

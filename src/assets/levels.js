@@ -216,6 +216,14 @@ export const LEVELS = [
             // Fila 2 derecha (obliga a cronometrar el cruce al remate)
             { x: 724, y: 530, w: 90, offsetMs: 1050 }
         ],
+        powerUps: [
+            // Escudo accesible: sobre la plataforma izquierda de la fila 1
+            { x: 160, y: 610, respawnMs: 12000 },
+            // Escudo de riesgo: flotando sobre la fila 3 central
+            { x: 512, y: 420, respawnMs: 14000 },
+            // Escudo alto: sobre la fila 4 derecha (reward por subir)
+            { x: 694, y: 334, respawnMs: 14000 }
+        ],
         pointSpots: [
             { x: 280, y: 688 },
             { x: 740, y: 688 },

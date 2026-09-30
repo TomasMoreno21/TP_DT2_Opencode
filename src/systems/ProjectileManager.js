@@ -53,7 +53,7 @@ export class ProjectileManager {
 
             projectile.update(deltaMs);
 
-            if (projectile.isOutOfBounds()) {
+            if (projectile.isOutOfBounds() || projectile.isAbsorbed) {
                 projectile.destroy();
                 this.projectiles.splice(i, 1);
             }
@@ -62,6 +62,17 @@ export class ProjectileManager {
         if (this.scene.time.now >= this.nextSpawnTime) {
             this.spawn();
             this.nextSpawnTime = this.scene.time.now + this.intervalMs;
+        }
+    }
+
+    // Marca el proyectil cuyo círculo coincide como absorbido (se elimina en el próximo update).
+    absorbCircle(circle) {
+        const projectile = this.projectiles.find((p) => p.circle === circle);
+
+        if (projectile && !projectile.isAbsorbed) {
+            projectile.isAbsorbed = true;
+            projectile.circle.setActive(false);
+            projectile.circle.setVisible(false);
         }
     }
 }

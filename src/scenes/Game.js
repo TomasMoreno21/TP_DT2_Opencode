@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { Level } from '../systems/Level';
-import { Player } from '../entities/Player';
+import { Player, PLAYER_CONFIG } from '../entities/Player';
 import { PointSpawner } from '../systems/PointSpawner';
 import { ScoreManager } from '../systems/ScoreManager';
 import { GameTimer } from '../systems/GameTimer';
@@ -69,6 +69,21 @@ export class Game extends Scene
             this.physics.add.collider(this.player.rect, this.level.movingPlatforms);
         }
 
+        if (this.level.powerUpList.length) {
+            this.physics.add.overlap(this.player.rect, this.level.powerUps, (player, circle) => {
+                const powerUp = this.level.powerUpList.find((p) => p.circle === circle);
+
+                if (powerUp && powerUp.collect()) {
+                    this.player.activateShield();
+                    Audio.play('shield');
+                    this.floatingText.show(powerUp.x, powerUp.y - 28, '¡ESCUDO!', '#2dd4ff', 20);
+                    this.burstAt(powerUp.x, powerUp.y, 0x2dd4ff);
+                }
+            });
+        }
+
+        this.shieldTotalMs = PLAYER_CONFIG.shieldDurationMs;
+
         this.scoreManager = new ScoreManager();
         this.scoreManager.setQuota(levelConfig.quota);
         this.timer = new GameTimer(this, () => this.onTimeUp(), levelConfig.durationSeconds);
@@ -116,7 +131,7 @@ export class Game extends Scene
             }
         });
 
-        this.physics.add.overlap(this.player.rect, this.projectileManager.group, () => this.onHit());
+        this.physics.add.overlap(this.player.rect, this.projectileManager.group, (player, circle) => this.onHit(circle));
 
         if (this.level.hazardList.length) {
             this.physics.add.overlap(this.player.rect, this.level.hazards, () => this.onHit());
@@ -142,6 +157,8 @@ export class Game extends Scene
             this.lastSecond = seconds;
             this.hud.setTime(seconds);
         }
+
+        this.hud.setShield(this.player.shieldUntil - this.time.now, this.shieldTotalMs);
     }
 
     // Arrastra al jugador parado sobre una plataforma móvil para que viaje con ella.
@@ -250,9 +267,26 @@ export class Game extends Scene
         });
     }
 
-    onHit ()
+    onHit (projectileCircle = null)
     {
         if (this.gameEnded) {
+            return;
+        }
+
+        if (this.player.isInvulnerable) {
+            return;
+        }
+
+        if (this.player.hasShield) {
+            if (projectileCircle) {
+                this.projectileManager.absorbCircle(projectileCircle);
+            }
+
+            this.player.absorbHit();
+            Audio.play('hit');
+            this.cameras.main.flash(150, 90, 220, 255);
+            this.burstAt(this.player.rect.x, this.player.rect.y, 0x2dd4ff);
+            this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡ESCUDO!', '#2dd4ff', 20);
             return;
         }
 

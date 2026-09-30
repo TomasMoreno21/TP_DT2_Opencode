@@ -11,7 +11,10 @@ export const PLAYER_CONFIG = {
     wallJumpXVelocity: 300,
     wallJumpYVelocity: -500,
     wallJumpCooldown: 220,
-    wallCoyoteTime: 180
+    wallCoyoteTime: 180,
+    shieldDurationMs: 6000,
+    shieldColor: 0x2dd4ff,
+    invulnerableMs: 500
 };
 
 const MULTIPLIER_COLORS = {
@@ -43,11 +46,51 @@ export class Player {
         this.lastWallTouchTime = -Infinity;
         this.wallSide = null;
 
+        this.shieldUntil = 0;
+        this.invulnerableUntil = 0;
+
+        this.shieldRing = scene.add.circle(x, y, PLAYER_CONFIG.width * 0.9, 0x2dd4ff, 0.12);
+        this.shieldRing.setStrokeStyle(3, PLAYER_CONFIG.shieldColor, 0.9);
+        this.shieldRing.setVisible(false);
+
         this.cursors = scene.input.keyboard.createCursorKeys();
         this.keys = scene.input.keyboard.addKeys('W,A,D,SPACE');
     }
 
+    get hasShield() {
+        return this.scene.time.now < this.shieldUntil;
+    }
+
+    get isInvulnerable() {
+        return this.scene.time.now < this.invulnerableUntil;
+    }
+
+    activateShield(durationMs = PLAYER_CONFIG.shieldDurationMs) {
+        this.shieldUntil = this.scene.time.now + durationMs;
+    }
+
+    // Absorbe el golpe: consume el escudo y deja una ventana de invulnerabilidad.
+    absorbHit() {
+        this.shieldUntil = 0;
+        this.invulnerableUntil = this.scene.time.now + PLAYER_CONFIG.invulnerableMs;
+        this.rect.setFillStyle(0xffffff);
+        this.scene.time.delayedCall(350, () => {
+            if (!this.wallGrabbing) {
+                this.rect.setFillStyle(MULTIPLIER_COLORS[this.multiplier] ?? PLAYER_CONFIG.color);
+            }
+        });
+    }
+
     update() {
+        this.shieldRing.setPosition(this.rect.x, this.rect.y);
+        this.shieldRing.setVisible(this.hasShield);
+
+        if (this.isInvulnerable) {
+            this.rect.setAlpha(this.rect.alpha > 0.5 ? 0.35 : 0.8);
+        } else {
+            this.rect.setAlpha(1);
+        }
+
         const left = this.cursors.left.isDown || this.keys.A.isDown;
         const right = this.cursors.right.isDown || this.keys.D.isDown;
         const jumpNow = this.cursors.up.isDown || this.cursors.space.isDown || this.keys.W.isDown ||
