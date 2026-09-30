@@ -1,6 +1,10 @@
+import { EntityFactory } from '../patterns/EntityFactory';
+
+// Materializa un nivel a partir de su declaracion en assets/levels.js.
 export class Level {
     constructor(scene, config) {
         this.scene = scene;
+        this.config = config;
         this.platforms = scene.physics.add.staticGroup();
 
         for (const p of config.platforms) {
@@ -8,5 +12,7 @@ export class Level {
             rect.setStrokeStyle(2, 0x111122);
             this.platforms.add(rect);
         }
+
+        this.goal = EntityFactory.createGoal(scene, config.goal.x, config.goal.y);
     }
 }

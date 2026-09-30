@@ -19,6 +19,7 @@ export class Game extends Scene
     init (data)
     {
         this.levelIndex = data.levelIndex ?? 0;
+        this.completedScore = data.completedScore ?? 0;
     }
 
     create ()
@@ -39,7 +40,7 @@ export class Game extends Scene
         const levelConfig = LEVELS[this.levelIndex] ?? LEVELS[0];
 
         this.level = new Level(this, levelConfig);
-        this.player = new Player(this, 200, 650);
+        this.player = new Player(this, levelConfig.spawn.x, levelConfig.spawn.y);
 
         this.physics.add.collider(this.player.rect, this.level.platforms);
 
@@ -53,6 +54,8 @@ export class Game extends Scene
         this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
         this.hud.setLevel(this.levelIndex + 1, LEVELS.length);
         this.hud.setTime(this.timer.remainingSeconds);
+
+        this.floatingText.showBanner(512, 240, `Nivel ${this.levelIndex + 1} - ${levelConfig.name}`, '#00d1b2', 34);
 
         this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots);
         this.projectileManager = new ProjectileManager(this, this.timer.durationMs, levelConfig.projectiles);
@@ -80,6 +83,12 @@ export class Game extends Scene
         });
 
         this.physics.add.overlap(this.player.rect, this.projectileManager.group, () => this.onHit());
+
+        this.physics.add.overlap(this.player.rect, this.level.goal.frame, () => {
+            if (this.level.goal.isOpen) {
+                this.onGoalReached();
+            }
+        });
     }
 
     update (time, delta)
@@ -95,21 +104,49 @@ export class Game extends Scene
         }
     }
 
+    // Puntaje total de la campaña: niveles completados + puntaje del nivel en curso.
+    get totalScore()
+    {
+        return this.completedScore + this.scoreManager.score;
+    }
+
     onQuotaMet ()
     {
         if (this.gameEnded || this.levelComplete) {
             return;
         }
 
+        this.level.goal.open();
+
+        this.floatingText.showBanner(512, 300, '¡META CUMPLIDA!', '#00ff88', 32);
+        this.floatingText.showBanner(512, 348, 'Llegá a la salida', '#ffffff', 22, 700);
+    }
+
+    onGoalReached ()
+    {
+        if (this.gameEnded || this.levelComplete) {
+            return;
+        }
+
         this.levelComplete = true;
+        this.gameEnded = true;
 
-        this.floatingText.show(512, 320, `Nivel ${this.levelIndex + 1} superado`, '#00ff88', 32);
+        const bankedScore = this.totalScore;
 
-        this.time.delayedCall(1400, () => {
+        this.floatingText.showBanner(512, 300, `¡Nivel ${this.levelIndex + 1} superado!`, '#00ff88', 32);
+
+        this.time.delayedCall(1200, () => {
             if (this.levelIndex + 1 < LEVELS.length) {
-                this.scene.start('Game', { levelIndex: this.levelIndex + 1 });
+                this.scene.start('Game', {
+                    levelIndex: this.levelIndex + 1,
+                    completedScore: bankedScore
+                });
             } else {
-                this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'victory', levelIndex: this.levelIndex });
+                this.scene.start('GameOver', {
+                    score: bankedScore,
+                    reason: 'victory',
+                    levelIndex: this.levelIndex
+                });
             }
         });
     }
@@ -121,7 +158,12 @@ export class Game extends Scene
         }
 
         this.gameEnded = true;
-        this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'timeout', levelIndex: this.levelIndex });
+        this.scene.start('GameOver', {
+            score: this.completedScore,
+            lostScore: this.scoreManager.score,
+            reason: 'timeout',
+            levelIndex: this.levelIndex
+        });
     }
 
     onHit ()
@@ -139,7 +181,12 @@ export class Game extends Scene
         this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡Impacto!', '#ff4455', 26);
 
         this.time.delayedCall(600, () => {
-            this.scene.start('GameOver', { score: this.scoreManager.score, reason: 'hit', levelIndex: this.levelIndex });
+            this.scene.start('GameOver', {
+                score: this.completedScore,
+                lostScore: this.scoreManager.score,
+                reason: 'hit',
+                levelIndex: this.levelIndex
+            });
         });
     }
 

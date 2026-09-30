@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { HighScore } from '../systems/HighScore';
+import { LEVELS } from '../assets/levels';
 
 const COLORS = {
     bgTop: 0x232045,
@@ -34,7 +35,7 @@ export class MainMenu extends Scene
 
         this.tweens.add({ targets: title, y: 138, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-        this.add.text(512, 228, 'Conseguí la mayor cantidad de puntos en 60 segundos', {
+        this.add.text(512, 228, `Completá los ${LEVELS.length} niveles juntando la meta de puntos de cada uno`, {
             fontFamily: 'Arial', fontSize: 20, color: COLORS.grey
         }).setOrigin(0.5);
 
@@ -144,7 +145,7 @@ export class MainMenu extends Scene
             this.tweens.killTweensOf(label);
             btn.setScale(0.93);
             label.setScale(0.93);
-            this.time.delayedCall(140, () => this.scene.start('Game'));
+            this.time.delayedCall(140, () => this.scene.start('Game', { levelIndex: 0, completedScore: 0 }));
         });
     }
 }

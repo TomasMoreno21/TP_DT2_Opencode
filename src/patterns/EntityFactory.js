@@ -1,3 +1,4 @@
+import { Goal } from '../entities/Goal';
 import { Point } from '../entities/Point';
 import { Projectile } from '../entities/Projectile';
 
@@ -12,5 +13,9 @@ export class EntityFactory {
 
     static createProjectile(scene, x, y, target, speedMultiplier) {
         return new Projectile(scene, x, y, target, speedMultiplier);
+    }
+
+    static createGoal(scene, x, y) {
+        return new Goal(scene, x, y);
     }
 }
