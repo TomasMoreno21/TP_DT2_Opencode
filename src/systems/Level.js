@@ -14,5 +14,18 @@ export class Level {
         }
 
         this.goal = EntityFactory.createGoal(scene, config.goal.x, config.goal.y);
+
+        this.materializeTrampolines();
+    }
+
+    materializeTrampolines() {
+        this.trampolines = this.scene.physics.add.staticGroup();
+        this.trampolineList = [];
+
+        for (const t of this.config.trampolines ?? []) {
+            const trampoline = EntityFactory.createTrampoline(this.scene, t);
+            this.trampolines.add(trampoline.rect);
+            this.trampolineList.push(trampoline);
+        }
     }
 }

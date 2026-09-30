@@ -91,6 +91,12 @@ export const LEVELS = [
             { x: 724, y: 250, w: 160, h: 20, color: 0x3a3a5c },
             { x: 512, y: 160, w: 170, h: 20, color: 0x3a3a5c }
         ],
+        trampolines: [
+            { x: 260, y: 706, w: 90 },
+            { x: 512, y: 706, w: 110 },
+            { x: 764, y: 706, w: 90 },
+            { x: 512, y: 324, w: 130 }
+        ],
         pointSpots: [
             { x: 300, y: 688 },
             { x: 700, y: 688 },

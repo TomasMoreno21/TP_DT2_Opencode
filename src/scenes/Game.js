@@ -44,6 +44,17 @@ export class Game extends Scene
 
         this.physics.add.collider(this.player.rect, this.level.platforms);
 
+        if (this.level.trampolineList.length) {
+            this.physics.add.collider(this.player.rect, this.level.trampolines);
+            this.physics.add.overlap(this.player.rect, this.level.trampolines, (player, rect) => {
+                const trampoline = this.level.trampolineList.find((t) => t.rect === rect);
+
+                if (trampoline && player.body.velocity.y > -30) {
+                    trampoline.bounce(this.player.rect);
+                }
+            });
+        }
+
         this.scoreManager = new ScoreManager();
         this.scoreManager.setQuota(levelConfig.quota);
         this.timer = new GameTimer(this, () => this.onTimeUp(), levelConfig.durationSeconds);
