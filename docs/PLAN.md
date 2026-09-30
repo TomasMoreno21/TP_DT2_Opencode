@@ -5,7 +5,7 @@
 > Fuente de diseño: [`docs/GDD.pdf`](./GDD.pdf). Reglas del repo: [`AGENTS.md`](../AGENTS.md).
 
 **Estado:** flujo de escenas completo y verificado (`f782b10`); expansión **aprobada** por el equipo (`de212a1`).
-**Siguiente fase a ejecutar:** E10 — Dash con Shift + atajos R y M.
+**Siguiente fase a ejecutar:** E11 — Identidad por nivel + parallax + viñeta.
 
 ---
 
@@ -58,7 +58,8 @@ src/
 | E6 — Escudo + indicador en el HUD (nivel 4) | `entities/PowerUp.js` (pickup de escudo re-obtenible, bob + pulso), escudo temporal en `Player` (absorbe un impacto y da ventana de invulnerabilidad corta), proyectil absorbido se elimina del manager, indicador de escudo en `Hud` (V6); 3 power-ups en el nivel 4 | **Hecho** | `ca19193` |
 | E7 — Portales que conservan impulso (nivel 5) | `entities/Portal.js` (pares vinculados, sensor con aviso G4 de 350 ms al pisar, cancela si se sale, conserva 80 % del impulso con clamp M4, cooldown del destino); 2 pares en el nivel 5 (de cada lado del piso a la ruta lateral alta) + combinación trampolín/móvil/pinchos para F4 | **Hecho** | `70d3f65` |
 | E8 — Gemas + bonus sin pies en el suelo | `entities/Gem.js` (M5+V4: vale 25, +2 s al timer, no cuenta quota, bob+brillo), `ScoreManager.addValue` con flag `countQuota`/`airborne`, cadena aérea M6 (+10 × streak, texto "VOLANDO xN" en el HUD, se corta al tocar el piso); 1'2 gemas por nivel (1 en L1–L3, 3 en L5) | **Hecho** | `e9bcf35` |
-| E9 — Variantes de proyectil | Refactor de `Projectile.js` con behaviors (standard, ricochet, rastra): ricochet rebota en bordes y expira por tiempo (M7), rastra deja estelas con fade; `ProjectileManager` recibe `variant` por nivel (L4 → ricochet, L5 → rastra) | **Hecho** | próx. commit |
+| E9 — Variantes de proyectil | Refactor de `Projectile.js` con behaviors (standard, ricochet, rastra): ricochet rebota en bordes y expira por tiempo (M7), rastra deja estelas con fade; `ProjectileManager` recibe `variant` por nivel (L4 → ricochet, L5 → rastra) | **Hecho** | `309462a` |
+| E10 — Dash con Shift + atajos R y M | Dash M8 en `Player` (empuje 420 px/s, 0.18 s, cooldown 1.2 s reseteado al tocar suelo o wall jump), sonido vía evento `player-dash`, barra de cooldown en el HUD; atajo R reinicia el nivel conservando el total de campaña | **Hecho** | próx. commit |
 
 ### Reglas de puntaje acordadas
 

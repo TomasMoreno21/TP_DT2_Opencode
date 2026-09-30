@@ -14,7 +14,10 @@ export const PLAYER_CONFIG = {
     wallCoyoteTime: 180,
     shieldDurationMs: 6000,
     shieldColor: 0x2dd4ff,
-    invulnerableMs: 500
+    invulnerableMs: 500,
+    dashSpeed: 420,
+    dashDurationMs: 180,
+    dashCooldownMs: 1200
 };
 
 const MULTIPLIER_COLORS = {
@@ -55,6 +58,13 @@ export class Player {
 
         this.cursors = scene.input.keyboard.createCursorKeys();
         this.keys = scene.input.keyboard.addKeys('W,A,D,SPACE');
+        this.dashKey = scene.input.keyboard.addKey('SHIFT');
+
+        this.dashPressed = false;
+        this.dashUntil = 0;
+        this.dashCooldownUntil = 0;
+        this.dashDir = 1;
+        this.facing = 1;
     }
 
     get hasShield() {
@@ -63,6 +73,14 @@ export class Player {
 
     get isInvulnerable() {
         return this.scene.time.now < this.invulnerableUntil;
+    }
+
+    get isDashing() {
+        return this.scene.time.now < this.dashUntil;
+    }
+
+    get dashRemaining() {
+        return Math.max(this.dashCooldownUntil - this.scene.time.now, 0);
     }
 
     activateShield(durationMs = PLAYER_CONFIG.shieldDurationMs) {
@@ -105,11 +123,28 @@ export class Player {
             this.jumpBufferUntil = now + PLAYER_CONFIG.jumpBufferTime;
         }
 
+        // Disparo del dash (Shift): cooled-down, empuje horizontal corto.
+        const dashHeld = this.dashKey.isDown;
+        const justPressedDash = dashHeld && !this.dashPressed;
+        this.dashPressed = dashHeld;
+
+        if (justPressedDash && now >= this.dashCooldownUntil) {
+            const dir = left ? -1 : right ? 1 : this.facing;
+            this.dashDir = dir;
+            this.facing = dir;
+            this.dashUntil = now + PLAYER_CONFIG.dashDurationMs;
+            this.dashCooldownUntil = now + PLAYER_CONFIG.dashCooldownMs;
+            this.squashBounce(1.25, 0.75);
+            this.scene.events.emit('player-dash', dir);
+        }
+
         const wasOnFloor = this.onFloor;
         this.onFloor = this.body.blocked.down;
 
         if (this.onFloor) {
             this.lastOnFloorTime = now;
+            // El dash se resetea al tocar suelo.
+            this.dashCooldownUntil = Math.min(this.dashCooldownUntil, now);
         }
 
         if (!wasOnFloor && this.onFloor && this.rect.scaleX !== 1) {
@@ -140,11 +175,11 @@ export class Player {
         const side = this.wallSide;
         const holdingToward = side === 'left' ? (touchingLeft && left) : (touchingRight && right);
         const wallCoyoteReady = now - this.lastWallTouchTime <= PLAYER_CONFIG.wallCoyoteTime;
-        const wallJumpReady = !this.onFloor && (touchingWall || wallCoyoteReady) && side
+        const wallJumpReady = !this.onFloor && !this.isDashing && (touchingWall || wallCoyoteReady) && side
             && (justPressedJump || bufferReady)
             && now - this.lastWallJumpTime >= PLAYER_CONFIG.wallJumpCooldown;
 
-        if (touchingWall && holdingToward) {
+        if (touchingWall && holdingToward && !this.isDashing) {
             this.wallGrabbing = true;
             this.rect.setFillStyle(PLAYER_CONFIG.wallGrabColor);
             this.body.setAllowGravity(false);
@@ -165,6 +200,7 @@ export class Player {
             this.body.setVelocityY(PLAYER_CONFIG.wallJumpYVelocity);
             this.lastWallJumpTime = now;
             this.jumpBufferUntil = 0;
+            this.dashCooldownUntil = now;
             this.squashBounce(1.3, 0.7);
             return;
         }
@@ -179,9 +215,13 @@ export class Player {
             this.body.setAllowGravity(true);
         }
 
-        if (left) {
+        if (this.isDashing) {
+            this.body.setVelocityX(this.dashDir * PLAYER_CONFIG.dashSpeed);
+        } else if (left) {
+            this.facing = -1;
             this.body.setVelocityX(-PLAYER_CONFIG.speed);
         } else if (right) {
+            this.facing = 1;
             this.body.setVelocityX(PLAYER_CONFIG.speed);
         } else {
             this.body.setVelocityX(0);

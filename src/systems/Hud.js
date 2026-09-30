@@ -47,6 +47,16 @@ export class Hud {
             stroke: '#000000', strokeThickness: 4
         }).setScrollFactor(0).setVisible(false);
 
+        this.dashLabel = scene.add.text(16, 120, 'DASH', {
+            fontFamily: 'Arial Black', fontSize: 14, color: '#ffaa44',
+            stroke: '#000000', strokeThickness: 4
+        }).setScrollFactor(0);
+        this.dashBar = scene.add.rectangle(16, 136, 130, 10, 0x1a1a2e, 0.85)
+            .setOrigin(0, 0).setScrollFactor(0);
+        this.dashBar.setStrokeStyle(1, 0xffaa44, 0.8);
+        this.dashFill = scene.add.rectangle(18, 138, 126, 6, 0xffaa44, 0.9)
+            .setOrigin(0, 0).setScrollFactor(0);
+
         this.timerText = scene.add.text(HUD_CONFIG.timerX, HUD_CONFIG.timerY, '1:00', {
             fontFamily: 'Arial Black', fontSize: 56, color: this.normalColor,
             stroke: '#000000', strokeThickness: 8
@@ -154,5 +164,14 @@ export class Hud {
         }
 
         this.airText.setVisible(false);
+    }
+
+    // Indicador de cooldown del dash: la barra se llena cuando está listo.
+    setDashCooldown(remainingMs, totalMs) {
+        const ready = remainingMs <= 0;
+        const fraction = ready ? 1 : Math.max(Math.min(1 - remainingMs / totalMs, 1), 0);
+
+        this.dashFill.setScale(fraction, 1);
+        this.dashLabel.setColor(ready ? '#ffaa44' : '#777777');
     }
 }

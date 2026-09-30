@@ -114,6 +114,15 @@ export class Game extends Scene
             this.floatingText.show(512, 120, isMuted ? 'MUTE' : 'SONIDO', '#ffffff', 18);
         });
 
+        this.retryKey = this.input.keyboard.addKey('R');
+        this.retryKey.on('down', () => {
+            if (!this.gameEnded) {
+                this.scene.restart({ levelIndex: this.levelIndex, completedScore: this.completedScore });
+            }
+        });
+
+        this.events.on('player-dash', () => Audio.play('dash'));
+
         this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots);
         this.projectileManager = new ProjectileManager(this, this.timer.durationMs, levelConfig.projectiles);
 
@@ -206,6 +215,7 @@ export class Game extends Scene
         }
 
         this.hud.setShield(this.player.shieldUntil - this.time.now, this.shieldTotalMs);
+        this.hud.setDashCooldown(this.player.dashRemaining, PLAYER_CONFIG.dashCooldownMs);
 
         this.updateAirStreak();
         this.updatePortals();
