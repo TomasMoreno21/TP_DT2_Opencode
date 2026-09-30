@@ -270,6 +270,27 @@ export const LEVELS = [
             { x: 300, y: 370, w: 150, h: 20, color: 0x3a3a5c },
             { x: 724, y: 370, w: 150, h: 20, color: 0x3a3a5c }
         ],
+        trampolines: [
+            // Rebote del piso izquierdo a la ruta lateral baja
+            { x: 200, y: 706, w: 80 }
+        ],
+        movingPlatforms: [
+            // Horizontal que cruza el hueco central del piso (evita los pinchos)
+            { x: 512, y: 640, w: 90, h: 20, distance: 200, speed: 80, axis: 'x' }
+        ],
+        hazards: [
+            // Pinchos de piso desfasados: se cruza en la ventana retraída
+            { x: 340, y: 708, w: 100 },
+            { x: 774, y: 708, w: 100, offsetMs: 800 }
+        ],
+        portals: [
+            // Par izquierdo: piso -> ruta lateral alta (ahorro de recorrido)
+            { x: 200, y: 688 },
+            { x: 300, y: 360 },
+            // Par derecho: piso -> ruta lateral alta
+            { x: 824, y: 688 },
+            { x: 724, y: 360 }
+        ],
         pointSpots: [
             { x: 200, y: 688 },
             { x: 820, y: 688 },

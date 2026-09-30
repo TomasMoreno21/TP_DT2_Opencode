@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 import { Level } from '../systems/Level';
 import { Player, PLAYER_CONFIG } from '../entities/Player';
+import { PORTAL_CONFIG } from '../entities/Portal';
 import { PointSpawner } from '../systems/PointSpawner';
 import { ScoreManager } from '../systems/ScoreManager';
 import { GameTimer } from '../systems/GameTimer';
@@ -82,6 +83,16 @@ export class Game extends Scene
             });
         }
 
+        if (this.level.portalList.length) {
+            this.physics.add.overlap(this.player.rect, this.level.portals, (player, sensor) => {
+                const portal = this.level.portalList.find((p) => p.sensor === sensor);
+
+                if (portal && portal.status === 'idle') {
+                    portal.beginCharge();
+                }
+            });
+        }
+
         this.shieldTotalMs = PLAYER_CONFIG.shieldDurationMs;
 
         this.scoreManager = new ScoreManager();
@@ -159,6 +170,40 @@ export class Game extends Scene
         }
 
         this.hud.setShield(this.player.shieldUntil - this.time.now, this.shieldTotalMs);
+
+        this.updatePortals();
+    }
+
+    // Gestiona la carga de los portales: la cancela si el jugador se aleja y
+    // ejecuta el salto cuando el aviso termina.
+    updatePortals() {
+        if (this.level.portalList.length === 0) {
+            return;
+        }
+
+        const playerRect = this.player.rect;
+
+        for (const portal of this.level.portalList) {
+            if (portal.status !== 'charging') {
+                continue;
+            }
+
+            const stillTouching = Math.abs(playerRect.x - portal.x) <= (playerRect.width + PORTAL_CONFIG.width) / 2 &&
+                Math.abs(playerRect.y - portal.y) <= (playerRect.height + PORTAL_CONFIG.height) / 2;
+
+            if (!stillTouching) {
+                portal.cancelCharge();
+                continue;
+            }
+
+            if (portal.isCharged) {
+                portal.teleport(playerRect);
+                Audio.play('portal');
+                this.burstAt(portal.x, portal.y, 0x9d7bff);
+                this.burstAt(this.player.rect.x, this.player.rect.y, 0x9d7bff);
+                this.cameras.main.flash(120, 157, 123, 255);
+            }
+        }
     }
 
     // Arrastra al jugador parado sobre una plataforma móvil para que viaje con ella.

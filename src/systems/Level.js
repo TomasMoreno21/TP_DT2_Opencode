@@ -19,6 +19,7 @@ export class Level {
         this.materializeMovingPlatforms();
         this.materializeHazards();
         this.materializePowerUps();
+        this.materializePortals();
     }
 
     materializeTrampolines() {
@@ -62,6 +63,25 @@ export class Level {
             const powerUp = EntityFactory.createPowerUp(this.scene, p);
             this.powerUps.add(powerUp.circle);
             this.powerUpList.push(powerUp);
+        }
+    }
+
+    // Los portales se vinculan por pares consecutivos en la config.
+    materializePortals() {
+        this.portals = this.scene.physics.add.group();
+        this.portalList = [];
+
+        const portalData = this.config.portals ?? [];
+
+        for (let i = 0; i < portalData.length; i++) {
+            const portal = EntityFactory.createPortal(this.scene, portalData[i]);
+            this.portals.add(portal.sensor);
+            this.portalList.push(portal);
+        }
+
+        for (let i = 0; i + 1 < this.portalList.length; i += 2) {
+            this.portalList[i].linked = this.portalList[i + 1];
+            this.portalList[i + 1].linked = this.portalList[i];
         }
     }
 }
