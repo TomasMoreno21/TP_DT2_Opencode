@@ -190,7 +190,8 @@ export const LEVELS = [
             initialInterval: 1000,
             minInterval: 600,
             maxSpeedMultiplier: 2.2,
-            wallGapX: 52
+            wallGapX: 52,
+            variant: 'ricochet'
         },
         platforms: [
             // Piso
@@ -263,7 +264,8 @@ export const LEVELS = [
             initialInterval: 800,
             minInterval: 450,
             maxSpeedMultiplier: 2.5,
-            wallGapX: 52
+            wallGapX: 52,
+            variant: 'rastra'
         },
         platforms: [
             // Piso

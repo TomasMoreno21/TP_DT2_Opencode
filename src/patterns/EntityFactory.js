@@ -17,8 +17,8 @@ export class EntityFactory {
         return spots.map((spot) => new Point(scene, spot.x, spot.y));
     }
 
-    static createProjectile(scene, x, y, target, speedMultiplier) {
-        return new Projectile(scene, x, y, target, speedMultiplier);
+    static createProjectile(scene, x, y, target, speedMultiplier, variant = 'standard') {
+        return new Projectile(scene, x, y, target, speedMultiplier, variant);
     }
 
     static createGoal(scene, x, y) {

@@ -5,7 +5,8 @@ export const PROJECTILE_SPAWN_CONFIG = {
     initialInterval: 1700,
     minInterval: 600,
     maxSpeedMultiplier: 2,
-    wallGapX: 52
+    wallGapX: 52,
+    variant: 'standard'
 };
 
 export class ProjectileManager {
@@ -42,7 +43,7 @@ export class ProjectileManager {
             ? this.config.wallGapX
             : this.scene.scale.width - this.config.wallGapX;
 
-        const projectile = EntityFactory.createProjectile(this.scene, x, y, this.scene.player.rect, this.speedMultiplier);
+        const projectile = EntityFactory.createProjectile(this.scene, x, y, this.scene.player.rect, this.speedMultiplier, this.config.variant ?? 'standard');
         this.projectiles.push(projectile);
         this.group.add(projectile.circle);
     }
