@@ -33,7 +33,9 @@ const config = {
 
 const StartGame = (parent) => {
 
-    return new PhaserGame({ ...config, parent });
+    const game = new PhaserGame({ ...config, parent });
+
+    return game;
 
 };
 
