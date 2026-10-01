@@ -124,22 +124,32 @@ export class Hud {
     setMultiplier(multiplier) {
         if (multiplier <= 1) {
             this.comboText.setVisible(false);
+            this.stopComboScale();
             return;
         }
 
         this.comboText.setText(`x${multiplier}`).setVisible(true);
 
-        if (this.comboTextAlphaTween) {
-            this.comboTextAlphaTween.stop();
-        }
-
+        this.stopComboScale();
         this.comboText.setScale(1.4);
-        this.comboTextAlphaTween = this.scene.tweens.add({
+
+        this.comboTextScaleTween = this.scene.tweens.add({
             targets: this.comboText,
             scale: 1,
             duration: 200,
             ease: 'Quad.easeOut'
         });
+    }
+
+    // Detiene el tween de escala anterior: si no, se acumulan sobre el mismo
+    // objetivo y la animacion de "pop" se pisa a si misma.
+    stopComboScale() {
+        if (this.comboTextScaleTween) {
+            this.comboTextScaleTween.stop();
+            this.comboTextScaleTween = null;
+        }
+
+        this.comboText.setScale(1);
     }
 
     setShield(remainingMs, totalMs) {

@@ -202,6 +202,7 @@ export class Player {
             this.jumpBufferUntil = 0;
             this.dashCooldownUntil = now;
             this.squashBounce(1.3, 0.7);
+            this.scene.events.emit('player-jump', 'wall');
             return;
         }
 
@@ -232,6 +233,7 @@ export class Player {
             this.jumpBufferUntil = 0;
             this.lastOnFloorTime = -Infinity;
             this.squashBounce(1.3, 0.7);
+            this.scene.events.emit('player-jump', 'ground');
         }
     }
 

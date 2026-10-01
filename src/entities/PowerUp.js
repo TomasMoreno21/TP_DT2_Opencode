@@ -51,12 +51,27 @@ export class PowerUp {
         });
     }
 
+    // Detiene los bucles de animación: si no, los tween con repeat:-1 siguen
+    // escribiendo sobre objetos invisibles durante todo el resto del nivel.
+    stopIdleTweens() {
+        for (const tween of [this.bobTween, this.pulseTween]) {
+            if (tween) {
+                tween.stop();
+                tween.remove();
+            }
+        }
+
+        this.bobTween = null;
+        this.pulseTween = null;
+    }
+
     collect() {
         if (!this.available) {
             return false;
         }
 
         this.available = false;
+        this.stopIdleTweens();
         this.circle.setVisible(false);
         this.circle.setActive(false);
         this.body.enable = false;
@@ -67,6 +82,8 @@ export class PowerUp {
     }
 
     respawn() {
+        this.respawnTimer = null;
+
         if (this.scene.sys.isActive() === false) {
             return;
         }
@@ -78,7 +95,14 @@ export class PowerUp {
         this.body.enable = true;
         this.ring.setVisible(true);
 
-        this.scene.tweens.add({
+        // Cancelar cualquier tween anterior de entrada para que dos respawns
+        // seguidos no se pisen la escala del círculo.
+        if (this.respawnTween) {
+            this.respawnTween.stop();
+            this.respawnTween.remove();
+        }
+
+        this.respawnTween = this.scene.tweens.add({
             targets: this.circle,
             scale: 1,
             duration: 200,
@@ -87,18 +111,17 @@ export class PowerUp {
     }
 
     destroy() {
-        if (this.bobTween) {
-            this.bobTween.stop();
-            this.bobTween.remove();
-        }
+        this.stopIdleTweens();
 
-        if (this.pulseTween) {
-            this.pulseTween.stop();
-            this.pulseTween.remove();
+        if (this.respawnTween) {
+            this.respawnTween.stop();
+            this.respawnTween.remove();
+            this.respawnTween = null;
         }
 
         if (this.respawnTimer) {
             this.respawnTimer.remove(false);
+            this.respawnTimer = null;
         }
 
         this.circle.destroy();

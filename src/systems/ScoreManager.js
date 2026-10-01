@@ -64,6 +64,13 @@ export class ScoreManager {
         this.airStreak = 0;
     }
 
+    // Corta también el combo: al aterrizar se pierde el multiplicador alto en vez
+    // de dejarlo colgado hasta que expire la ventana de combo.
+    dropCombo() {
+        this.combo = 0;
+        this.multiplier = 1;
+    }
+
     reset() {
         this.score = 0;
         this.combo = 0;

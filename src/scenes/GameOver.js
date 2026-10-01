@@ -23,8 +23,11 @@ export class GameOver extends Scene
         this.lostScore = data.lostScore ?? 0;
         this.reason = data.reason ?? 'timeout';
         this.levelIndex = data.levelIndex ?? 0;
+        // Se lee el récord anterior antes de actualizarlo: si no, update()
+        // devolvería el propio score y "nuevo récord" saldría siempre.
+        const previousBest = HighScore.get();
         this.best = HighScore.update(this.score);
-        this.isNewRecord = this.score > 0 && this.score >= this.best;
+        this.isNewRecord = this.score > 0 && this.score > previousBest;
     }
 
     create ()

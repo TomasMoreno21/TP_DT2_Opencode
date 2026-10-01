@@ -52,4 +52,20 @@ export class Goal {
             ease: 'Sine.easeInOut'
         });
     }
+
+    // El pulso tiene repeat:-1: hay que detenerlo explicitamente al reiniciar el
+    // nivel o seguiria pulsando sobre objetos ya destruidos.
+    stopPulse() {
+        if (this.pulse) {
+            this.pulse.stop();
+            this.pulse.remove();
+            this.pulse = null;
+        }
+    }
+
+    destroy() {
+        this.stopPulse();
+        this.frame.destroy();
+        this.label.destroy();
+    }
 }

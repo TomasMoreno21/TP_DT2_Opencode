@@ -84,7 +84,10 @@ const EVENTS = {
         tone({ freq: 320, endFreq: 120, type: 'sine', duration: 0.18, volume: 0.32 });
         tone({ freq: 950, endFreq: 1500, type: 'triangle', duration: 0.14, volume: 0.18, delay: 0.04 });
     },
-    jump: () => tone({ freq: 300, endFreq: 480, type: 'square', duration: 0.08, volume: 0.1 }),
+    // El salto al suelo suena mas grave que el wall jump, para distinguirlos al oido.
+    jump: ({ kind = 'ground' } = {}) => (kind === 'wall'
+        ? tone({ freq: 420, endFreq: 660, type: 'square', duration: 0.09, volume: 0.11 })
+        : tone({ freq: 300, endFreq: 480, type: 'square', duration: 0.08, volume: 0.1 })),
     dash: () => tone({ freq: 260, endFreq: 700, type: 'sawtooth', duration: 0.12, volume: 0.14 }),
     portal: () => tone({ freq: 500, endFreq: 1800, type: 'sine', duration: 0.16, volume: 0.14 }),
     shield: () => tone({ freq: 380, endFreq: 760, type: 'sine', duration: 0.18, volume: 0.2 }),

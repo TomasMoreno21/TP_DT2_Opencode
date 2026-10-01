@@ -64,8 +64,24 @@ export class Gem {
         return GEM_CONFIG.color;
     }
 
+    // Detiene los bucles de animación: si no, los tween con repeat:-1 siguen
+    // escribiendo sobre objetos invisibles durante todo el resto del nivel.
+    stopTweens() {
+        for (const tween of [this.bobTween, this.spinTween, this.pulseTween]) {
+            if (tween) {
+                tween.stop();
+                tween.remove();
+            }
+        }
+
+        this.bobTween = null;
+        this.spinTween = null;
+        this.pulseTween = null;
+    }
+
     deactivate() {
         this.active = false;
+        this.stopTweens();
         this.circle.setVisible(false);
         this.circle.setActive(false);
         this.body.enable = false;
@@ -74,20 +90,7 @@ export class Gem {
     }
 
     destroy() {
-        if (this.bobTween) {
-            this.bobTween.stop();
-            this.bobTween.remove();
-        }
-
-        if (this.spinTween) {
-            this.spinTween.stop();
-            this.spinTween.remove();
-        }
-
-        if (this.pulseTween) {
-            this.pulseTween.stop();
-            this.pulseTween.remove();
-        }
+        this.stopTweens();
 
         this.circle.destroy();
         this.glow.destroy();

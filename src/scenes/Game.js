@@ -122,6 +122,7 @@ export class Game extends Scene
         });
 
         this.events.on('player-dash', () => Audio.play('dash'));
+        this.events.on('player-jump', (kind) => Audio.play('jump', { kind }));
 
         this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots);
         this.projectileManager = new ProjectileManager(this, this.timer.durationMs, levelConfig.projectiles);
@@ -202,6 +203,11 @@ export class Game extends Scene
                 this.onGoalReached();
             }
         });
+
+        // Al reiniciar el nivel o cambiar de escena hay que devolver el mundo a su
+        // ritmo normal: si se apaga durante un hitstop, el mundo queda pausado.
+        this.events.once('shutdown', () => this.pace.restore());
+        this.events.once('shutdown', () => this.level.destroy());
     }
 
     update (time, delta)
@@ -231,7 +237,10 @@ export class Game extends Scene
 
         if (onFloor && this.scoreManager.airStreak > 0) {
             this.scoreManager.resetAirStreak();
+            this.scoreManager.dropCombo();
+            this.player.setMultiplier(this.scoreManager.multiplier);
             this.hud.setAirStreak(0);
+            this.hud.setMultiplier(this.scoreManager.multiplier);
         }
     }
 

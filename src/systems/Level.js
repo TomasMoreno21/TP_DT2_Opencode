@@ -23,6 +23,25 @@ export class Level {
         this.materializeGems();
     }
 
+    // Libera los tweens y timers de las entidades del nivel. Se invoca al reiniciar
+    // o cambiar de escena para que los bucles repeat:-1 no sigan escribiendo sobre
+    // objetos que ya no existen.
+    destroy() {
+        this.goal.destroy();
+
+        for (const gem of this.gemList) {
+            gem.destroy();
+        }
+
+        for (const powerUp of this.powerUpList) {
+            powerUp.destroy();
+        }
+
+        for (const portal of this.portalList) {
+            portal.destroy();
+        }
+    }
+
     materializeTrampolines() {
         this.trampolines = this.scene.physics.add.staticGroup();
         this.trampolineList = [];
@@ -67,14 +86,17 @@ export class Level {
         }
     }
 
-    // Los portales se vinculan por pares consecutivos en la config.
+    // Los portales se vinculan por pares consecutivos en la config. Si la cantidad
+// es impar, el ultimo queda sin pareja: se descarta para no dejar un portal
+// que al pisarlo intenta teletransportar hacia null.
     materializePortals() {
         this.portals = this.scene.physics.add.group();
         this.portalList = [];
 
         const portalData = this.config.portals ?? [];
+        const paired = portalData.length - (portalData.length % 2);
 
-        for (let i = 0; i < portalData.length; i++) {
+        for (let i = 0; i < paired; i++) {
             const portal = EntityFactory.createPortal(this.scene, portalData[i]);
             this.portals.add(portal.sensor);
             this.portalList.push(portal);

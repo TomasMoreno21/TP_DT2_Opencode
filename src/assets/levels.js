@@ -55,6 +55,8 @@ export const LEVELS = [
             { x: 720, y: 156 }
         ],
         gems: [
+            // Alcanzable encadenando saltos: piso -> plataforma y=620 -> y=540,
+            // y desde ahi el arco del salto (apex ~117 px) pasa por esta altura.
             { x: 512, y: 460 }
         ],
         goal: { x: 920, y: 676 }

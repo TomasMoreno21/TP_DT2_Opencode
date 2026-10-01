@@ -79,7 +79,9 @@ export class Hazard {
                 const grow = 0.35 + 0.65 * Math.min(phase.t / this.warnMs, 1);
                 topY = baseY - 6 - HAZARD_CONFIG.spikeHeight * grow;
                 color = HAZARD_CONFIG.warnColor;
-                tremble = Math.random() * (phase.t / this.warnMs) * 3;
+                // Oscilación derivada del tiempo de fase, no aleatoria: el aviso
+                // debe verse igual en cada frame en lugar de parpadear al azar.
+                tremble = Math.sin(phase.t / 45) * 3 * Math.min(phase.t / this.warnMs, 1);
             } else if (phase.name === 'active') {
                 topY = baseY - 6 - HAZARD_CONFIG.spikeHeight;
                 color = HAZARD_CONFIG.dangerColor;
