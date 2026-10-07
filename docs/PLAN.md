@@ -4,7 +4,7 @@
 > Se actualiza al cerrar cada fase (estado, commit, decisiones nuevas).
 > Fuente de diseño: [`docs/GDD.pdf`](./GDD.pdf). Reglas del repo: [`AGENTS.md`](../AGENTS.md).
 
-**Estado:** flujo de escenas completo y verificado (`f782b10`); expansión **aprobada** por el equipo (`de212a1`).
+**Estado:** flujo de escenas completo y verificado (`f782b10`); expansión **aprobada** por el equipo (`de212a1`); dash mejorado, N2 rediseñado y fixes de trampolines/timer (`6354dbe` + próx. commit).
 **Siguiente fase a ejecutar:** E11 — Identidad por nivel + parallax + viñeta.
 
 ---
@@ -59,7 +59,9 @@ src/
 | E7 — Portales que conservan impulso (nivel 5) | `entities/Portal.js` (pares vinculados, sensor con aviso G4 de 350 ms al pisar, cancela si se sale, conserva 80 % del impulso con clamp M4, cooldown del destino); 2 pares en el nivel 5 (de cada lado del piso a la ruta lateral alta) + combinación trampolín/móvil/pinchos para F4 | **Hecho** | `70d3f65` |
 | E8 — Gemas + bonus sin pies en el suelo | `entities/Gem.js` (M5+V4: vale 25, +2 s al timer, no cuenta quota, bob+brillo), `ScoreManager.addValue` con flag `countQuota`/`airborne`, cadena aérea M6 (+10 × streak, texto "VOLANDO xN" en el HUD, se corta al tocar el piso); 1'2 gemas por nivel (1 en L1–L3, 3 en L5) | **Hecho** | `e9bcf35` |
 | E9 — Variantes de proyectil | Refactor de `Projectile.js` con behaviors (standard, ricochet, rastra): ricochet rebota en bordes y expira por tiempo (M7), rastra deja estelas con fade; `ProjectileManager` recibe `variant` por nivel (L4 → ricochet, L5 → rastra) | **Hecho** | `309462a` |
-| E10 — Dash con Shift + atajos R y M | Dash M8 en `Player` (empuje 420 px/s, 0.18 s, cooldown 1.2 s reseteado al tocar suelo o wall jump), sonido vía evento `player-dash`, barra de cooldown en el HUD; atajo R reinicia el nivel conservando el total de campaña | **Hecho** | próx. commit |
+| E10 — Dash con Shift + atajos R y M | Dash M8 en `Player` (empuje 420 px/s, 0.18 s, cooldown 1.2 s reseteado al tocar suelo o wall jump), sonido vía evento `player-dash`, barra de cooldown en el HUD; atajo R reinicia el nivel conservando el total de campaña | **Hecho** | `0e6c400` |
+| E4b — Rediseño del nivel 3 "Movimiento" | Nivel 3 ampliado dentro del marco 1024×768 (7 niveles de plataformas, sin scroll): ferry horizontal de ruta larga + ascensor vertical por corredor libre, 2 trampolines heredados del N2, gema sobre la ruta de la ferry, 12 spots estáticos, salida en la fila 5 derecha, timer 52 s; fix de `drawRoute()` en `MovingPlatform.js` (eje perpendicular y ruta de `start` a `end + width\|height`) | **Hecho** | `33fed50` |
+| E10b — Dash mejorado + N2 terminado + fixes de arranque | Dash rework en `Player`: 700 px/s, 170 ms, cooldown 900 ms (gravedad off + `vy=0` solo al inicio, i-frames = duración, estela cada 45 ms, salto bloqueado durante el dash); N2 "Rebotes" rediseñado (corona partida con hueco, columna al ras del alféizar, 4 trampolines con zona perfecta, spawn 360/660, spot sobre la columna) y quota de N1/N2 a 12; fix de trampolines (el rebote vive en el callback del collider — el overlap jamás corría — con excepción para no lanzar al jugador durante el dash) y fix de `GameTimer` (`startTime` diferido al primer update para no comerse la edad de la pestaña) | **Hecho** | `6354dbe` + `52d9eed` |
 
 ### Reglas de puntaje acordadas
 
@@ -74,6 +76,8 @@ src/
 - Ambas derrotas (impacto y tiempo), "Reintentar nivel", "Salir", "Jugar de nuevo" y el botón del menú.
 - Consola sin errores ni warnings; `npm run build-nolog` OK.
 - **Checker de alcanzabilidad** (replica la física del jugador: salto, coyote, wall grab/jump y colisiones) ejecutado sobre los 5 mapas: **12/12 spots y la salida son alcanzables en todos los niveles**. Importante porque, con quota, un spot inalcanzable puede trabar el nivel. Vive fuera del repo, en `%TEMP%\opencode\reach.mjs`.
+- E4b (nivel 3 rediseñado): checker 12/12 (peor spot 3,4 s vs 2,3 s del N2), `vite build` OK y arranque de los 5 niveles en navegador sin errores de consola. Pendiente del playtest: recorrido cronometrado N2 vs N3 con ventana visible.
+- E10b: dash verificado en runtime (disparo en piso y aire, línea recta, gravedad/i-frames, estela, cooldown regresivo 900→500 ms, salto bloqueado durante el dash); trampolines verificados en runtime (T1 perfecto −900 px/s, T4 clampado −752 px/s con techo del mundo en 286 px de subida, control sin dash sí rebota, dash atraviesa sin lanzarse); `GameTimer` verificado con la pestaña "abierta" 61 s → el nivel arranca con los 55 s completos; consola sin errores ni warnings y `npm run build-nolog` OK. Pendiente: playtest manual con ventana visible.
 
 ---
 
@@ -81,9 +85,9 @@ src/
 
 | Nivel | Nombre | Timer | Quota | Proyectiles (inicio→fin, vel.) | Mecánica que se suma |
 |---|---|---|---|---|---|
-| 1 | Arranque | 60 s | 8 | 1.7 s→1.0 s, x1→x1.5 | ninguna (enseña wall grab / wall jump) |
-| 2 | Rebotes | 55 s | 10 | 1.5 s→0.8 s, x1.2→x1.8 | **Trampolines** |
-| 3 | Movimiento | 55 s | 12 | 1.2 s→0.7 s, x1.4→x2.0 | **Plataformas móviles** (+ trampolines) |
+| 1 | Arranque | 60 s | 12 | 1.7 s→1.0 s, x1→x1.5 | ninguna (enseña wall grab / wall jump) |
+| 2 | Rebotes | 55 s | 12 | 1.5 s→0.8 s, x1.2→x1.8 | **Trampolines** |
+| 3 | Movimiento | 52 s | 12 | 1.2 s→0.7 s, x1.4→x2.0 | **Plataformas móviles** (+ trampolines) |
 | 4 | Peligro | 50 s | 14 | 1.0 s→0.6 s, x1.6→x2.2 | **Pinchos / zona de daño** + **power-up escudo** |
 | 5 | Final | 60 s | 16 | 0.8 s→0.45 s, x1.8→x2.5 | **Portales** + combinación de todas |
 
@@ -168,6 +172,7 @@ Cada fila es una fase: **un commit, un push y revisión** antes de pasar a la si
 | E2 | **Audio procedural** (con el "boing" del trampolín ya integrado) | G5 | E1 | Medio |
 | E3 | **Sensación base**: hitstop, follow de cámara, zoom por combo | G1, G2, G3 | — | Bajo |
 | E4 | **Plataformas móviles con ruta visible** (nivel 3) | F2, M2 | E1 | Medio |
+| E4b | **Rediseño del nivel 3**: mapa más grande dentro de 1024×768 + fix de la ruta de la móvil | ampliación de F2 (decisión 8) | E4 | Medio |
 | E5 | **Pinchos cíclicos con aviso** (nivel 4) | F3, M3, G4 | — | Medio |
 | E6 | **Escudo + indicador en el HUD** (nivel 4) | F3, V6 | E2 | Medio |
 | E7 | **Portales que conservan impulso** (nivel 5) | F4, M4, G4 | E4, E5 | Medio |
@@ -215,12 +220,21 @@ Aprobadas por el equipo (Tomas Moreno) el **30/09/2026**:
 6. **Recordar último nivel (M9)** — entra al menú.
 7. **Balance** — timers, quotas y proyectiles se ajustan al final con datos del playtest (E17).
 
+Ampliaciones aprobadas el **07/10/2026**:
+
+8. **Rediseño del nivel 3 "Movimiento" (E4b)** — el nivel crece en recorrido dentro del mapa fijo (7 niveles de plataformas, sin scroll), con ferry horizontal de ruta larga, ascensor vertical y 2 trampolines heredados del N2 como atajo (sin ser la vía principal). Dificultad **leve** respecto al N2: timer 52 s, quota 12 y proyectiles intactos (1.2 s→0.7 s, x2.0).
+9. **Recompensa de la ruta móvil (F2)** — no hay puntos sobre las plataformas móviles: los 12 spots quedan sobre suelo o plataformas estáticas (el checker de alcanzabilidad no simula móviles y un spot sobre la ferry podría truncar la quota). La recompensa de la ferry es la **gema central**, colocada sobre su recorrido.
+10. **Dash mejorado (E10b)** — se ajusta el dash a 700 px/s / 170 ms / cooldown 900 ms con i-frames durante la duración, estela visual y salto bloqueado mientras dura; la línea recta es prioridad (por eso un dash que atraviese un trampolín no rebota). Aprobado por el equipo.
+11. **Quota parcial (balance "por ahora")** — N1 y N2 pasan a 12 spots (35 % y 34 % del tiempo del nivel, verificado con el checker). El balance final de timers/quotas/proyectiles sigue en E17.
+12. **Fixes de arranque (07/10/2026, aprobados por consulta)** — (a) trampolines: el callback de rebote se muda al collider (el overlap evaluaba ya sin penetración y nunca corría; afectaba a N2 y N5), con excepción durante el dash; (b) `GameTimer` difiere `startTime` al primer update para no consumir la edad de la pestaña. **Pendiente conocido:** `ProjectileManager` repite el mismo patrón de `startTime` (decisión: no tocar por ahora, ver §8).
+
 Queda en firme la regla: cualquier control o mecánica central **fuera** de los aprobados requiere aviso previo.
 
 ---
 
 ## 8. Backlog posterior
 
+- Bug conocido (pendiente, decisión 12): `ProjectileManager.startTime` se fija en `create` con el reloj de la escena en 0 → en el primer nivel tras cargar la pestaña el `progress` arranca desfasado (tope 1: proyectiles ya al ritmo/velocidad máxima si la pestaña supera la duración del nivel). Mismo fix que `GameTimer`: diferir `startTime` al primer update.
 - Estadísticas por nivel en `localStorage` (mejor tiempo, mejor combo).
 - Rejugar un nivel ya superado ("modo práctica") sin afectar el récord de campaña.
 - Niveles extra (6+) o variantes de mapa.
