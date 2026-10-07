@@ -11,6 +11,14 @@ export class Level {
             const rect = scene.add.rectangle(p.x, p.y, p.w, p.h, p.color);
             rect.setStrokeStyle(2, 0x111122);
             this.platforms.add(rect);
+            // Borde neón superior (o lateral en paredes) para legibilidad.
+            const isWall = p.h > p.w * 2;
+            const edgeColor = isWall ? 0x9d7bff : 0x00d1b2;
+            if (isWall) {
+                scene.add.rectangle(p.x, p.y, 4, p.h - 4, edgeColor, 0.8);
+            } else {
+                scene.add.rectangle(p.x, p.y - p.h / 2 + 2, p.w - 4, 4, edgeColor, 0.85);
+            }
         }
 
         this.goal = EntityFactory.createGoal(scene, config.goal.x, config.goal.y);

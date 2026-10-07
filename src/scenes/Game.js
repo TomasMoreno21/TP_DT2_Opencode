@@ -38,7 +38,32 @@ export class Game extends Scene
                 .generateTexture('particle', 8, 8);
         }
 
-        this.cameras.main.setBackgroundColor(0x1a1a2e);
+        this.cameras.main.setBackgroundColor(0x141026);
+
+        // Fondo neón procedural con parallax suave (sin assets externos).
+        if (!this.textures.exists('neon-star')) {
+            const sg = this.make.graphics({ x: 0, y: 0, add: false });
+            sg.fillStyle(0xffffff, 1).fillCircle(8, 12, 2);
+            sg.fillStyle(0x00d1b2, 0.9).fillCircle(34, 30, 1.6);
+            sg.fillStyle(0xffdd44, 0.9).fillCircle(52, 10, 1.4);
+            sg.fillStyle(0xffffff, 0.7).fillCircle(22, 48, 1.2);
+            sg.generateTexture('neon-star', 64, 64);
+            sg.destroy();
+        }
+
+        const bg = this.add.graphics().setScrollFactor(0).setDepth(-10);
+        bg.fillGradientStyle(0x232045, 0x232045, 0x141026, 0x141026, 1);
+        bg.fillRect(0, 0, 1024, 768);
+        bg.fillStyle(0x00d1b2, 0.18).fillRect(0, 708, 1024, 3);
+        bg.fillStyle(0xffdd44, 0.08).fillRect(0, 712, 1024, 8);
+        bg.lineStyle(1, 0x00d1b2, 0.07);
+        for (let y = 64; y < 768; y += 64) {
+            bg.lineBetween(0, y, 1024, y);
+        }
+
+        this.bgStars = this.add.tileSprite(512, 384, 1024, 768, 'neon-star')
+            .setScrollFactor(0).setDepth(-9).setAlpha(0.85);
+        this.tweens.add({ targets: this.bgStars, alpha: 0.55, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
         const levelConfig = LEVELS[this.levelIndex] ?? LEVELS[0];
 
@@ -122,7 +147,10 @@ export class Game extends Scene
         });
 
         this.events.on('player-dash', () => Audio.play('dash'));
+        this.events.on('player-dash', () => this.spawnDashGhosts());
+        this.events.on('player-dash', () => this.cameras.main.shake(90, 0.0035));
         this.events.on('player-jump', (kind) => Audio.play('jump', { kind }));
+        this.trailAcc = 0;
 
         this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots);
         this.projectileManager = new ProjectileManager(this, this.timer.durationMs, levelConfig.projectiles);
@@ -212,7 +240,14 @@ export class Game extends Scene
 
     update (time, delta)
     {
-        this.player.update();
+        // Parallax suave: estrellas siguen un poco a la cámara + deriva lenta.
+        if (this.bgStars) {
+            this.bgStars.tilePositionX = this.cameras.main.scrollX * 0.25;
+            this.bgStars.tilePositionY = this.cameras.main.scrollY * 0.25 + time * 0.006;
+        }
+
+        this.player.update(delta);
+        this.updateTrail(delta);
         this.timer.update();
         this.projectileManager.update(delta);
         this.updateMovingPlatforms();
@@ -399,6 +434,7 @@ export class Game extends Scene
 
             this.player.absorbHit();
             Audio.play('hit');
+            this.cameras.main.shake(160, 0.008);
             this.cameras.main.flash(150, 90, 220, 255);
             this.burstAt(this.player.rect.x, this.player.rect.y, 0x2dd4ff);
             this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡ESCUDO!', '#2dd4ff', 20);
@@ -409,6 +445,7 @@ export class Game extends Scene
         this.pace.hitstop(80);
         this.pace.slowmo(700, 0.35);
         Audio.play('hit');
+        this.player.flinch();
         this.player.rect.setFillStyle(0xff4455);
 
         this.cameras.main.shake(400, 0.02);
@@ -426,8 +463,38 @@ export class Game extends Scene
         });
     }
 
-    burstAt(x, y, color) {
-        const hexColor = typeof color === 'number' ? color : 0xffdd44;
+    // Estela mínima: solo durante el dash, un toque más visible.
+    updateTrail(delta) {
+        if (this.gameEnded || !this.player) {
+            return;
+        }
+
+        this.trailAcc += delta;
+
+        if (this.player.isDashing && this.trailAcc > 70) {
+            this.trailAcc = 0;
+            this.spawnGhost(0.22, 170);
+        }
+    }
+
+    spawnDashGhosts() {
+        for (let i = 0; i < 3; i++) {
+            this.time.delayedCall(i * 50, () => this.spawnGhost(0.3, 210));
+        }
+    }
+
+    spawnGhost(alpha, lifeMs) {
+        const color = this.player.rect.fillColor ?? 0x00d1b2;
+        const g = this.add.rectangle(
+            this.player.rect.x, this.player.rect.y,
+            this.player.rect.width * this.player.rect.scaleX,
+            this.player.rect.height * this.player.rect.scaleY,
+            color, alpha
+        ).setDepth(-1);
+        this.tweens.add({ targets: g, alpha: 0, duration: lifeMs, onComplete: () => g.destroy() });
+    }
+
+    burstAt(x, y, color) {        const hexColor = typeof color === 'number' ? color : 0xffdd44;
 
         this.add.particles(x, y, 'particle', {
             speed: { min: 60, max: 220 },

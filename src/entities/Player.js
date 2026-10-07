@@ -4,6 +4,11 @@ export const PLAYER_CONFIG = {
     color: 0x00d1b2,
     wallGrabColor: 0x00ff88,
     speed: 260,
+    accel: 1100,
+    airAccel: 800,
+    decel: 800,
+    airDecel: 350,
+    turnAccel: 2600,
     jumpVelocity: -460,
     jumpCutVelocity: -150,
     coyoteTime: 100,
@@ -56,6 +61,29 @@ export class Player {
         this.shieldRing.setStrokeStyle(3, PLAYER_CONFIG.shieldColor, 0.9);
         this.shieldRing.setVisible(false);
 
+        // Glow neón detrás del cuerpo + ojos que miran según dirección.
+        this.glow = scene.add.rectangle(x, y, PLAYER_CONFIG.width + 14, PLAYER_CONFIG.height + 14, PLAYER_CONFIG.color, 0.16);
+        this.glow.setStrokeStyle(2, PLAYER_CONFIG.color, 0.35);
+        this.glow.setDepth(-1);
+        this.eyeL = scene.add.circle(x - 7, y - 8, 6, 0xffffff).setDepth(1);
+        this.eyeR = scene.add.circle(x + 7, y - 8, 6, 0xffffff).setDepth(1);
+        this.pupilL = scene.add.circle(x - 7, y - 8, 2.8, 0x111122).setDepth(2);
+        this.pupilR = scene.add.circle(x + 7, y - 8, 2.8, 0x111122).setDepth(2);
+        // Carita de daño >_<: texto que reemplaza a los ojos durante el flinch.
+        this.hurtFace = scene.add.text(x, y - 8, '>_<', {
+            fontFamily: 'Arial Black', fontSize: 24, color: '#111122'
+        }).setOrigin(0.5).setDepth(3).setVisible(false);
+        // Mirada suavizada + impulsos de squash (reemplazan al tween).
+        this.lookX = 0;
+        this.lookY = 0;
+        this.impX = 1;
+        this.impY = 1;
+        // Parpadeo cada 2-4.5s, cierra 120ms.
+        this.nextBlink = 2000;
+        this.blinkUntil = 0;
+        this.prevVy = 0;
+        this.flinchUntil = 0;
+
         this.cursors = scene.input.keyboard.createCursorKeys();
         this.keys = scene.input.keyboard.addKeys('W,A,D,SPACE');
         this.dashKey = scene.input.keyboard.addKey('SHIFT');
@@ -88,7 +116,14 @@ export class Player {
     }
 
     // Absorbe el golpe: consume el escudo y deja una ventana de invulnerabilidad.
+    // Daño sentido: carita >_< + squash rápido. Lo llama Game.onHit.
+    flinch(durationMs = 240) {
+        this.flinchUntil = this.scene.time.now + durationMs;
+        this.squashBounce(1.25, 0.75);
+    }
+
     absorbHit() {
+        this.flinch();
         this.shieldUntil = 0;
         this.invulnerableUntil = this.scene.time.now + PLAYER_CONFIG.invulnerableMs;
         this.rect.setFillStyle(0xffffff);
@@ -99,12 +134,44 @@ export class Player {
         });
     }
 
-    update() {
+    update(deltaMs = 16.7) {
         this.shieldRing.setPosition(this.rect.x, this.rect.y);
         this.shieldRing.setVisible(this.hasShield);
 
+        // El glow sigue al cuerpo y copia su color (combo / wall grab).
+        // Se estira hacia adelante con la velocidad para vender la inercia.
+        const speedK = Math.min(Math.abs(this.body.velocity.x) / PLAYER_CONFIG.speed, 1);
+        this.glow.setPosition(this.rect.x + this.facing * speedK * 6, this.rect.y);
+        this.glow.setScale(this.rect.scaleX * (1 + speedK * 0.3), this.rect.scaleY);
+        if (this.rect.fillColor !== undefined) {
+            this.glow.setFillStyle(this.rect.fillColor, this.isDashing ? 0.24 : 0.14);
+            this.glow.setStrokeStyle(2, this.rect.fillColor, 0.3);
+        }
+
+        // Ojos: la cara entera se adelanta con el avance (no se queda atrás).
+        const targetX = Math.max(-1, Math.min(1, this.body.velocity.x / PLAYER_CONFIG.speed)) * 2 + this.facing * 1.5;
+        const targetY = Math.max(-1, Math.min(1, this.body.velocity.y / 460)) * 1.5;
+        this.lookX += (targetX - this.lookX) * 0.18;
+        this.lookY += (targetY - this.lookY) * 0.18;
+        const lookX = this.lookX, lookY = this.lookY;
+        const nowMs = this.scene.time.now;
+        if (nowMs >= this.nextBlink) {
+            this.blinkUntil = nowMs + 140;
+            this.nextBlink = nowMs + 1200 + Math.random() * 1500;
+        }
+        const hurting = nowMs < this.flinchUntil;
+        const eyeOpen = hurting ? 0.15 : (nowMs < this.blinkUntil ? 0.08 : 1);
+        const faceFwd = this.facing * speedK * 6;
+        const ex = this.rect.x + faceFwd, ey = this.rect.y - 8 * this.rect.scaleY;
+        this.eyeL.setPosition(ex - 7 + lookX * 0.5, ey + lookY * 0.5).setScale(1, eyeOpen).setVisible(!hurting);
+        this.eyeR.setPosition(ex + 7 + lookX * 0.5, ey + lookY * 0.5).setScale(1, eyeOpen).setVisible(!hurting);
+        this.pupilL.setPosition(ex - 7 + lookX, ey + lookY).setScale(1, eyeOpen).setVisible(!hurting);
+        this.pupilR.setPosition(ex + 7 + lookX, ey + lookY).setScale(1, eyeOpen).setVisible(!hurting);
+        this.hurtFace.setPosition(ex, ey).setVisible(hurting);
+
         if (this.isInvulnerable) {
-            this.rect.setAlpha(this.rect.alpha > 0.5 ? 0.35 : 0.8);
+            // Parpadeo suave y lento (antes vibraba).
+            this.rect.setAlpha(Math.floor(this.scene.time.now / 160) % 2 === 0 ? 0.65 : 1);
         } else {
             this.rect.setAlpha(1);
         }
@@ -134,7 +201,7 @@ export class Player {
             this.facing = dir;
             this.dashUntil = now + PLAYER_CONFIG.dashDurationMs;
             this.dashCooldownUntil = now + PLAYER_CONFIG.dashCooldownMs;
-            this.squashBounce(1.25, 0.75);
+            this.squashBounce(1.15, 0.85);
             this.scene.events.emit('player-dash', dir);
         }
 
@@ -147,12 +214,10 @@ export class Player {
             this.dashCooldownUntil = Math.min(this.dashCooldownUntil, now);
         }
 
-        if (!wasOnFloor && this.onFloor && this.rect.scaleX !== 1) {
-            if (this.squashTween) {
-                this.squashTween.stop();
-            }
-
-            this.rect.setScale(1, 1);
+        if (!wasOnFloor && this.onFloor) {
+            // Aterrizaje con un toque de punch + impacto para el shake.
+            this.squashBounce(1.18, 0.82);
+            this.scene.events.emit('player-land', this.prevVy);
         }
 
         const coyoteReady = now - this.lastOnFloorTime <= PLAYER_CONFIG.coyoteTime;
@@ -201,12 +266,14 @@ export class Player {
             this.lastWallJumpTime = now;
             this.jumpBufferUntil = 0;
             this.dashCooldownUntil = now;
-            this.squashBounce(1.3, 0.7);
+            this.squashBounce(1.15, 0.85);
             this.scene.events.emit('player-jump', 'wall');
+            this.applyMotionScale();
             return;
         }
 
         if (touchingWall && holdingToward) {
+            this.applyMotionScale();
             return;
         }
 
@@ -218,23 +285,51 @@ export class Player {
 
         if (this.isDashing) {
             this.body.setVelocityX(this.dashDir * PLAYER_CONFIG.dashSpeed);
-        } else if (left) {
-            this.facing = -1;
-            this.body.setVelocityX(-PLAYER_CONFIG.speed);
-        } else if (right) {
-            this.facing = 1;
-            this.body.setVelocityX(PLAYER_CONFIG.speed);
         } else {
-            this.body.setVelocityX(0);
+            // Inercia: acelera hacia la dirección y desliza al soltar.
+            const dt = Math.min(deltaMs, 50) / 1000;
+            const max = PLAYER_CONFIG.speed;
+            const vx = this.body.velocity.x;
+            const approach = (v, target, rate) => {
+                const diff = target - v;
+                const step = rate * dt;
+                return Math.abs(diff) <= step ? target : v + Math.sign(diff) * step;
+            };
+
+            if (left && !right) {
+                this.facing = -1;
+                const rate = vx > 0 ? PLAYER_CONFIG.turnAccel : (this.onFloor ? PLAYER_CONFIG.accel : PLAYER_CONFIG.airAccel);
+                this.body.setVelocityX(approach(vx, -max, rate));
+            } else if (right && !left) {
+                this.facing = 1;
+                const rate = vx < 0 ? PLAYER_CONFIG.turnAccel : (this.onFloor ? PLAYER_CONFIG.accel : PLAYER_CONFIG.airAccel);
+                this.body.setVelocityX(approach(vx, max, rate));
+            } else {
+                const rate = this.onFloor ? PLAYER_CONFIG.decel : PLAYER_CONFIG.airDecel;
+                this.body.setVelocityX(approach(vx, 0, rate));
+            }
         }
 
         if (bufferReady && canGroundJump) {
             this.body.setVelocityY(PLAYER_CONFIG.jumpVelocity);
             this.jumpBufferUntil = 0;
             this.lastOnFloorTime = -Infinity;
-            this.squashBounce(1.3, 0.7);
+            this.squashBounce(1.2, 0.8);
             this.scene.events.emit('player-jump', 'ground');
         }
+
+        // Gusano cortito: a más velocidad horizontal, más largo y más bajo.
+        // Se combina con el impulso de salto/aterrizaje/dash/daño.
+        this.applyMotionScale();
+
+        this.prevVy = this.body.velocity.y;
+    }
+
+    applyMotionScale() {
+        this.impX += (1 - this.impX) * 0.18;
+        this.impY += (1 - this.impY) * 0.18;
+        const runK = Math.min(Math.abs(this.body.velocity.x) / PLAYER_CONFIG.speed, 1);
+        this.rect.setScale(this.impX * (1 + runK * 0.18), this.impY * (1 - runK * 0.12));
     }
 
     setMultiplier(multiplier) {
@@ -246,17 +341,8 @@ export class Player {
     }
 
     squashBounce(scaleX, scaleY) {
-        if (this.squashTween) {
-            this.squashTween.stop();
-        }
-
-        this.rect.setScale(scaleX, scaleY);
-        this.squashTween = this.scene.tweens.add({
-            targets: this.rect,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 180,
-            ease: 'Quad.easeOut'
-        });
+        // Impulso que decae solo en update (convive con el stretch de movimiento).
+        this.impX = scaleX;
+        this.impY = scaleY;
     }
 }
