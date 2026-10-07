@@ -57,6 +57,21 @@ export class Hazard {
     update() {
         const phase = this.phase;
         this.body.enable = phase.name === 'active';
+
+        // Flash blanco al momento de extenderse.
+        if (phase.name === 'active' && this.selectedPhase !== 'active') {
+            const flash = this.scene.add.rectangle(this.x, this.y - HAZARD_CONFIG.spikeHeight / 2,
+                this.width, HAZARD_CONFIG.spikeHeight + 10, 0xffffff, 0.55);
+            this.scene.tweens.add({
+                targets: flash,
+                alpha: 0,
+                duration: 220,
+                ease: 'Quad.easeOut',
+                onComplete: () => flash.destroy()
+            });
+        }
+
+        this.selectedPhase = phase.name;
         this.draw(phase);
     }
 
@@ -78,10 +93,12 @@ export class Hazard {
             if (phase.name === 'warn') {
                 const grow = 0.35 + 0.65 * Math.min(phase.t / this.warnMs, 1);
                 topY = baseY - 6 - HAZARD_CONFIG.spikeHeight * grow;
-                color = HAZARD_CONFIG.warnColor;
+                // Aviso gritón: parpadeo blanco/naranja que se acelera al final.
+                const blinkRate = phase.t > this.warnMs * 0.6 ? 60 : 110;
+                color = Math.sin(phase.t / blinkRate) > 0 ? 0xffffff : HAZARD_CONFIG.warnColor;
                 // Oscilación derivada del tiempo de fase, no aleatoria: el aviso
                 // debe verse igual en cada frame en lugar de parpadear al azar.
-                tremble = Math.sin(phase.t / 45) * 3 * Math.min(phase.t / this.warnMs, 1);
+                tremble = Math.sin(phase.t / 45) * 4 * Math.min(phase.t / this.warnMs, 1);
             } else if (phase.name === 'active') {
                 topY = baseY - 6 - HAZARD_CONFIG.spikeHeight;
                 color = HAZARD_CONFIG.dangerColor;
