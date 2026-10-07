@@ -9,7 +9,7 @@ export const LEVELS = [
         id: 1,
         name: 'Arranque',
         durationSeconds: 60,
-        quota: 8,
+        quota: 12,
         spawn: { x: 200, y: 650 },
         projectiles: {
             initialInterval: 1700,
@@ -65,8 +65,8 @@ export const LEVELS = [
         id: 2,
         name: 'Rebotes',
         durationSeconds: 55,
-        quota: 10,
-        spawn: { x: 120, y: 660 },
+        quota: 12,
+        spawn: { x: 360, y: 660 },
         projectiles: {
             initialInterval: 1500,
             minInterval: 800,
@@ -79,8 +79,9 @@ export const LEVELS = [
             // Paredes de los bordes
             { x: 40, y: 400, w: 24, h: 720, color: 0x4a4270 },
             { x: 984, y: 400, w: 24, h: 720, color: 0x4a4270 },
-            // Columna central (doble cara para wall jump)
-            { x: 512, y: 496, w: 44, h: 432, color: 0x453f6b },
+            // Columna central (doble cara para wall jump); termina al ras del
+            // alféizar para no tapar el trampolín superior.
+            { x: 512, y: 529, w: 44, h: 366, color: 0x453f6b },
             // Escalera izquierda
             { x: 200, y: 634, w: 150, h: 20, color: 0x3a3a5c },
             { x: 300, y: 546, w: 140, h: 20, color: 0x3a3a5c },
@@ -89,18 +90,26 @@ export const LEVELS = [
             { x: 824, y: 634, w: 150, h: 20, color: 0x3a3a5c },
             { x: 724, y: 546, w: 140, h: 20, color: 0x3a3a5c },
             { x: 624, y: 458, w: 140, h: 20, color: 0x3a3a5c },
-            // Remate de la columna
-            { x: 512, y: 340, w: 200, h: 20, color: 0x3a3a5c },
+            // Remate de la columna: 346 de superficie (bajado 16px respecto del
+            // diseño original: la subida desde la fila 3 pedía 118px y el apex
+            // del salto es 117.6px, es decir imposible a salto).
+            { x: 512, y: 356, w: 200, h: 20, color: 0x3a3a5c },
             // Filas altas
             { x: 300, y: 250, w: 160, h: 20, color: 0x3a3a5c },
             { x: 724, y: 250, w: 160, h: 20, color: 0x3a3a5c },
-            { x: 512, y: 160, w: 170, h: 20, color: 0x3a3a5c }
+            // Corona partida en dos con un hueco de 60px sobre la columna: es
+            // la boca de salida del trampolín central.
+            { x: 452, y: 160, w: 60, h: 20, color: 0x3a3a5c },
+            { x: 572, y: 160, w: 60, h: 20, color: 0x3a3a5c }
         ],
         trampolines: [
-            { x: 260, y: 706, w: 90 },
-            { x: 512, y: 706, w: 110 },
-            { x: 764, y: 706, w: 90 },
-            { x: 512, y: 324, w: 130 }
+            // Esquinas libres del piso: sin plataformas encima, techo libre.
+            { x: 96, y: 706, w: 80 },
+            { x: 928, y: 706, w: 80 },
+            // Sobre la escalera izquierda: saltea la fila 2 hacia arriba.
+            { x: 178, y: 618, w: 90 },
+            // Bajo el hueco de la corona: sube al punto alto y a la gema.
+            { x: 512, y: 340, w: 60 }
         ],
         pointSpots: [
             { x: 300, y: 688 },
@@ -111,7 +120,7 @@ export const LEVELS = [
             { x: 724, y: 516 },
             { x: 400, y: 428 },
             { x: 624, y: 428 },
-            { x: 512, y: 310 },
+            { x: 512, y: 326 },
             { x: 300, y: 220 },
             { x: 724, y: 220 },
             { x: 512, y: 130 }
@@ -189,9 +198,9 @@ export const LEVELS = [
         quota: 14,
         spawn: { x: 110, y: 660 },
         projectiles: {
-            initialInterval: 1000,
-            minInterval: 600,
-            maxSpeedMultiplier: 2.2,
+            initialInterval: 950,
+            minInterval: 550,
+            maxSpeedMultiplier: 2.25,
             wallGapX: 52,
             variant: 'ricochet'
         },
@@ -221,20 +230,20 @@ export const LEVELS = [
         hazards: [
             // Sobre el piso (desfasados entre sí)
             { x: 260, y: 708, w: 110 },
-            { x: 512, y: 708, w: 110, offsetMs: 700 },
-            { x: 760, y: 708, w: 110, offsetMs: 1400 },
+            { x: 512, y: 708, w: 110, offsetMs: 600 },
+            { x: 760, y: 708, w: 110, offsetMs: 1250 },
             // Paso por la fila 1 central
-            { x: 512, y: 622, w: 110, offsetMs: 350 },
+            { x: 512, y: 622, w: 110, offsetMs: 275 },
             // Fila 2 derecha (obliga a cronometrar el cruce al remate)
-            { x: 724, y: 530, w: 90, offsetMs: 1050 }
+            { x: 724, y: 530, w: 90, offsetMs: 925 }
         ],
         powerUps: [
             // Escudo accesible: sobre la plataforma izquierda de la fila 1
-            { x: 160, y: 610, respawnMs: 12000 },
+            { x: 160, y: 610, respawnMs: 14000 },
             // Escudo de riesgo: flotando sobre la fila 3 central
-            { x: 512, y: 420, respawnMs: 14000 },
-            // Escudo alto: sobre la fila 4 derecha (reward por subir)
-            { x: 694, y: 334, respawnMs: 14000 }
+            { x: 512, y: 420, respawnMs: 16000 },
+            // Escudo alto: sobre la plataforma de la fila 4 derecha
+            { x: 694, y: 334, respawnMs: 16000 }
         ],
         pointSpots: [
             { x: 280, y: 688 },

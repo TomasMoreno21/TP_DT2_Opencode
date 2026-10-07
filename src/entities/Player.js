@@ -20,9 +20,11 @@ export const PLAYER_CONFIG = {
     shieldDurationMs: 6000,
     shieldColor: 0x2dd4ff,
     invulnerableMs: 500,
-    dashSpeed: 420,
-    dashDurationMs: 180,
-    dashCooldownMs: 1200
+    dashSpeed: 700,
+    dashDurationMs: 170,
+    dashCooldownMs: 900,
+    dashTrailIntervalMs: 45,
+    dashTrailLifeMs: 220
 };
 
 const MULTIPLIER_COLORS = {
@@ -92,6 +94,7 @@ export class Player {
         this.dashUntil = 0;
         this.dashCooldownUntil = 0;
         this.dashDir = 1;
+        this.dashNextTrailAt = 0;
         this.facing = 1;
     }
 
@@ -201,7 +204,13 @@ export class Player {
             this.facing = dir;
             this.dashUntil = now + PLAYER_CONFIG.dashDurationMs;
             this.dashCooldownUntil = now + PLAYER_CONFIG.dashCooldownMs;
-            this.squashBounce(1.15, 0.85);
+            this.dashNextTrailAt = 0;
+            // El dash apaga la gravedad y corta la caída: vuelo en línea recta.
+            // Los i-frames duran lo mismo que el impulso: atraviesa proyectiles/pinchos según timing.
+            this.body.setAllowGravity(false);
+            this.body.setVelocityY(0);
+            this.invulnerableUntil = Math.max(this.invulnerableUntil, this.dashUntil);
+            this.squashBounce(1.25, 0.75);
             this.scene.events.emit('player-dash', dir);
         }
 
@@ -252,6 +261,19 @@ export class Player {
         } else if (this.wallGrabbing) {
             this.wallGrabbing = false;
             this.rect.setFillStyle(MULTIPLIER_COLORS[this.multiplier] ?? PLAYER_CONFIG.color);
+            this.body.setAllowGravity(true);
+        }
+
+        // La gravedad queda apagada solo mientras dura el dash; al terminar se
+        // restaura salvo que el jugador esté colgado de una pared.
+        if (this.isDashing) {
+            this.body.setAllowGravity(false);
+
+            if (now >= this.dashNextTrailAt) {
+                this.dashNextTrailAt = now + PLAYER_CONFIG.dashTrailIntervalMs;
+                this.spawnDashTrail();
+            }
+        } else if (!this.wallGrabbing) {
             this.body.setAllowGravity(true);
         }
 
@@ -310,7 +332,8 @@ export class Player {
             }
         }
 
-        if (bufferReady && canGroundJump) {
+        // Durante el dash no se salta: el impulso se mantiene en línea recta.
+        if (bufferReady && canGroundJump && !this.isDashing) {
             this.body.setVelocityY(PLAYER_CONFIG.jumpVelocity);
             this.jumpBufferUntil = 0;
             this.lastOnFloorTime = -Infinity;
@@ -344,5 +367,53 @@ export class Player {
         // Impulso que decae solo en update (convive con el stretch de movimiento).
         this.impX = scaleX;
         this.impY = scaleY;
+    }
+
+    // Estela del dash: copia del jugador que se desvanece tras el impulso.
+    // Da lectura visual de la velocidad y de la ventana de i-frames.
+    spawnDashTrail() {
+        const ghost = this.scene.add.rectangle(
+            this.rect.x,
+            this.rect.y,
+            PLAYER_CONFIG.width,
+            PLAYER_CONFIG.height,
+            this.rect.fillColor ?? PLAYER_CONFIG.color,
+            0.5
+        );
+
+        ghost.setScale(this.rect.scaleX, this.rect.scaleY);
+        ghost.setStrokeStyle(2, 0xffffff, 0.4);
+        ghost.setDepth(this.rect.depth - 1);
+
+        this.scene.tweens.add({
+            targets: ghost,
+            alpha: 0,
+            duration: PLAYER_CONFIG.dashTrailLifeMs,
+            onComplete: () => ghost.destroy()
+        });
+    }
+
+    // Estela del dash: copia del jugador que se desvanece tras el impulso.
+    // Da lectura visual de la velocidad y de la ventana de i-frames.
+    spawnDashTrail() {
+        const ghost = this.scene.add.rectangle(
+            this.rect.x,
+            this.rect.y,
+            PLAYER_CONFIG.width,
+            PLAYER_CONFIG.height,
+            this.rect.fillColor ?? PLAYER_CONFIG.color,
+            0.5
+        );
+
+        ghost.setScale(this.rect.scaleX, this.rect.scaleY);
+        ghost.setStrokeStyle(2, 0xffffff, 0.4);
+        ghost.setDepth(this.rect.depth - 1);
+
+        this.scene.tweens.add({
+            targets: ghost,
+            alpha: 0,
+            duration: PLAYER_CONFIG.dashTrailLifeMs,
+            onComplete: () => ghost.destroy()
+        });
     }
 }
