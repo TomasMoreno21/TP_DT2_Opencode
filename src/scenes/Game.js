@@ -370,6 +370,9 @@ export class Game extends Scene
 
         this.floatingText.showBanner(512, 300, '¡META CUMPLIDA!', '#00ff88', 32);
         this.floatingText.showBanner(512, 348, 'Llegá a la salida', '#ffffff', 22, 700);
+        // Chispas sobre la salida para guiar al jugador.
+        this.burstAt(this.level.goal.x, this.level.goal.y, 0x00ff88);
+        this.burstAt(this.level.goal.x, this.level.goal.y, 0xffffff);
     }
 
     onGoalReached ()
@@ -383,6 +386,13 @@ export class Game extends Scene
         Audio.play('goalReached');
 
         const bankedScore = this.totalScore;
+
+        // Confetti sobre el jugador.
+        const px = this.player.rect.x, py = this.player.rect.y;
+        for (const [dx, color] of [[-30, 0x00ff88], [30, 0xffdd44], [0, 0x2dd4ff], [-15, 0xff66aa], [15, 0xffffff]]) {
+            this.burstAt(px + dx, py - 10, color);
+        }
+        this.cameras.main.shake(150, 0.006);
 
         this.floatingText.showBanner(512, 300, `¡Nivel ${this.levelIndex + 1} superado!`, '#00ff88', 32);
 

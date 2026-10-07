@@ -58,6 +58,16 @@ export class Gem {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+
+        // Destello del diamante.
+        this.twinkleTween = scene.tweens.add({
+            targets: this.diamond,
+            alpha: 1,
+            duration: 450,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
     }
 
     get color() {
@@ -67,7 +77,7 @@ export class Gem {
     // Detiene los bucles de animación: si no, los tween con repeat:-1 siguen
     // escribiendo sobre objetos invisibles durante todo el resto del nivel.
     stopTweens() {
-        for (const tween of [this.bobTween, this.spinTween, this.pulseTween]) {
+        for (const tween of [this.bobTween, this.spinTween, this.pulseTween, this.twinkleTween]) {
             if (tween) {
                 tween.stop();
                 tween.remove();
@@ -77,6 +87,7 @@ export class Gem {
         this.bobTween = null;
         this.spinTween = null;
         this.pulseTween = null;
+        this.twinkleTween = null;
     }
 
     deactivate() {
