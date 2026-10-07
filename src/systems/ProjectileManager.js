@@ -43,9 +43,24 @@ export class ProjectileManager {
             ? this.config.wallGapX
             : this.scene.scale.width - this.config.wallGapX;
 
-        const projectile = EntityFactory.createProjectile(this.scene, x, y, this.scene.player.rect, this.speedMultiplier, this.config.variant ?? 'standard');
-        this.projectiles.push(projectile);
-        this.group.add(projectile.circle);
+        // Telegrafía: marca pulsante 300ms antes de que salga el proyectil.
+        const warn = this.scene.add.circle(x, y, 14, 0xff4455, 0.35);
+        warn.setStrokeStyle(3, 0xffffff, 0.9);
+        this.scene.tweens.add({
+            targets: warn,
+            scale: 0.6,
+            alpha: 0.7,
+            duration: 120,
+            yoyo: true,
+            repeat: 1,
+            ease: 'Sine.easeInOut'
+        });
+        this.scene.time.delayedCall(300, () => {
+            warn.destroy();
+            const projectile = EntityFactory.createProjectile(this.scene, x, y, this.scene.player.rect, this.speedMultiplier, this.config.variant ?? 'standard');
+            this.projectiles.push(projectile);
+            this.group.add(projectile.circle);
+        });
     }
 
     update(deltaMs) {

@@ -177,6 +177,18 @@ export class Projectile {
 
         this.circle = scene.add.circle(x, y, PROJECTILE_CONFIG.radius, PROJECTILE_CONFIG.homingColor);
         this.circle.setStrokeStyle(2, 0xffc0c0);
+        // Halo que pulsa mientras hace homing: solo visual.
+        this.halo = scene.add.circle(x, y, PROJECTILE_CONFIG.radius + 6, PROJECTILE_CONFIG.homingColor, 0.28);
+        this.homingFx = true;
+        this.haloPulse = scene.tweens.add({
+            targets: this.halo,
+            scale: 1.35,
+            alpha: 0.12,
+            duration: 350,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
 
         scene.physics.add.existing(this.circle);
 
@@ -192,6 +204,20 @@ export class Projectile {
 
     update(deltaMs) {
         this.behavior.update(deltaMs);
+
+        // El halo sigue al cuerpo; al salir del homing se tiñe y se calma.
+        this.halo.setPosition(this.circle.x, this.circle.y);
+        if (this.homingFx && this.behavior.phase !== 'homing') {
+            this.homingFx = false;
+            this.halo.setFillStyle(this.circle.fillColor ?? PROJECTILE_CONFIG.color, 0.2);
+            this.haloPulse.timeScale = 2.2;
+        }
+
+        // Forma de bala: elipse orientada según velocidad (cuerpo sigue circular).
+        const vx = this.circle.body.velocity.x, vy = this.circle.body.velocity.y;
+        if (Math.hypot(vx, vy) > 20) {
+            this.circle.setScale(1.35, 0.8).setRotation(Math.atan2(vy, vx));
+        }
     }
 
     get isExpired() {
@@ -210,6 +236,17 @@ export class Projectile {
     }
 
     destroy() {
+        if (this.haloPulse) {
+            this.haloPulse.stop();
+            this.haloPulse.remove();
+            this.haloPulse = null;
+        }
+
+        if (this.halo) {
+            this.halo.destroy();
+            this.halo = null;
+        }
+
         for (const ember of this.trail) {
             ember.destroy();
         }
