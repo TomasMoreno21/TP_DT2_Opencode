@@ -133,7 +133,7 @@ export const LEVELS = [
     {
         id: 3,
         name: 'Movimiento',
-        durationSeconds: 55,
+        durationSeconds: 52,
         quota: 12,
         spawn: { x: 120, y: 660 },
         projectiles: {
@@ -148,48 +148,74 @@ export const LEVELS = [
             // Paredes de los bordes
             { x: 40, y: 400, w: 24, h: 720, color: 0x4a4270 },
             { x: 984, y: 400, w: 24, h: 720, color: 0x4a4270 },
-            // Fila 1
+            // Fila 1 (y=630): escalera izquierda y derecha + centro
             { x: 180, y: 630, w: 150, h: 20, color: 0x3a3a5c },
             { x: 512, y: 630, w: 170, h: 20, color: 0x3a3a5c },
             { x: 844, y: 630, w: 150, h: 20, color: 0x3a3a5c },
-            // Fila 2
-            { x: 300, y: 538, w: 140, h: 20, color: 0x3a3a5c },
-            { x: 512, y: 538, w: 140, h: 20, color: 0x3a3a5c },
-            { x: 724, y: 538, w: 140, h: 20, color: 0x3a3a5c },
-            // Fila 3
-            { x: 180, y: 446, w: 130, h: 20, color: 0x3a3a5c },
-            { x: 512, y: 446, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 844, y: 446, w: 130, h: 20, color: 0x3a3a5c },
-            // Fila 4
-            { x: 350, y: 354, w: 130, h: 20, color: 0x3a3a5c },
-            { x: 674, y: 354, w: 130, h: 20, color: 0x3a3a5c },
-            // Corona
-            { x: 512, y: 262, w: 170, h: 20, color: 0x3a3a5c }
+            // Fila 2 (y=540): gran vacío central cruzado por la ferry
+            { x: 200, y: 540, w: 170, h: 20, color: 0x3a3a5c },
+            { x: 824, y: 540, w: 170, h: 20, color: 0x3a3a5c },
+            // Fila 3 (y=450): la derecha queda libre para el corredor del ascensor
+            { x: 180, y: 450, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 430, y: 450, w: 150, h: 20, color: 0x3a3a5c },
+            // Fila 4 (y=360): la derecha queda libre para el corredor del ascensor
+            { x: 180, y: 360, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 540, y: 360, w: 170, h: 20, color: 0x3a3a5c },
+            // Fila 5 (y=270): la derecha es el aterrizaje del ascensor (salida)
+            { x: 180, y: 270, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 470, y: 270, w: 170, h: 20, color: 0x3a3a5c },
+            { x: 810, y: 270, w: 140, h: 20, color: 0x3a3a5c },
+            // Fila 6 (y=180)
+            { x: 180, y: 180, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 560, y: 180, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 830, y: 180, w: 130, h: 20, color: 0x3a3a5c },
+            // Corona (y=90) desplazada a la derecha: deja libre el salto de la
+            // fila 6 izquierda a la fila 6 central.
+            { x: 600, y: 90, w: 170, h: 20, color: 0x3a3a5c }
+        ],
+        trampolines: [
+            // Conducto abierto del piso (entre fila 1 izquierda y central):
+            // subida recta segura; con deriva a la izquierda aterriza en la fila 2 izquierda.
+            { x: 330, y: 706, w: 80 },
+            // Esquina derecha libre: con deriva a la izquierda aterriza en la fila 2 derecha.
+            { x: 945, y: 706, w: 54 }
         ],
         movingPlatforms: [
-            // Horizontal: cruza el hueco entre fila 2 central y derecha
-            { x: 618, y: 538, w: 110, h: 20, distance: 170, speed: 80, axis: 'x' },
-            // Vertical: lleva del piso a la fila 3 derecha
-            { x: 790, y: 510, w: 50, h: 20, distance: 180, speed: 65, axis: 'y' }
+            // Ferry horizontal: cruza el vacío central de la fila 2 (45 px de
+            // hueco con cada borde). La gema está sobre su recorrido.
+            { x: 512, y: 540, w: 110, h: 20, distance: 254, speed: 80, axis: 'x' },
+            // Ascensor vertical: del alféizar de la fila 2 derecha al de la
+            // fila 5 derecha, por el corredor libre (filas 3 y 4 sin derecha).
+            { x: 700, y: 405, w: 70, h: 20, distance: 270, speed: 90, axis: 'y' }
         ],
         pointSpots: [
-            { x: 250, y: 688 },
-            { x: 760, y: 688 },
+            // Piso
+            { x: 200, y: 688 },
+            { x: 880, y: 688 },
+            // Fila 1
             { x: 180, y: 600 },
-            { x: 512, y: 600 },
             { x: 844, y: 600 },
-            { x: 300, y: 508 },
-            { x: 724, y: 508 },
-            { x: 180, y: 416 },
-            { x: 512, y: 416 },
-            { x: 844, y: 416 },
-            { x: 350, y: 324 },
-            { x: 674, y: 324 }
+            // Fila 2
+            { x: 200, y: 510 },
+            { x: 824, y: 510 },
+            // Fila 3
+            { x: 180, y: 420 },
+            { x: 430, y: 420 },
+            // Fila 4
+            { x: 180, y: 330 },
+            // Fila 5
+            { x: 470, y: 240 },
+            // Fila 6
+            { x: 830, y: 150 },
+            // Corona
+            { x: 600, y: 60 }
         ],
         gems: [
-            { x: 512, y: 216 }
+            // Sobre el vacío central, a la altura del salto desde la ferry:
+            // la ruta obvia es subirla en ferry y saltar.
+            { x: 512, y: 450 }
         ],
-        goal: { x: 844, y: 584 }
+        goal: { x: 810, y: 224 }
     },
     {
         id: 4,

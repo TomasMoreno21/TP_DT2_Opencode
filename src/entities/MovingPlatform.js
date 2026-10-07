@@ -69,29 +69,30 @@ export class MovingPlatform {
     }
 
     // M2: silueta de la ruta para planificar el salto antes de subirse.
+    // start/end son coordenadas del body (top-left), así que la ruta total va
+    // de `start` a `end + width|height` (unión real de la cobertura). El eje
+    // fijo es el perpendicular: rect.y para horizontal, rect.x para vertical.
     drawRoute() {
         const g = this.scene.add.graphics();
         const horizontal = this.axis === 'x';
-        const half = horizontal ? this.width / 2 : this.height / 2;
-        const from = this.start - half;
-        const to = this.end + half;
-        const fixed = this.rect.x;
-        const moving = (horizontal ? this.rect.x : this.rect.y);
+        const from = this.start;
+        const to = this.end + (horizontal ? this.width : this.height);
+        const fixed = horizontal ? this.rect.y : this.rect.x;
 
         g.lineStyle(2, MOVING_PLATFORM_CONFIG.routeColor, 0.35);
         g.lineBetween(
             horizontal ? from : fixed + 4,
             horizontal ? fixed + 4 : from,
-            horizontal ? to : fixed - 4,
+            horizontal ? to : fixed + 4,
             horizontal ? fixed + 4 : to
         );
 
         for (let t = from; t < to; t += 22) {
             g.fillStyle(MOVING_PLATFORM_CONFIG.routeColor, 0.5);
             if (horizontal) {
-                g.fillRect(t, moving - 4, 8, 5);
+                g.fillRect(t, fixed - 4, 8, 5);
             } else {
-                g.fillRect(moving - 4, t, 5, 8);
+                g.fillRect(fixed - 4, t, 5, 8);
             }
         }
     }
