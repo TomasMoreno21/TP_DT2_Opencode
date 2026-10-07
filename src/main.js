@@ -35,9 +35,6 @@ const StartGame = (parent) => {
 
     const game = new PhaserGame({ ...config, parent });
 
-    // TEMPORAL: solo para verificación manual en navegador, se retira antes del commit.
-    window.__game = game;
-
     return game;
 
 };

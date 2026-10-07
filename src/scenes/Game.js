@@ -80,11 +80,14 @@ export class Game extends Scene
         this.cameras.main.setDeadzone(80, 120);
 
         if (this.level.trampolineList.length) {
-            this.physics.add.collider(this.player.rect, this.level.trampolines);
-            this.physics.add.overlap(this.player.rect, this.level.trampolines, (player, rect) => {
+            // El rebote vive en el callback del collider: un overlap aparte
+            // evaluaba tras la separación (jugador al ras del trampolín) y su
+            // separate() retornaba false, así que el callback nunca corría.
+            this.physics.add.collider(this.player.rect, this.level.trampolines, (player, rect) => {
                 const trampoline = this.level.trampolineList.find((t) => t.rect === rect);
 
-                if (trampoline && player.body.velocity.y > -30) {
+                // El dash atraviesa los trampolines sin lanzarse: su línea recta manda.
+                if (trampoline && !this.player.isDashing && player.body.velocity.y > -30) {
                     const perfect = trampoline.bounce(this.player.rect);
                     Audio.play(perfect ? 'perfect' : 'bounce');
                 }
