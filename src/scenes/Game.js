@@ -52,6 +52,8 @@ export class Game extends Scene
         this.gameEnded = false;
         this.levelComplete = false;
         this.lastSecond = null;
+        this.warned5s = false;
+        this.maxMult = 1;
 
         if (!this.textures.exists('particle')) {
             this.make.graphics({ x: 0, y: 0, add: false })
@@ -154,6 +156,7 @@ export class Game extends Scene
         this.hud.setScore(this.scoreManager.score);
         this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
         this.hud.setLevel(this.levelIndex + 1, LEVELS.length);
+        this.hud.setTimerTotal(levelConfig.durationSeconds);
         this.hud.setTime(this.timer.remainingSeconds);
 
         this.floatingText.showBanner(512, 240, `Nivel ${this.levelIndex + 1} - ${levelConfig.name}`, '#00d1b2', 34);
@@ -287,10 +290,19 @@ export class Game extends Scene
         if (seconds !== this.lastSecond) {
             this.lastSecond = seconds;
             this.hud.setTime(seconds);
+
+            if (seconds === 5 && !this.warned5s && !this.gameEnded) {
+                this.warned5s = true;
+                this.floatingText.showBanner(512, 200, '¡Últimos 5s!', '#ff4455', 30);
+            }
         }
 
         this.hud.setShield(this.player.shieldUntil - this.time.now, this.shieldTotalMs);
         this.hud.setDashCooldown(this.player.dashRemaining, PLAYER_CONFIG.dashCooldownMs);
+
+        if (!this.gameEnded && this.scoreManager.multiplier > this.maxMult) {
+            this.maxMult = this.scoreManager.multiplier;
+        }
 
         this.updateAirStreak();
         this.updatePortals();
@@ -389,6 +401,15 @@ export class Game extends Scene
         return this.completedScore + this.scoreManager.score;
     }
 
+    // Stats para la pantalla final: mejor combo y segundos sobrevividos del nivel.
+    endingStats ()
+    {
+        return {
+            maxCombo: this.maxMult,
+            survived: Math.max(Math.floor((this.time.now - this.timer.startTime) / 1000), 0)
+        };
+    }
+
     onQuotaMet ()
     {
         if (this.gameEnded || this.levelComplete) {
@@ -440,7 +461,8 @@ export class Game extends Scene
                     reason: 'victory',
                     levelIndex: this.levelIndex,
                     campaignSeed: this.campaignSeed,
-                    campaign: this.campaign
+                    campaign: this.campaign,
+                    ...this.endingStats()
                 });
             }
         });
@@ -459,7 +481,8 @@ export class Game extends Scene
             reason: 'timeout',
             levelIndex: this.levelIndex,
             campaignSeed: this.campaignSeed,
-            campaign: this.campaign
+            campaign: this.campaign,
+            ...this.endingStats()
         });
     }
 
@@ -506,7 +529,8 @@ export class Game extends Scene
                 reason: 'hit',
                 levelIndex: this.levelIndex,
                 campaignSeed: this.campaignSeed,
-                campaign: this.campaign
+                campaign: this.campaign,
+                ...this.endingStats()
             });
         });
     }

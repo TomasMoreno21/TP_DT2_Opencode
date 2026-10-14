@@ -33,10 +33,19 @@ export class ProjectileManager {
     }
 
     get speedMultiplier() {
+        if (!this.config) {
+            return 1;
+        }
+
         return 1 + (this.config.maxSpeedMultiplier - 1) * this.progress;
     }
 
     spawn() {
+        // Nivel sin proyectiles (p. ej. N1): no hay nada que spawnear.
+        if (!this.config) {
+            return;
+        }
+
         const side = PhaserMath.RND.pick(['left', 'right']);
         const y = PhaserMath.Between(140, 700);
         const x = side === 'left'
@@ -64,6 +73,11 @@ export class ProjectileManager {
     }
 
     update(deltaMs) {
+        // Nivel sin proyectiles: el grupo queda vacío y el overlap no dispara.
+        if (!this.config) {
+            return;
+        }
+
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const projectile = this.projectiles[i];
 
