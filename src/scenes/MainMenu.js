@@ -23,6 +23,11 @@ export class MainMenu extends Scene
         super('MainMenu');
     }
 
+    init (data)
+    {
+        this.campaignSeed = data.campaignSeed ?? (data.seed ?? null);
+    }
+
     create ()
     {
         this.cameras.main.setBackgroundColor(0x16132a);
@@ -48,6 +53,11 @@ export class MainMenu extends Scene
         }).setOrigin(0.5);
 
         this.createPlayButton();
+
+        // Log de semilla para depuración (solo consola dev)
+        if (this.campaignSeed !== null && this.campaignSeed !== undefined) {
+            console.log('[FastMove] campaña seed:', this.campaignSeed);
+        }
     }
 
     drawBackground () {
@@ -148,7 +158,9 @@ export class MainMenu extends Scene
             this.tweens.killTweensOf(label);
             btn.setScale(0.93);
             label.setScale(0.93);
-            this.time.delayedCall(140, () => this.scene.start('Game', { levelIndex: 0, completedScore: 0 }));
+            const seed = this.campaignSeed ?? (Date.now() * 131542391 >>> 0);
+            console.log('[FastMove] starting campaign seed:', seed);
+            this.time.delayedCall(140, () => this.scene.start('Game', { levelIndex: 0, completedScore: 0, campaignSeed: seed }));
         });
     }
 }
