@@ -23,6 +23,10 @@ export class GameOver extends Scene
         this.lostScore = data.lostScore ?? 0;
         this.reason = data.reason ?? 'timeout';
         this.levelIndex = data.levelIndex ?? 0;
+        // La campaña se conserva para que "Reintentar nivel" juegue el mismo
+        // mapa (sin re-roll). En victoria se descarta: empieza una partida nueva.
+        this.campaignSeed = data.campaignSeed ?? null;
+        this.campaign = data.campaign ?? null;
         // Se lee el récord anterior antes de actualizarlo: si no, update()
         // devolvería el propio score y "nuevo récord" saldría siempre.
         const previousBest = HighScore.get();
@@ -97,7 +101,12 @@ export class GameOver extends Scene
         }).setOrigin(0.5).setInteractive({ useHandCursor: true })
           .on('pointerdown', () => this.scene.start('Game', isVictory
               ? { levelIndex: 0, completedScore: 0 }
-              : { levelIndex: this.levelIndex, completedScore: this.score }));
+              : {
+                  levelIndex: this.levelIndex,
+                  completedScore: this.score,
+                  campaignSeed: this.campaignSeed,
+                  campaign: this.campaign
+              }));
     }
 
     createExitButton ()

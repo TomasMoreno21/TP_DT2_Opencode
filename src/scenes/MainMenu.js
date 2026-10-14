@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { HighScore } from '../systems/HighScore';
 import { Audio } from '../systems/Audio';
 import { LEVELS } from '../assets/levels';
+import { LevelGenerator } from '../systems/LevelGenerator';
 
 const COLORS = {
     bgTop: 0x232045,
@@ -30,6 +31,10 @@ export class MainMenu extends Scene
 
     create ()
     {
+        // La campaña se genera acá, en el menú, antes de que el jugador apriete
+        // JUGAR: así la pausa de generación (~1 s) queda fuera de la partida.
+        this.generateCampaign();
+
         this.cameras.main.setBackgroundColor(0x16132a);
         this.drawBackground();
 
@@ -53,10 +58,25 @@ export class MainMenu extends Scene
         }).setOrigin(0.5);
 
         this.createPlayButton();
+    }
 
-        // Log de semilla para depuración (solo consola dev)
-        if (this.campaignSeed !== null && this.campaignSeed !== undefined) {
-            console.log('[FastMove] campaña seed:', this.campaignSeed);
+    // Genera la campaña una vez por entrada al menú y la conserva para toda la
+    // partida (sin re-roll por nivel). La semilla queda en consola dev.
+    generateCampaign ()
+    {
+        const seed = (this.campaignSeed === null || this.campaignSeed === undefined)
+            ? (Date.now() * 2654435761 >>> 0)
+            : (this.campaignSeed >>> 0);
+
+        this.campaignSeed = seed;
+        this.campaign = new LevelGenerator().generateCampaign(seed, LEVELS);
+
+        console.log(`[FastMove] campaña generada (semilla ${seed}):`,
+            this.campaign.map((e) => `N${e.config.id}=${e.config.durationSeconds}s${e.ok ? '' : '(fallback)'}`).join(' '));
+
+        const failed = this.campaign.filter((e) => !e.ok);
+        if (failed.length) {
+            console.warn('[FastMove] niveles sin candidato válido:', failed.map((e) => e.config.id).join(','));
         }
     }
 
@@ -158,9 +178,12 @@ export class MainMenu extends Scene
             this.tweens.killTweensOf(label);
             btn.setScale(0.93);
             label.setScale(0.93);
-            const seed = this.campaignSeed ?? (Date.now() * 131542391 >>> 0);
-            console.log('[FastMove] starting campaign seed:', seed);
-            this.time.delayedCall(140, () => this.scene.start('Game', { levelIndex: 0, completedScore: 0, campaignSeed: seed }));
+            this.time.delayedCall(140, () => this.scene.start('Game', {
+                levelIndex: 0,
+                completedScore: 0,
+                campaignSeed: this.campaignSeed,
+                campaign: this.campaign
+            }));
         });
     }
 }
