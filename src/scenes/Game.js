@@ -33,6 +33,8 @@ export class Game extends Scene
         this.gameEnded = false;
         this.levelComplete = false;
         this.lastSecond = null;
+        this.warned5s = false;
+        this.maxMult = 1;
 
         if (!this.textures.exists('particle')) {
             this.make.graphics({ x: 0, y: 0, add: false })
@@ -43,6 +45,7 @@ export class Game extends Scene
 
         this.cameras.main.setBackgroundColor(0x141026);
 
+        // Fondo neón procedural con parallax suave (sin assets externos).
         if (!this.textures.exists('neon-star')) {
             const sg = this.make.graphics({ x: 0, y: 0, add: false });
             sg.fillStyle(0xffffff, 1).fillCircle(8, 12, 2);
@@ -68,11 +71,12 @@ export class Game extends Scene
         this.tweens.add({ targets: this.bgStars, alpha: 0.55, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
         let levelConfig = LEVELS[this.levelIndex] ?? LEVELS[0];
+        // Campaña G1: el config del nivel sale de la campaña generada.
         if (this.campaign) {
             const entry = this.campaign[this.levelIndex];
             if (entry && entry.config) levelConfig = entry.config;
         } else {
-            // Generar campaña al vuelo si no llegó (caso de reinicio directo)
+            // Generar campaña al vuelo si no llegó (caso de reinicio directo).
             const gen = new LevelGenerator();
             const camp = gen.generateCampaign(this.campaignSeed, LEVELS);
             this.campaign = camp;
@@ -94,9 +98,11 @@ export class Game extends Scene
         this.cameras.main.setDeadzone(80, 120);
 
         if (this.level.trampolineList.length) {
-            this.physics.add.collider(this.player.rect, this.level.trampolines, (player, rect) => {
+            this.physics.add.collider(this.player.rect, this.level.trampolines);
+            this.physics.add.overlap(this.player.rect, this.level.trampolines, (player, rect) => {
                 const trampoline = this.level.trampolineList.find((t) => t.rect === rect);
-                if (trampoline && !this.player.isDashing && player.body.velocity.y > -30) {
+
+                if (trampoline && player.body.velocity.y > -30) {
                     const perfect = trampoline.bounce(this.player.rect);
                     Audio.play(perfect ? 'perfect' : 'bounce');
                 }
@@ -110,6 +116,7 @@ export class Game extends Scene
         if (this.level.powerUpList.length) {
             this.physics.add.overlap(this.player.rect, this.level.powerUps, (player, circle) => {
                 const powerUp = this.level.powerUpList.find((p) => p.circle === circle);
+
                 if (powerUp && powerUp.collect()) {
                     this.player.activateShield();
                     Audio.play('shield');
@@ -122,6 +129,7 @@ export class Game extends Scene
         if (this.level.portalList.length) {
             this.physics.add.overlap(this.player.rect, this.level.portals, (player, sensor) => {
                 const portal = this.level.portalList.find((p) => p.sensor === sensor);
+
                 if (portal && portal.status === 'idle') {
                     portal.beginCharge();
                 }
@@ -139,6 +147,7 @@ export class Game extends Scene
         this.hud.setScore(this.scoreManager.score);
         this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
         this.hud.setLevel(this.levelIndex + 1, LEVELS.length);
+        this.hud.setTimerTotal(levelConfig.durationSeconds);
         this.hud.setTime(this.timer.remainingSeconds);
 
         this.floatingText.showBanner(512, 240, `Nivel ${this.levelIndex + 1} - ${levelConfig.name}`, '#00d1b2', 34);
@@ -167,7 +176,11 @@ export class Game extends Scene
 
         this.physics.add.overlap(this.player.rect, this.pointSpawner.points.map((point) => point.circle), (player, circle) => {
             const point = this.pointSpawner.getPointByCircle(circle);
-            if (!point) return;
+
+            if (!point) {
+                return;
+            }
+
             const airborne = !this.player.body.blocked.down;
             const { gained, airBonus } = this.scoreManager.scorePoint(point.value, this.time.now, { airborne });
             this.hud.setScore(this.scoreManager.score);
@@ -180,16 +193,27 @@ export class Game extends Scene
             Audio.play('point', { combo: this.scoreManager.multiplier });
             this.burstAt(point.circle.x, point.circle.y, point.color);
             this.floatingText.show(point.circle.x, point.circle.y - 20, `+${gained}`, this.scoreManager.multiplier > 1 ? '#ff6622' : '#ffdd44');
-            if (airBonus > 0) this.floatingText.show(point.circle.x, point.circle.y - 44, `VOLEANDO +${airBonus}`, '#66ff88', 14);
+
+            if (airBonus > 0) {
+                this.floatingText.show(point.circle.x, point.circle.y - 44, `VOLEANDO +${airBonus}`, '#66ff88', 14);
+            }
+
             point.deactivate();
             this.pointSpawner.activateAnother();
-            if (this.scoreManager.quotaMet) this.onQuotaMet();
+
+            if (this.scoreManager.quotaMet) {
+                this.onQuotaMet();
+            }
         });
 
         if (this.level.gemList.length) {
             this.physics.add.overlap(this.player.rect, this.level.gems, (player, circle) => {
                 const gem = this.level.gemList.find((g) => g.circle === circle);
-                if (!gem || !gem.active) return;
+
+                if (!gem || !gem.active) {
+                    return;
+                }
+
                 const airborne = !this.player.body.blocked.down;
                 const { gained, airBonus } = this.scoreManager.scoreGem(gem.value, this.time.now, { airborne });
                 this.timer.addSeconds(gem.bonusSeconds);
@@ -202,27 +226,40 @@ export class Game extends Scene
                 Audio.play('gem');
                 this.burstAt(gem.x, gem.y, gem.color);
                 this.floatingText.show(gem.x, gem.y - 24, `+${gained}`, '#66ff88', 20);
-                if (airBonus > 0) this.floatingText.show(gem.x, gem.y - 44, `VOLANDO +${airBonus}`, '#66ff88', 14);
-                if (this.scoreManager.quotaMet) this.onQuotaMet();
+
+                if (airBonus > 0) {
+                    this.floatingText.show(gem.x, gem.y - 44, `VOLANDO +${airBonus}`, '#66ff88', 14);
+                }
+
+                if (this.scoreManager.quotaMet) {
+                    this.onQuotaMet();
+                }
+
                 gem.deactivate();
             });
         }
 
         this.physics.add.overlap(this.player.rect, this.projectileManager.group, (player, circle) => this.onHit(circle));
+
         if (this.level.hazardList.length) {
             this.physics.add.overlap(this.player.rect, this.level.hazards, () => this.onHit());
         }
 
         this.physics.add.overlap(this.player.rect, this.level.goal.frame, () => {
-            if (this.level.goal.isOpen) this.onGoalReached();
+            if (this.level.goal.isOpen) {
+                this.onGoalReached();
+            }
         });
 
+        // Al reiniciar el nivel o cambiar de escena hay que devolver el mundo a su
+        // ritmo normal: si se apaga durante un hitstop, el mundo queda pausado.
         this.events.once('shutdown', () => this.pace.restore());
         this.events.once('shutdown', () => this.level.destroy());
     }
 
     update (time, delta)
     {
+        // Parallax suave: estrellas siguen un poco a la cámara + deriva lenta.
         if (this.bgStars) {
             this.bgStars.tilePositionX = this.cameras.main.scrollX * 0.25;
             this.bgStars.tilePositionY = this.cameras.main.scrollY * 0.25 + time * 0.006;
@@ -239,12 +276,297 @@ export class Game extends Scene
         if (seconds !== this.lastSecond) {
             this.lastSecond = seconds;
             this.hud.setTime(seconds);
+
+            if (seconds === 5 && !this.warned5s && !this.gameEnded) {
+                this.warned5s = true;
+                this.floatingText.showBanner(512, 200, '¡Últimos 5s!', '#ff4455', 30);
+            }
         }
 
         this.hud.setShield(this.player.shieldUntil - this.time.now, this.shieldTotalMs);
         this.hud.setDashCooldown(this.player.dashRemaining, PLAYER_CONFIG.dashCooldownMs);
 
+        if (!this.gameEnded && this.scoreManager.multiplier > this.maxMult) {
+            this.maxMult = this.scoreManager.multiplier;
+        }
+
         this.updateAirStreak();
         this.updatePortals();
+    }
+
+    // M6: la cadena "sin pies en el suelo" se corta al aterrizar sobre el piso.
+    updateAirStreak() {
+        const onFloor = this.player.body.blocked.down && this.player.rect.y + this.player.rect.height / 2 >= WORLD.floorTop - 2;
+
+        if (onFloor && this.scoreManager.airStreak > 0) {
+            this.scoreManager.resetAirStreak();
+            this.scoreManager.dropCombo();
+            this.player.setMultiplier(this.scoreManager.multiplier);
+            this.hud.setAirStreak(0);
+            this.hud.setMultiplier(this.scoreManager.multiplier);
+        }
+    }
+
+    // Gestiona la carga de los portales: la cancela si el jugador se aleja y
+    // ejecuta el salto cuando el aviso termina.
+    updatePortals() {
+        if (this.level.portalList.length === 0) {
+            return;
+        }
+
+        const playerRect = this.player.rect;
+
+        for (const portal of this.level.portalList) {
+            if (portal.status !== 'charging') {
+                continue;
+            }
+
+            const stillTouching = Math.abs(playerRect.x - portal.x) <= (playerRect.width + PORTAL_CONFIG.width) / 2 &&
+                Math.abs(playerRect.y - portal.y) <= (playerRect.height + PORTAL_CONFIG.height) / 2;
+
+            if (!stillTouching) {
+                portal.cancelCharge();
+                continue;
+            }
+
+            if (portal.isCharged) {
+                portal.teleport(playerRect);
+                Audio.play('portal');
+                this.burstAt(portal.x, portal.y, 0x9d7bff);
+                this.burstAt(this.player.rect.x, this.player.rect.y, 0x9d7bff);
+                this.cameras.main.flash(120, 157, 123, 255);
+            }
+        }
+    }
+
+    // Arrastra al jugador parado sobre una plataforma móvil para que viaje con ella.
+    updateMovingPlatforms() {
+        if (this.level.movingPlatformList.length === 0) {
+            return;
+        }
+
+        const playerRect = this.player.rect;
+
+        for (const platform of this.level.movingPlatformList) {
+            const delta = platform.update();
+
+            if (delta === 0) {
+                continue;
+            }
+
+            const platformTop = platform.rect.y - platform.rect.height / 2;
+            const playerBottom = playerRect.y + playerRect.height / 2;
+            const touchesTop = Math.abs(playerBottom - platformTop) < 10;
+            const withinX = Math.abs(playerRect.x - platform.rect.x) <= (platform.rect.width + playerRect.width) / 2;
+            const standing = this.player.body.blocked.down && touchesTop && withinX;
+
+            if (standing) {
+                if (platform.axis === 'x') {
+                    this.player.body.x += delta;
+                } else {
+                    this.player.body.y += delta;
+                }
+            }
+        }
+    }
+
+    // Actualiza el ciclo de los pinchos y detecta daño en su fase activa.
+    updateHazards() {
+        if (this.level.hazardList.length === 0) {
+            return;
+        }
+
+        for (const hazard of this.level.hazardList) {
+            hazard.update();
+        }
+    }
+
+    // Puntaje total de la campaña: niveles completados + puntaje del nivel en curso.
+    get totalScore()
+    {
+        return this.completedScore + this.scoreManager.score;
+    }
+
+    // Stats para la pantalla final: mejor combo y segundos sobrevividos del nivel.
+    endingStats ()
+    {
+        return {
+            maxCombo: this.maxMult,
+            survived: Math.max(Math.floor((this.time.now - this.timer.startTime) / 1000), 0)
+        };
+    }
+
+    onQuotaMet ()
+    {
+        if (this.gameEnded || this.levelComplete) {
+            return;
+        }
+
+        this.level.goal.open();
+        Audio.play('goalOpen');
+
+        this.floatingText.showBanner(512, 300, '¡META CUMPLIDA!', '#00ff88', 32);
+        this.floatingText.showBanner(512, 348, 'Llegá a la salida', '#ffffff', 22, 700);
+        // Chispas sobre la salida para guiar al jugador.
+        this.burstAt(this.level.goal.x, this.level.goal.y, 0x00ff88);
+        this.burstAt(this.level.goal.x, this.level.goal.y, 0xffffff);
+    }
+
+    onGoalReached ()
+    {
+        if (this.gameEnded || this.levelComplete) {
+            return;
+        }
+
+        this.levelComplete = true;
+        this.gameEnded = true;
+        Audio.play('goalReached');
+
+        const bankedScore = this.totalScore;
+
+        // Confetti sobre el jugador.
+        const px = this.player.rect.x, py = this.player.rect.y;
+        for (const [dx, color] of [[-30, 0x00ff88], [30, 0xffdd44], [0, 0x2dd4ff], [-15, 0xff66aa], [15, 0xffffff]]) {
+            this.burstAt(px + dx, py - 10, color);
+        }
+        this.cameras.main.shake(150, 0.006);
+
+        this.floatingText.showBanner(512, 300, `¡Nivel ${this.levelIndex + 1} superado!`, '#00ff88', 32);
+
+        this.time.delayedCall(1200, () => {
+            if (this.levelIndex + 1 < LEVELS.length) {
+                this.scene.start('Game', {
+                    levelIndex: this.levelIndex + 1,
+                    completedScore: bankedScore,
+                    campaignSeed: this.campaignSeed,
+                    campaign: this.campaign
+                });
+            } else {
+                this.scene.start('GameOver', {
+                    score: bankedScore,
+                    reason: 'victory',
+                    levelIndex: this.levelIndex,
+                    ...this.endingStats()
+                });
+            }
+        });
+    }
+
+    onTimeUp ()
+    {
+        if (this.gameEnded) {
+            return;
+        }
+
+        this.gameEnded = true;
+        this.scene.start('GameOver', {
+            score: this.completedScore,
+            lostScore: this.scoreManager.score,
+            reason: 'timeout',
+            levelIndex: this.levelIndex,
+            ...this.endingStats()
+        });
+    }
+
+    onHit (projectileCircle = null)
+    {
+        if (this.gameEnded) {
+            return;
+        }
+
+        if (this.player.isInvulnerable) {
+            return;
+        }
+
+        if (this.player.hasShield) {
+            if (projectileCircle) {
+                this.projectileManager.absorbCircle(projectileCircle);
+            }
+
+            this.player.absorbHit();
+            Audio.play('hit');
+            this.cameras.main.shake(160, 0.008);
+            this.cameras.main.flash(150, 90, 220, 255);
+            this.burstAt(this.player.rect.x, this.player.rect.y, 0x2dd4ff);
+            this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡ESCUDO!', '#2dd4ff', 20);
+            return;
+        }
+
+        this.gameEnded = true;
+        this.pace.hitstop(80);
+        this.pace.slowmo(700, 0.35);
+        Audio.play('hit');
+        this.player.flinch();
+        this.player.rect.setFillStyle(0xff4455);
+
+        this.cameras.main.shake(400, 0.02);
+        this.cameras.main.flash(300, 255, 40, 40);
+
+        this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡Impacto!', '#ff4455', 26);
+
+        this.time.delayedCall(600, () => {
+            this.scene.start('GameOver', {
+                score: this.completedScore,
+                lostScore: this.scoreManager.score,
+                reason: 'hit',
+                levelIndex: this.levelIndex,
+                ...this.endingStats()
+            });
+        });
+    }
+
+    // Estela mínima: solo durante el dash, un toque más visible.
+    updateTrail(delta) {
+        if (this.gameEnded || !this.player) {
+            return;
+        }
+
+        this.trailAcc += delta;
+
+        if (this.player.isDashing && this.trailAcc > 70) {
+            this.trailAcc = 0;
+            this.spawnGhost(0.22, 170);
+        }
+    }
+
+    spawnDashGhosts() {
+        for (let i = 0; i < 3; i++) {
+            this.time.delayedCall(i * 50, () => this.spawnGhost(0.3, 210));
+        }
+    }
+
+    spawnGhost(alpha, lifeMs) {
+        const color = this.player.rect.fillColor ?? 0x00d1b2;
+        const g = this.add.rectangle(
+            this.player.rect.x, this.player.rect.y,
+            this.player.rect.width * this.player.rect.scaleX,
+            this.player.rect.height * this.player.rect.scaleY,
+            color, alpha
+        ).setDepth(-1);
+        this.tweens.add({ targets: g, alpha: 0, duration: lifeMs, onComplete: () => g.destroy() });
+    }
+
+    burstAt(x, y, color) {        const hexColor = typeof color === 'number' ? color : 0xffdd44;
+
+        this.add.particles(x, y, 'particle', {
+            speed: { min: 60, max: 220 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 1, end: 0 },
+            lifespan: 400,
+            quantity: 10,
+            emitting: false,
+            tint: hexColor
+        }).explode(10, x, y);
+    }
+
+    applyComboZoom() {
+        const target = this.scoreManager.multiplier >= 4 ? 1.03 : 1;
+
+        if (target === this.zoomLevel) {
+            return;
+        }
+
+        this.zoomLevel = target;
+        this.cameras.main.zoomTo(target, 300, 'Sine.easeInOut');
     }
 }

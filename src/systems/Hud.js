@@ -11,6 +11,13 @@ export class Hud {
         this.normalColor = '#ffffff';
         this.lowColor = '#ffdd44';
         this.criticalColor = '#ff4455';
+        this.lastMult = 1;
+        this.timerTotal = 60;
+
+        // Panel translúcido detrás del bloque de estado izquierdo.
+        const panel = scene.add.graphics().setScrollFactor(0);
+        panel.fillStyle(0x000000, 0.35);
+        panel.fillRoundedRect(8, 8, 212, 144, 12);
 
         this.scoreText = scene.add.text(16, 16, 'Puntos: 0', {
             fontFamily: 'Arial Black', fontSize: 24, color: '#ffffff',
@@ -22,17 +29,25 @@ export class Hud {
             stroke: '#000000', strokeThickness: 4
         }).setScrollFactor(0);
 
+        // Barra de progreso de la quota bajo el texto.
+        this.quotaBarBg = scene.add.rectangle(16, 74, 170, 8, 0x1a1a2e, 0.9)
+            .setOrigin(0, 0).setScrollFactor(0);
+        this.quotaBarBg.setStrokeStyle(1, 0xcccccc, 0.6);
+        this.quotaFill = scene.add.rectangle(17, 75, 168, 6, 0x00d1b2, 1)
+            .setOrigin(0, 0).setScrollFactor(0);
+        this.quotaFill.setScale(0, 1);
+
         this.levelText = scene.add.text(1008, 16, 'Nivel 1/1', {
             fontFamily: 'Arial Black', fontSize: 22, color: '#ffffff',
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(1, 0).setScrollFactor(0);
 
-        this.comboText = scene.add.text(512, 68, 'x1', {
+        this.comboText = scene.add.text(512, 102, 'x1', {
             fontFamily: 'Arial Black', fontSize: 22, color: '#ffdd44',
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5).setScrollFactor(0).setVisible(false);
 
-        this.airText = scene.add.text(512, 96, 'VOLANDO', {
+        this.airText = scene.add.text(512, 130, 'VOLANDO', {
             fontFamily: 'Arial Black', fontSize: 16, color: '#66ff88',
             stroke: '#000000', strokeThickness: 5
         }).setOrigin(0.5).setScrollFactor(0).setVisible(false);
@@ -61,6 +76,18 @@ export class Hud {
             fontFamily: 'Arial Black', fontSize: 56, color: this.normalColor,
             stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5, 0).setScrollFactor(0);
+
+        // Barra del timer bajo el número + viñeta roja de tiempo bajo.
+        this.timerBarBg = scene.add.rectangle(HUD_CONFIG.timerX - 100, 86, 200, 8, 0x1a1a2e, 0.9)
+            .setOrigin(0, 0).setScrollFactor(0);
+        this.timerBarBg.setStrokeStyle(1, 0xffffff, 0.5);
+        this.timerFill = scene.add.rectangle(HUD_CONFIG.timerX - 99, 87, 198, 6, 0xffffff, 1)
+            .setOrigin(0, 0).setScrollFactor(0);
+        this.vignette = scene.add.graphics().setScrollFactor(0).setVisible(false);
+    }
+
+    setTimerTotal(totalSeconds) {
+        this.timerTotal = Math.max(totalSeconds, 1);
     }
 
     setScore(value) {
@@ -71,6 +98,8 @@ export class Hud {
         const met = collected >= quota;
         this.quotaText.setText(`Meta: ${collected}/${quota}`);
         this.quotaText.setColor(met ? '#00ff88' : '#cccccc');
+        this.quotaFill.setScale(quota > 0 ? Math.min(collected / quota, 1) : 0, 1);
+        this.quotaFill.setFillStyle(met ? 0x00ff88 : 0x00d1b2, 1);
     }
 
     setLevel(current, total) {
@@ -86,15 +115,66 @@ export class Hud {
     setTime(seconds) {
         this.timerText.setText(this.formatTime(seconds));
 
+        // La barra se vacía con el tiempo y cambia de color con la urgencia.
+        const fraction = Math.max(Math.min(seconds / this.timerTotal, 1), 0);
+        this.timerFill.setScale(fraction, 1);
+
         if (seconds <= HUD_CONFIG.criticalTimeThreshold) {
             this.timerText.setColor(this.criticalColor);
+            this.timerFill.setFillStyle(0xff4455, 1);
             this.startPulse();
+            this.updateVignette(1);
         } else if (seconds <= HUD_CONFIG.lowTimeThreshold) {
             this.timerText.setColor(this.lowColor);
+            this.timerFill.setFillStyle(0xffdd44, 1);
             this.stopPulse();
+            this.updateVignette(0.5);
         } else {
             this.timerText.setColor(this.normalColor);
+            this.timerFill.setFillStyle(0xffffff, 1);
             this.stopPulse();
+            this.updateVignette(0);
+        }
+    }
+
+    // Viñeta difuminada por capas (no un rectángulo duro): crece al acabarse el tiempo.
+    drawVignette(strength) {
+        const g = this.vignette.clear();
+        const layers = [
+            { w: 120, a: 0.10 }, { w: 95, a: 0.15 }, { w: 70, a: 0.22 },
+            { w: 48, a: 0.32 }, { w: 28, a: 0.42 }
+        ];
+
+        for (const { w, a } of layers) {
+            g.lineStyle(w, 0xff2233, a * strength);
+            g.strokeRect(0, 0, 1024, 768);
+        }
+    }
+
+    updateVignette(strength) {
+        if (strength <= 0) {
+            if (this.vignetteTween) {
+                this.vignetteTween.stop();
+                this.vignetteTween = null;
+            }
+
+            this.vignette.setVisible(false);
+            return;
+        }
+
+        this.drawVignette(strength);
+
+        if (!this.vignette.visible) {
+            this.vignette.setVisible(true);
+            this.vignette.setAlpha(0.5);
+            this.vignetteTween = this.scene.tweens.add({
+                targets: this.vignette,
+                alpha: 1,
+                duration: 500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
         }
     }
 
@@ -125,10 +205,18 @@ export class Hud {
         if (multiplier <= 1) {
             this.comboText.setVisible(false);
             this.stopComboScale();
+            this.lastMult = 1;
             return;
         }
 
-        this.comboText.setText(`x${multiplier}`).setVisible(true);
+        // Subir de combo pega un sacudón chico y cambia de color por nivel.
+        if (multiplier > this.lastMult) {
+            this.scene.cameras.main.shake(70, 0.002);
+        }
+
+        this.lastMult = multiplier;
+        const colors = { 2: '#ffdd44', 3: '#ff8844', 4: '#ff6622', 5: '#ff4455' };
+        this.comboText.setText(`x${multiplier}`).setColor(colors[multiplier] ?? '#ffdd44').setVisible(true);
 
         this.stopComboScale();
         this.comboText.setScale(1.4);

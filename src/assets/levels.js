@@ -11,12 +11,8 @@ export const LEVELS = [
         durationSeconds: 60,
         quota: 12,
         spawn: { x: 200, y: 650 },
-        projectiles: {
-            initialInterval: 1700,
-            minInterval: 1000,
-            maxSpeedMultiplier: 1.5,
-            wallGapX: 52
-        },
+        // N1 sin proyectiles: nivel de arranque tranqui (reversible).
+        projectiles: null,
         platforms: [
             // Piso
             { x: 512, y: 740, w: 1024, h: 56, color: 0x3a3a5c },
