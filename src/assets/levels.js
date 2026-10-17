@@ -75,48 +75,44 @@ export const LEVELS = [
             // Paredes de los bordes
             { x: 40, y: 400, w: 24, h: 720, color: 0x4a4270 },
             { x: 984, y: 400, w: 24, h: 720, color: 0x4a4270 },
-            // Columna central (doble cara para wall jump); termina al ras del
-            // alféizar para no tapar el trampolín superior.
-            { x: 512, y: 529, w: 44, h: 366, color: 0x453f6b },
-            // Escalera izquierda
-            { x: 200, y: 634, w: 150, h: 20, color: 0x3a3a5c },
+            // Escalera izquierda (el primer escalón, angosto y corrido: deja libre la
+            // zona del trampolín de la esquina)
+            { x: 236, y: 634, w: 110, h: 20, color: 0x3a3a5c },
             { x: 300, y: 546, w: 140, h: 20, color: 0x3a3a5c },
             { x: 400, y: 458, w: 140, h: 20, color: 0x3a3a5c },
             // Escalera derecha
-            { x: 824, y: 634, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 788, y: 634, w: 110, h: 20, color: 0x3a3a5c },
             { x: 724, y: 546, w: 140, h: 20, color: 0x3a3a5c },
             { x: 624, y: 458, w: 140, h: 20, color: 0x3a3a5c },
-            // Remate de la columna: 346 de superficie (bajado 16px respecto del
-            // diseño original: la subida desde la fila 3 pedía 118px y el apex
-            // del salto es 117.6px, es decir imposible a salto).
+            // Remate central (sin columna debajo: el medio queda libre): 346 de
+            // superficie; se sube desde las escaleras (la subida desde la fila 3
+            // pide 102 px, el apex del salto es 117,6 px).
             { x: 512, y: 356, w: 200, h: 20, color: 0x3a3a5c },
             // Filas altas
             { x: 300, y: 250, w: 160, h: 20, color: 0x3a3a5c },
             { x: 724, y: 250, w: 160, h: 20, color: 0x3a3a5c },
-            // Corona partida en dos con un hueco de 60px sobre la columna: es
-            // la boca de salida del trampolín central.
-            { x: 452, y: 160, w: 60, h: 20, color: 0x3a3a5c },
-            { x: 572, y: 160, w: 60, h: 20, color: 0x3a3a5c }
+            // Corona partida en dos con un hueco de 98 px sobre el trampolín central:
+            // su rebote sube recto sin chocar.
+            { x: 433, y: 160, w: 60, h: 20, color: 0x3a3a5c },
+            { x: 591, y: 160, w: 60, h: 20, color: 0x3a3a5c }
         ],
         trampolines: [
             // Esquinas libres del piso: sin plataformas encima, techo libre.
             { x: 96, y: 706, w: 80 },
             { x: 928, y: 706, w: 80 },
-            // Sobre la escalera izquierda: saltea la fila 2 hacia arriba.
-            { x: 178, y: 618, w: 90 },
             // Bajo el hueco de la corona: sube al punto alto y a la gema.
             { x: 512, y: 340, w: 60 }
         ],
         pointSpots: [
             { x: 300, y: 688 },
             { x: 700, y: 688 },
-            { x: 200, y: 604 },
-            { x: 824, y: 604 },
+            { x: 236, y: 604 },
+            { x: 788, y: 604 },
             { x: 300, y: 516 },
             { x: 724, y: 516 },
             { x: 400, y: 428 },
             { x: 624, y: 428 },
-            { x: 512, y: 326 },
+            { x: 440, y: 326 },
             { x: 300, y: 220 },
             { x: 724, y: 220 },
             { x: 512, y: 130 }
@@ -124,7 +120,7 @@ export const LEVELS = [
         gems: [
             { x: 512, y: 76 }
         ],
-        goal: { x: 824, y: 588 }
+        goal: { x: 788, y: 588 }
     },
     {
         id: 3,
@@ -145,15 +141,15 @@ export const LEVELS = [
             { x: 40, y: 400, w: 24, h: 720, color: 0x4a4270 },
             { x: 984, y: 400, w: 24, h: 720, color: 0x4a4270 },
             // Fila 1 (y=630): escalera izquierda y derecha + centro
-            { x: 180, y: 630, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 170, y: 630, w: 150, h: 20, color: 0x3a3a5c },
             { x: 512, y: 630, w: 170, h: 20, color: 0x3a3a5c },
-            { x: 844, y: 630, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 798, y: 630, w: 150, h: 20, color: 0x3a3a5c },
             // Fila 2 (y=540): gran vacío central cruzado por la ferry
-            { x: 200, y: 540, w: 170, h: 20, color: 0x3a3a5c },
-            { x: 824, y: 540, w: 170, h: 20, color: 0x3a3a5c },
+            { x: 185, y: 540, w: 140, h: 20, color: 0x3a3a5c },
+            { x: 814, y: 540, w: 170, h: 20, color: 0x3a3a5c },
             // Fila 3 (y=450): la derecha queda libre para el corredor del ascensor
             { x: 180, y: 450, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 430, y: 450, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 445, y: 450, w: 110, h: 20, color: 0x3a3a5c },
             // Fila 4 (y=360): la derecha queda libre para el corredor del ascensor
             { x: 180, y: 360, w: 150, h: 20, color: 0x3a3a5c },
             { x: 540, y: 360, w: 170, h: 20, color: 0x3a3a5c },
@@ -189,14 +185,14 @@ export const LEVELS = [
             { x: 200, y: 688 },
             { x: 880, y: 688 },
             // Fila 1
-            { x: 180, y: 600 },
-            { x: 844, y: 600 },
+            { x: 170, y: 600 },
+            { x: 798, y: 600 },
             // Fila 2
-            { x: 200, y: 510 },
-            { x: 824, y: 510 },
+            { x: 185, y: 510 },
+            { x: 814, y: 510 },
             // Fila 3
             { x: 180, y: 420 },
-            { x: 430, y: 420 },
+            { x: 445, y: 420 },
             // Fila 4
             { x: 180, y: 330 },
             // Fila 5
@@ -310,13 +306,13 @@ export const LEVELS = [
             { x: 512, y: 500, w: 60, h: 424, color: 0x453f6b },
             { x: 512, y: 276, w: 200, h: 20, color: 0x3a3a5c },
             { x: 512, y: 176, w: 170, h: 20, color: 0x3a3a5c },
-            // Rutas laterales
-            { x: 300, y: 590, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 724, y: 590, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 300, y: 480, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 724, y: 480, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 300, y: 370, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 724, y: 370, w: 150, h: 20, color: 0x3a3a5c }
+            // Rutas laterales (40 px hacia la torre: el pasillo del trampolín queda libre)
+            { x: 340, y: 590, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 684, y: 590, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 340, y: 480, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 684, y: 480, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 340, y: 370, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 684, y: 370, w: 150, h: 20, color: 0x3a3a5c }
         ],
         trampolines: [
             // Rebote del piso izquierdo a la ruta lateral baja
@@ -334,28 +330,28 @@ export const LEVELS = [
         portals: [
             // Par izquierdo: piso -> ruta lateral alta (ahorro de recorrido)
             { x: 200, y: 688 },
-            { x: 300, y: 360 },
+            { x: 340, y: 360 },
             // Par derecho: piso -> ruta lateral alta
             { x: 824, y: 688 },
-            { x: 724, y: 360 }
+            { x: 684, y: 360 }
         ],
         pointSpots: [
             { x: 200, y: 688 },
             { x: 820, y: 688 },
-            { x: 300, y: 560 },
-            { x: 724, y: 560 },
-            { x: 300, y: 450 },
-            { x: 724, y: 450 },
-            { x: 300, y: 340 },
-            { x: 724, y: 340 },
+            { x: 340, y: 560 },
+            { x: 684, y: 560 },
+            { x: 340, y: 450 },
+            { x: 684, y: 450 },
+            { x: 340, y: 340 },
+            { x: 684, y: 340 },
             { x: 80, y: 500 },
             { x: 944, y: 500 },
             { x: 512, y: 246 },
             { x: 512, y: 146 }
         ],
         gems: [
-            { x: 300, y: 160 },
-            { x: 724, y: 160 },
+            { x: 340, y: 160 },
+            { x: 684, y: 160 },
             { x: 512, y: 90 }
         ],
         goal: { x: 512, y: 230 }

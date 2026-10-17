@@ -3,7 +3,7 @@ import { HighScore } from '../systems/HighScore';
 import { Audio } from '../systems/Audio';
 import { Lang } from '../systems/Texts';
 import { LEVELS } from '../assets/levels';
-import { LevelGenerator } from '../systems/LevelGenerator';
+import { CampaignBuilder } from '../systems/CampaignBuilder';
 
 const COLORS = {
     bgTop: 0x232045,
@@ -67,6 +67,7 @@ export class MainMenu extends Scene
         this.createSecondaryButton(376, 570, 'controlsButton', Lang.t('controls'), () => this.toggleControls());
         this.createSecondaryButton(648, 570, 'langButton', Lang.t('lang'), () => this.toggleLang());
         this.buildLangPopup();
+        this.createSeedControls();
 
         this.input.keyboard.on('keydown-ESC', () => {
             this.toggleControls(false);
@@ -74,8 +75,24 @@ export class MainMenu extends Scene
         });
     }
 
-    // Genera la campaña una vez por entrada al menú y la conserva para toda la
-    // partida (sin re-roll por nivel). La semilla queda en consola dev.
+    // Botón superior para sortear una semilla nueva (otros niveles) y la semilla
+    // actual debajo, para poder repetir o reportar una campaña concreta.
+    createSeedControls () {
+        this.createSecondaryButton(512, 44, 'seedButton', Lang.t('newLevels'), () => {
+            Audio.play('ui');
+            const seed = ((Date.now() * 2654435761) ^ Math.floor(Math.random() * 4294967296)) >>> 0;
+            this.scene.restart({ campaignSeed: seed });
+        });
+
+        this.add.text(512, 90, Lang.t('seed', { n: this.campaignSeed }), {
+            fontFamily: 'Arial', fontSize: 16, color: COLORS.grey
+        }).setOrigin(0.5);
+    }
+
+    // Pide la campaña en segundo plano (Web Worker) apenas se abre el menú: la
+    // validación de los mapas tarda unos segundos y no debe congelar la pantalla.
+    // Se conserva para toda la partida (sin re-roll por nivel); la semilla queda
+    // en consola dev.
     generateCampaign ()
     {
         const seed = (this.campaignSeed === null || this.campaignSeed === undefined)
@@ -83,15 +100,51 @@ export class MainMenu extends Scene
             : (this.campaignSeed >>> 0);
 
         this.campaignSeed = seed;
-        this.campaign = new LevelGenerator().generateCampaign(seed, LEVELS);
+        this.campaign = null;
+        this.pendingStart = null;
+        this.starting = false;
 
-        console.log(`[FastMove] campaña generada (semilla ${seed}):`,
-            this.campaign.map((e) => `N${e.config.id}=${e.config.durationSeconds}s${e.ok ? '' : '(fallback)'}`).join(' '));
+        CampaignBuilder.build(seed).then((campaign) => {
+            this.campaign = campaign;
 
-        const failed = this.campaign.filter((e) => !e.ok);
-        if (failed.length) {
-            console.warn('[FastMove] niveles sin candidato válido:', failed.map((e) => e.config.id).join(','));
+            console.log(`[FastMove] campaña generada (semilla ${seed}):`,
+                campaign.map((e) => `N${e.config.id}=${e.config.durationSeconds}s${e.ok ? (e.mutated ? '' : '(base)') : '(inválido)'}`).join(' '));
+
+            const failed = campaign.filter((e) => !e.ok);
+            if (failed.length) {
+                console.warn('[FastMove] niveles sin candidato válido:', failed.map((e) => e.config.id).join(','));
+            }
+
+            // Si el jugador ya apretó JUGAR, arranca ahora.
+            if (this.pendingStart && this.scene.isActive()) {
+                this.pendingStart();
+            }
+        });
+    }
+
+    // Arranca la partida con la campaña lista; si todavía se está generando,
+    // espera mostrando un aviso en el botón.
+    startGame (label)
+    {
+        if (this.starting) {
+            return;
         }
+
+        this.starting = true;
+        const launch = () => this.scene.start('Game', {
+            levelIndex: 0,
+            completedScore: 0,
+            campaignSeed: this.campaignSeed,
+            campaign: this.campaign
+        });
+
+        if (this.campaign) {
+            launch();
+            return;
+        }
+
+        label.setText(Lang.t('generating')).setFontSize(26);
+        this.pendingStart = launch;
     }
 
     drawBackground () {
@@ -249,12 +302,7 @@ export class MainMenu extends Scene
             this.tweens.killTweensOf(label);
             btn.setScale(0.93);
             label.setScale(0.93);
-            this.time.delayedCall(140, () => this.scene.start('Game', {
-                levelIndex: 0,
-                completedScore: 0,
-                campaignSeed: this.campaignSeed,
-                campaign: this.campaign
-            }));
+            this.time.delayedCall(140, () => this.startGame(label));
         });
     }
 
@@ -304,7 +352,7 @@ export class MainMenu extends Scene
 
             opt.on('pointerdown', () => {
                 Lang.set(lang);
-                this.scene.restart();
+                this.scene.restart({ campaignSeed: this.campaignSeed });
             });
             options.push(opt);
         }

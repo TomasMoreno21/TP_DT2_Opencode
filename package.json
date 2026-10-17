@@ -17,7 +17,8 @@
     "dev": "node log.js dev & vite",
     "build": "node log.js build & vite build",
     "dev-nolog": "vite",
-    "build-nolog": "vite build"
+    "build-nolog": "vite build",
+    "test-levels": "node tools/test-levels.mjs"
   },
   "devDependencies": {
     "terser": "^5.39.0",

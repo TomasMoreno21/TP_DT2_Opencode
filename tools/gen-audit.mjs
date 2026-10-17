@@ -1,18 +1,12 @@
-import { pathToFileURL } from 'node:url';
-import fs from 'node:fs';
+import { LEVELS } from '../src/assets/levels.js';
 import { LevelValidator } from '../src/systems/LevelValidator.js';
 
-const levelsPath = process.argv[2];
-if (!levelsPath) {
-    console.error('Uso: node tools/gen-audit.mjs <ruta/levels.js>');
-    process.exit(1);
-}
-
-const { LEVELS } = await import(pathToFileURL(levelsPath).href);
+// Audita los niveles base con el validador actual.
 const validator = new LevelValidator();
 for (const level of LEVELS) {
     const t0 = performance.now();
     const res = validator.validate(level);
-    const dt = (performance.now() - t0).toFixed(1);
-    console.log(`N${level.id} ${level.name}: ok=${res.ok} spots=${res.spotsOk}/${res.spotsTotal} goalOk=${res.goalOk} time=${dt}ms`);
+    const dt = (performance.now() - t0).toFixed(0);
+    console.log(`N${level.id} ${level.name}: ok=${res.ok} spots=${res.spotsOk}/${res.spotsTotal} goal=${res.goalFrames} worst=${res.pathLengthFrames} visited=${res.visitedCount} ${dt}ms`,
+        res.layoutIssues.length ? res.layoutIssues : '', res.gemsBad.length ? `gemasMal=${res.gemsBad.map((g) => g.index)}` : '', res.spotsBad.map((s) => s.index));
 }

@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { HighScore } from '../systems/HighScore';
 import { Audio } from '../systems/Audio';
 import { LEVELS } from '../assets/levels';
+import { CampaignBuilder } from '../systems/CampaignBuilder';
 
 const ENDING_CONFIG = {
     hit: { title: '¡Perdiste!', color: '#ff4455', tint: 0xff4455, bg: 0x2a0f16, face: '>_<', faceColor: '#ff8899' },
@@ -25,10 +26,14 @@ export class GameOver extends Scene
         this.levelIndex = data.levelIndex ?? 0;
         this.maxCombo = data.maxCombo ?? 1;
         this.survived = data.survived ?? 0;
-        // La campaña se conserva para que "Reintentar" juegue el mismo mapa (sin
-        // re-roll). En victoria se descarta: empieza una partida nueva.
+        // La campaña se conserva (los demás niveles no cambian). Al perder, "Reintentar"
+        // reemplaza ESE nivel por uno nuevo generado con otra semilla; en victoria
+        // se descarta: empieza una partida nueva.
         this.campaignSeed = data.campaignSeed ?? null;
         this.campaign = data.campaign ?? null;
+        this.deaths = data.deaths ?? 0;
+        // La escena se reutiliza entre partidas: el estado del reintento se reinicia.
+        this.retrying = false;
         // Se lee el récord anterior antes de actualizarlo: si no, update()
         // devolvería el propio score y "nuevo récord" saldría siempre.
         const previousBest = HighScore.get();
@@ -114,15 +119,50 @@ export class GameOver extends Scene
                 campaign: this.campaign
             };
 
-        this.createButton(596, primaryLabel, 0x00d1b2, '#00382c',
-            () => this.scene.start('Game', primaryTarget));
+        const retry = () => this.retry(primaryTarget, isVictory);
+
+        this.primaryLabel = this.createButton(596, primaryLabel, 0x00d1b2, '#00382c', retry);
         this.createButton(672, 'MENÚ', 0x1b1836, '#cccccc',
             () => this.scene.start('MainMenu'), 0x9a94c8);
 
-        this.input.keyboard.on('keydown-R', () => this.scene.start('Game', primaryTarget));
-        this.input.keyboard.on('keydown-SPACE', () => this.scene.start('Game', primaryTarget));
+        this.input.keyboard.on('keydown-R', retry);
+        this.input.keyboard.on('keydown-SPACE', retry);
         this.input.keyboard.on('keydown-M', () => this.scene.start('MainMenu'));
         this.input.keyboard.on('keydown-ESC', () => this.scene.start('MainMenu'));
+    }
+
+    // Reintentar: tras perder se genera un nivel nuevo para esa instancia (otra
+    // semilla, otro mapa) y se reemplaza solo en la campaña de la partida. Si no
+    // hay campaña (arranque directo) o es una victoria, se usa el destino tal cual.
+    retry (target, isVictory)
+    {
+        if (this.retrying) {
+            return;
+        }
+
+        if (isVictory || !this.campaign) {
+            this.scene.start('Game', target);
+            return;
+        }
+
+        this.retrying = true;
+        this.primaryLabel?.setText('Generando nivel...').setFontSize(22);
+
+        const seed = ((Date.now() * 2654435761) ^ Math.floor(Math.random() * 4294967296)) >>> 0;
+
+        // Aprender del error: cada muerte seguida en este nivel pide un mapa más
+        // accesible (dificultad más baja, más espacio y algo más de tiempo).
+        const assist = this.deaths + 1;
+
+        CampaignBuilder.buildLevel(seed, this.levelIndex, { assist }).then((entry) => {
+            const campaign = this.campaign.slice();
+            campaign[this.levelIndex] = entry;
+            console.log(`[FastMove] N${this.levelIndex + 1} regenerado tras perder (semilla ${seed}, asistencia ${assist}): ${entry.config.durationSeconds}s${entry.mutated ? '' : ' (base)'}`);
+
+            if (this.scene.isActive()) {
+                this.scene.start('Game', { ...target, campaign, deaths: assist });
+            }
+        });
     }
 
     subtitle()
@@ -227,5 +267,7 @@ export class GameOver extends Scene
             btn.setScale(0.95);
             this.time.delayedCall(120, onClick);
         });
+
+        return label;
     }
 }

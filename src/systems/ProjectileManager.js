@@ -16,11 +16,17 @@ export class ProjectileManager {
         this.group = scene.physics.add.group();
         this.projectiles = [];
         this.totalDurationMs = totalDurationMs;
-        this.startTime = scene.time.now;
+        // Se fija en el primer update: el reloj de la escena arranca con la edad
+        // de la pestaña y desfasaría el progreso (mismo criterio que GameTimer).
+        this.startTime = null;
         this.nextSpawnTime = 0;
     }
 
     get progress() {
+        if (this.startTime === null) {
+            return 0;
+        }
+
         const elapsed = this.scene.time.now - this.startTime;
         return Math.min(elapsed / this.totalDurationMs, 1);
     }
@@ -76,6 +82,10 @@ export class ProjectileManager {
         // Nivel sin proyectiles: el grupo queda vacío y el overlap no dispara.
         if (!this.config) {
             return;
+        }
+
+        if (this.startTime === null) {
+            this.startTime = this.scene.time.now;
         }
 
         for (let i = this.projectiles.length - 1; i >= 0; i--) {

@@ -26,6 +26,8 @@ export class Game extends Scene
         this.completedScore = data.completedScore ?? 0;
         this.campaignSeed = data.campaignSeed ?? (data.seed ?? Date.now() * 131542391 >>> 0);
         this.campaign = data.campaign ?? null;
+        // Muertes seguidas en este nivel: el reintento genera un mapa más accesible.
+        this.deaths = data.deaths ?? 0;
     }
 
     // La campaña generada viaja con la escena (transición de nivel, reintento y
@@ -36,7 +38,7 @@ export class Game extends Scene
         if (!this.campaign) {
             this.campaign = new LevelGenerator().generateCampaign(this.campaignSeed, LEVELS);
             console.log(`[FastMove] campaña generada al vuelo (semilla ${this.campaignSeed}):`,
-                this.campaign.map((e) => `N${e.config.id}=${e.config.durationSeconds}s${e.ok ? '' : '(fallback)'}`).join(' '));
+                this.campaign.map((e) => `N${e.config.id}=${e.config.durationSeconds}s${e.ok ? (e.mutated ? '' : '(base)') : '(inválido)'}`).join(' '));
         }
 
         const entry = this.campaign[this.levelIndex];
@@ -160,6 +162,9 @@ export class Game extends Scene
         this.hud.setTime(this.timer.remainingSeconds);
 
         this.floatingText.showBanner(512, 240, `Nivel ${this.levelIndex + 1} - ${levelConfig.name}`, '#00d1b2', 34);
+        if (this.deaths > 0) {
+            this.floatingText.showBanner(512, 286, 'Mapa nuevo: más espacio y más tiempo', '#66ff88', 20);
+        }
 
         this.muteKey = this.input.keyboard.addKey('M');
         this.muteKey.on('down', () => {
@@ -174,7 +179,8 @@ export class Game extends Scene
                     levelIndex: this.levelIndex,
                     completedScore: this.completedScore,
                     campaignSeed: this.campaignSeed,
-                    campaign: this.campaign
+                    campaign: this.campaign,
+                    deaths: this.deaths
                 });
             }
         });
@@ -482,6 +488,7 @@ export class Game extends Scene
             levelIndex: this.levelIndex,
             campaignSeed: this.campaignSeed,
             campaign: this.campaign,
+            deaths: this.deaths,
             ...this.endingStats()
         });
     }
@@ -530,6 +537,7 @@ export class Game extends Scene
                 levelIndex: this.levelIndex,
                 campaignSeed: this.campaignSeed,
                 campaign: this.campaign,
+                deaths: this.deaths,
                 ...this.endingStats()
             });
         });
