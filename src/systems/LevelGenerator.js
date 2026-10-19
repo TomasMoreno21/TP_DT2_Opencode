@@ -12,8 +12,14 @@ const RNG_M = 2 ** 32;
 export const DEFAULT_ATTEMPTS = 60;
 
 // En cada ronda se juntan hasta CANDIDATE_POOL candidatos que pasan los filtros
-// baratos y se valida (BFS, lo caro) primero el de mejor calidad (_quality).
-export const CANDIDATE_POOL = 3;
+// baratos y se valida (BFS, lo caro). Para evitar que los mapas siempre se vean
+// iguales, no se elige siempre el de mejor calidad: se hace una selección
+// ponderada (softmax) entre los candidatos válidos, así el jugador ve variedad.
+export const CANDIDATE_POOL = 5;
+
+// Cuanto más baja, más se privilegia la calidad y menos variedad hay.
+// 0.45 es un punto medio: mapas buenos pero distintos entre semillas.
+export const SELECTION_TEMPERATURE = 0.45;
 
 // Espacio para moverse: una plataforma con menos de CRAMPED_HEADROOM px de aire
 // encima se considera apretada (el jugador mide 48 y el salto sube ~117).
@@ -348,8 +354,11 @@ export class LevelGenerator {
                 pool.push({ candidate, mutations, quality: this._quality(candidate, assist) });
             }
 
-            // 2) Se valida primero el de mejor calidad.
-            pool.sort((x, y) => y.quality - x.quality);
+            // 2) Se valida cada candidato (BFS, lo caro) y se recolectan los
+            //    válidos. No se elige siempre el mejor: se hace una selección
+            //    ponderada por calidad (softmax) para que los mapas varíen entre
+            //    semillas sin perder jugabilidad.
+            const valid = [];
             for (const { candidate, mutations, quality } of pool) {
                 validations++;
                 const touched = candidate.platforms
@@ -377,6 +386,23 @@ export class LevelGenerator {
                 const ratio = this.effortOf(res) / base.effort;
                 if (ratio < minRatio || ratio > relaxedMax) { stats.difficulty++; continue; }
 
+                valid.push({ candidate, mutations, quality, res, ratio });
+            }
+
+            if (valid.length > 0) {
+                // Selección ponderada: calidad alta tiene más probabilidad, pero no es
+                // determinista. Softmax con temperatura para variedad.
+                const maxQ = Math.max(...valid.map((v) => v.quality));
+                const weights = valid.map((v) => Math.exp((v.quality - maxQ) / SELECTION_TEMPERATURE));
+                const sumW = weights.reduce((a, b) => a + b, 0);
+                let pick = rng.next() * sumW;
+                let chosen = valid[valid.length - 1];
+                for (let k = 0; k < valid.length; k++) {
+                    pick -= weights[k];
+                    if (pick <= 0) { chosen = valid[k]; break; }
+                }
+
+                const { candidate, mutations, quality, res, ratio } = chosen;
                 // Con asistencia el tiempo nunca baja por ser un mapa más corto.
                 const timerRatio = assist > 0 ? Math.max(ratio, 1) : ratio;
                 candidate.durationSeconds = this.deriveTimerSeconds(baseConfig.durationSeconds, timerRatio, levelId, assist);
