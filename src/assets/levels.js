@@ -8,7 +8,7 @@ export const LEVELS = [
     {
         id: 1,
         name: 'Arranque',
-        durationSeconds: 60,
+        durationSeconds: 55,
         quota: 12,
         spawn: { x: 200, y: 650 },
         // N1 sin proyectiles: nivel de arranque tranqui (reversible).
@@ -60,7 +60,7 @@ export const LEVELS = [
     {
         id: 2,
         name: 'Rebotes',
-        durationSeconds: 55,
+        durationSeconds: 50,
         quota: 12,
         spawn: { x: 360, y: 660 },
         projectiles: {
@@ -125,7 +125,7 @@ export const LEVELS = [
     {
         id: 3,
         name: 'Movimiento',
-        durationSeconds: 52,
+        durationSeconds: 48,
         quota: 12,
         spawn: { x: 120, y: 660 },
         projectiles: {
@@ -212,7 +212,7 @@ export const LEVELS = [
     {
         id: 4,
         name: 'Peligro',
-        durationSeconds: 50,
+        durationSeconds: 43,
         quota: 14,
         spawn: { x: 110, y: 660 },
         projectiles: {
@@ -286,7 +286,7 @@ export const LEVELS = [
     {
         id: 5,
         name: 'Final',
-        durationSeconds: 60,
+        durationSeconds: 55,
         quota: 16,
         spawn: { x: 110, y: 660 },
         projectiles: {

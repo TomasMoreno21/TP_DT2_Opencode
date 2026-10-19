@@ -1,5 +1,5 @@
 export const TRAMPOLINE_CONFIG = {
-    height: 12,
+    height: 4,
     baseVy: -620,
     perfectVy: -900,
     perfectZoneHalf: 30,
