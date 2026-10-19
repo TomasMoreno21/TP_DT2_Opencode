@@ -132,9 +132,9 @@ export const LEVEL_TUNING = {
         requireMovingPlatform: true,
         movingPlatformMinRise: 60,
         movingPlatformMaxRise: 260,
-        // Foco en móviles: menos plataformas estáticas y al menos dos móviles.
-        maxStaticPlatforms: 9,
-        minMovingPlatforms: 2,
+        // Foco en móviles: menos plataformas estáticas y al menos tres móviles.
+        maxStaticPlatforms: 7,
+        minMovingPlatforms: 3,
     },
 };
 
@@ -504,7 +504,20 @@ export class LevelGenerator {
             bottom(p) < spawn.y && bottom(p) > spawn.y - 150) ? 1 : 0;
 
         const space = open / plats.length - cramped * 25 - stacked * 40 - spawnCovered * 60;
-        return space * (1 + 0.5 * assist) + this._spotSetScore(cfg) * 0.15 + this.distribution(cfg).occupied * 8;
+        let score = space * (1 + 0.5 * assist) + this._spotSetScore(cfg) * 0.15 + this.distribution(cfg).occupied * 8;
+
+        // N3: bonifica usar plataformas móviles (más spots/gemas sobre ellas = más
+        // foco en la mecánica principal del nivel).
+        if (this.requireMovingPlatform) {
+            const movers = cfg.movingPlatforms || [];
+            const targets = [...(cfg.pointSpots || []), ...(cfg.gems || [])];
+            let onMovers = 0;
+            for (const t of targets) {
+                if (movers.some((m) => Math.hypot(t.x - m.x, t.y - m.y) < 110)) onMovers++;
+            }
+            score += onMovers * 25 + movers.length * 15;
+        }
+        return score;
     }
 
     generateCampaign(seed, LEVELS) {
@@ -1006,11 +1019,12 @@ export class LevelGenerator {
     }
 
     // Mueve el spot `index` a un punto libre sobre alguna plataforma.
+    // En N3 (requireMovingPlatform) también propone puntos sobre móviles.
     _placeSpot(rng, cfg, index) {
         // Con pocas plataformas los lugares libres escasean: se insiste un poco
         // (antes fallaba ~la mitad de las veces y el spot quedaba donde estaba).
         for (let k = 0; k < 4; k++) {
-            const spot = this._spotCandidate(rng, cfg, index);
+            const spot = this._spotCandidate(rng, cfg, index, null, this.requireMovingPlatform);
             if (spot) {
                 cfg.pointSpots[index] = spot;
                 return true;
@@ -1021,9 +1035,10 @@ export class LevelGenerator {
 
     // Propone un punto libre sobre alguna plataforma para el spot `index` (o null).
     // Con `band` = [xMin, xMax] solo propone puntos dentro de esa franja (para
-    // llenar una franja vacía).
-    _spotCandidate(rng, cfg, index, band = null) {
-        const surfaces = this._surfaces(cfg).filter((surf) =>
+    // llenar una franja vacía). Con `includeMovers` también propone puntos sobre
+    // plataformas móviles (N3).
+    _spotCandidate(rng, cfg, index, band = null, includeMovers = this.requireMovingPlatform ?? false) {
+        const surfaces = this._surfaces(cfg, includeMovers).filter((surf) =>
             !band || (right(surf) - 30 > band[0] && left(surf) + 30 < band[1]));
         if (surfaces.length === 0) return null;
 
@@ -1036,7 +1051,7 @@ export class LevelGenerator {
 
             const x = Math.round(rng.range(minX, maxX));
             const y = top(surface) - SPOT_HEIGHT_ABOVE_TOP;
-            if (!this._spotIsFree(cfg, x, y, index)) continue;
+            if (!this._spotIsFree(cfg, x, y, index, allowOnMovers = includeMovers)) continue;
             return { x, y };
         }
         return null;
@@ -1878,11 +1893,13 @@ _trampolinesUsable(cfg) {
     }
 
     // Reubica las gemas (flotan ~70 px sobre una plataforma: se alcanzan saltando).
+    // En N3 también las coloca sobre plataformas móviles para forzar su uso.
     _relocateGems(rng, cfg) {
         const gems = cfg.gems || [];
         if (gems.length === 0) return false;
 
-        const surfaces = this._surfaces(cfg).filter((s) => s.w >= 100 && s.y < FLOOR_TOP - 60);
+        const surfaces = this._surfaces(cfg, this.requireMovingPlatform).filter(
+            (s) => s.w >= 100 && s.y < FLOOR_TOP - 60);
         let moved = 0;
 
         gems.forEach((gem, index) => {
@@ -1897,7 +1914,9 @@ _trampolinesUsable(cfg) {
                     Math.hypot(cfg.spawn.x - x, cfg.spawn.y - y) > 140 &&
                     (cfg.powerUps || []).every((u) => Math.hypot(u.x - x, u.y - y) > 60) &&
                     this._hasHeadroom(cfg, x, y, 40) &&
-                    !(cfg.movingPlatforms || []).some((m) => this._insideMoverRoute(m, x, y, 45));
+                    // Las gemas sobre móviles son deseables en N3: no las excluya
+                    // de la ruta del móvil.
+                    (this.requireMovingPlatform || !(cfg.movingPlatforms || []).some((m) => this._insideMoverRoute(m, x, y, 45)));
                 if (!free) continue;
 
                 gems[index] = { x, y };
@@ -1991,12 +2010,16 @@ _trampolinesUsable(cfg) {
     // ------------------------------------------------------------------
 
     // Superficies horizontales donde puede apoyarse un spot o la salida:
-    // piso y plataformas finas (no paredes ni columnas).
-    _surfaces(cfg) {
-        return (cfg.platforms || []).filter((p) => p.w >= 90 && (p.h <= 60) && p.w > p.h);
+    // piso y plataformas finas (no paredes ni columnas). Con includeMovers, las
+    // plataformas móviles cuentan como superficie (N3: foco en móviles).
+    _surfaces(cfg, includeMovers = false) {
+        const statics = (cfg.platforms || []).filter((p) => p.w >= 90 && (p.h <= 60) && p.w > p.h);
+        if (!includeMovers) return statics;
+        const movers = (cfg.movingPlatforms || []).filter((m) => m.w >= 90 && (m.h ?? 20) <= 60);
+        return [...statics, ...movers];
     }
 
-    _spotIsFree(cfg, x, y, ignoreIndex) {
+    _spotIsFree(cfg, x, y, ignoreIndex, allowOnMovers = false) {
         const near = (list, r) => (list || []).some((e) => Math.hypot(e.x - x, e.y - y) < r);
 
         if (Math.hypot(cfg.spawn.x - x, cfg.spawn.y - y) < 80) return false;
@@ -2005,7 +2028,9 @@ _trampolinesUsable(cfg) {
         if ((cfg.pointSpots || []).some((s, i) => i !== ignoreIndex && Math.hypot(s.x - x, s.y - y) < 60)) return false;
         if ((cfg.trampolines || []).some((t) => Math.abs(t.x - x) < t.w / 2 + TRAMPOLINE_SPOT_GAP && Math.abs(t.y - y) < 60)) return false;
         if ((cfg.hazards || []).some((h) => Math.abs(h.x - x) < h.w / 2 + 25 && Math.abs(h.y - y) < 60)) return false;
-        if ((cfg.movingPlatforms || []).some((m) => this._insideMoverRoute(m, x, y, 45))) return false;
+        // Los spots sobre plataformas móviles son deseables en N3: no los excluya
+        // de la ruta del móvil a menos que se pida lo contrario.
+        if (!allowOnMovers && (cfg.movingPlatforms || []).some((m) => this._insideMoverRoute(m, x, y, 45))) return false;
 
         return this._hasHeadroom(cfg, x, y, 48);
     }
