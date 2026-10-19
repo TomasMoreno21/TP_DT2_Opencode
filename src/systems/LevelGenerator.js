@@ -108,6 +108,16 @@ export const GENERATION_COMFORT = 1;
 // trivial o por injugable aunque sea técnicamente alcanzable.
 export const DIFFICULTY_BAND = { min: 0.7, max: 1.4 };
 
+// Ajuste por nivel (solo N1-N3, que son los que pulimos a fondo): intensidad
+// máxima de mutación, novedad exigida, banda de dificultad y tolerancia de la
+// salida respecto del diseño base. N1 es un nivel de arranque: menos mutación,
+// salida baja y banda más indulgente. N3 exige más variedad y más esfuerzo.
+export const LEVEL_TUNING = {
+    1: { maxIntensity: 0.55, minNovelty: 3, difficulty: { min: 0.6, max: 1.15 }, goalYTolerance: 90 },
+    2: { maxIntensity: 0.75, minNovelty: 5, difficulty: { min: 0.7, max: 1.25 }, goalYTolerance: 130 },
+    3: { maxIntensity: 0.95, minNovelty: 7, difficulty: { min: 0.75, max: 1.35 }, goalYTolerance: 170 },
+};
+
 // El timer parte del timer diseñado del nivel y se escala (amortiguado) con el
 // esfuerzo relativo del candidato, para no perder el balance que tiene cada
 // nivel en assets/levels.js.
@@ -285,7 +295,16 @@ export class LevelGenerator {
         const assist = Math.min(ASSIST_MAX, Math.max(0, opts.assist ?? 0));
         const rng = createRng((seed ^ Math.imul(levelId, 131542391)) >>> 0);
         const base = this.baseline(baseConfig);
-        const band = this.difficultyBand(assist);
+
+        // Ajuste específico por nivel (N1-N3 pulidos): la mutación de N1 es más
+        // suave, la salida se mantiene baja y la banda de dificultad es más
+        // indulgente para no frustrar al jugador nuevo.
+        const tuning = LEVEL_TUNING[levelId] ?? { maxIntensity: 1, minNovelty: MIN_NOVELTY, difficulty: DIFFICULTY_BAND, goalYTolerance: GOAL_Y_TOLERANCE };
+        this.maxIntensity = tuning.maxIntensity;
+        this.minNovelty = tuning.minNovelty;
+        this.goalYTolerance = tuning.goalYTolerance;
+
+        const band = tuning.difficulty;
         this.ctx = {
             baseConfig,
             baseKeys: base.keys,
@@ -305,8 +324,9 @@ export class LevelGenerator {
             for (let k = 0; k < CANDIDATE_POOL * 3 && pool.length < CANDIDATE_POOL && tried < attempts; k++) {
                 const i = tried++;
                 // Las primeras tentativas son agresivas; si fallan, se vuelven más
-                // suaves hasta converger a cambios mínimos.
-                const intensity = 1 - 0.6 * (i / attempts);
+                // suaves hasta converger a cambios mínimos. El tope de intensidad
+                // depende del nivel (N1 no se muta tan fuerte).
+                const intensity = Math.min(1 - 0.6 * (i / attempts), this.maxIntensity);
                 const mutations = [];
                 const candidate = this._mutate(rng, clone(baseConfig), levelId, intensity, mutations);
                 const reason = this._cheapReject(candidate, base, baseConfig, i, attempts);
@@ -335,10 +355,13 @@ export class LevelGenerator {
 
                 // Con asistencia, la banda se relaja hacia la normal a medida que se
                 // agotan los intentos: mejor un mapa algo más difícil que ninguno.
+                const assistBand = this.difficultyBand(assist);
+                const minRatio = Math.max(band.min, assistBand.min);
+                const maxRatio = Math.min(band.max, assistBand.max);
                 const progress = tried / attempts;
-                const maxRatio = band.max + (DIFFICULTY_BAND.max - band.max) * progress;
+                const relaxedMax = maxRatio + (DIFFICULTY_BAND.max - maxRatio) * progress;
                 const ratio = this.effortOf(res) / base.effort;
-                if (ratio < band.min || ratio > maxRatio) { stats.difficulty++; continue; }
+                if (ratio < minRatio || ratio > relaxedMax) { stats.difficulty++; continue; }
 
                 // Con asistencia el tiempo nunca baja por ser un mapa más corto.
                 const timerRatio = assist > 0 ? Math.max(ratio, 1) : ratio;
@@ -363,10 +386,14 @@ export class LevelGenerator {
         if (this.validator.checkLayout(candidate).length > 0) return 'layout';
         if (!this.structureNoWorse(candidate.platforms, base.structure)) return 'structure';
         // Novedad mínima y menos densidad que el base: se exigen durante la mayor
-        // parte de los intentos; los últimos aceptan cambios chicos.
+        // parte de los intentos; los últimos aceptan cambios chicos. El tope de
+        // novedad depende del nivel (N1 pide menos cambios).
         const strict = i < attempts * MIN_NOVELTY_UNTIL;
-        if (strict && this._novelty(baseConfig, candidate) < MIN_NOVELTY) return 'tame';
+        if (strict && this._novelty(baseConfig, candidate) < this.minNovelty) return 'tame';
         if (strict && candidate.platforms.length > baseConfig.platforms.length - MIN_REMOVED) return 'dense';
+        // Las gemas deben estar al alcance de un salto desde alguna plataforma
+        // o el suelo: si no, el nivel tiene un objeto inalcanzable y frustra.
+        if (!this._allGemsReachable(candidate)) return 'gems';
         // Los trampolines necesitan aire libre y plataformas altas a las que subir.
         if (!this._trampolinesUsable(candidate)) return 'trampolines';
         // Elementos bien colocados: spots separados y repartidos, salida lejos.
@@ -470,7 +497,9 @@ export class LevelGenerator {
         };
 
         // 1) Espejo horizontal de todo el nivel: variedad barata y siempre válida.
-        if (rng.chance(0.5)) {
+        // N1 no se espeja: el nivel de arranque debe mantener el spawn a la
+        // izquierda y la meta a la derecha para no desorientar al jugador nuevo.
+        if (id !== 1 && rng.chance(0.5)) {
             this._mirror(cfg);
             log.push('espejo');
         }
@@ -1193,6 +1222,11 @@ export class LevelGenerator {
             this._polishSpots(rng, cfg);
         }
 
+        // Momento didáctico: al menos un punto debe estar al alcance directo del
+        // spawn (sobre el suelo o la primera plataforma), para que el nivel no
+        // empiece exigiendo un combo complejo.
+        this._ensureFirstSpotNearSpawn(rng, cfg);
+
         // Último repaso de los trampolines: zona libre y entorno despejado.
         if (!this._trampolinesUsable(cfg)) {
             this._fixTrampolines(rng, cfg);
@@ -1537,14 +1571,47 @@ export class LevelGenerator {
         return false;
     }
 
-    // Todos los trampolines deben tener el pasillo libre y al menos una plataforma
-    // más alta a su alcance (cerca en horizontal y dentro de lo que llega el rebote)
-    // para que sirvan para subir.
-    _trampolinesUsable(cfg) {
-        const platforms = (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
+// ¿Todas las gemas están al alcance de un salto desde alguna plataforma o el suelo?
+// Un salto desde una plataforma de techo H lleva el centro del jugador desde
+// H-24 hasta H-141.6 (apex) y de vuelta. Una gema en Y con radio 12 se pisa si Y
+// cae en [apex-12, inicio+12] y está cerca horizontalmente (alcance ~220 px).
+_allGemsReachable(cfg) {
+    const gems = cfg.gems || [];
+    if (gems.length === 0) return true;
 
-        for (const t of cfg.trampolines || []) {
-            if (this._isPortalBound(cfg, t)) {
+    const JUMP_RISE = 117.6;
+    const PLAYER_HALF_H = 24;
+    const GEM_R = 12;
+    const HORIZ_REACH = 220;
+
+    // El suelo se trata como una plataforma de ancho completo para los saltos iniciales.
+    const platforms = [...(cfg.platforms || []), { x: WORLD.width / 2, y: FLOOR_TOP, w: WORLD.width, h: 0 }];
+
+    for (const gem of gems) {
+        let reachable = false;
+        for (const p of platforms) {
+            const platformTop = p.h > 0 ? p.y - p.h / 2 : p.y;
+            const apex = platformTop - PLAYER_HALF_H - JUMP_RISE;
+            const highestCenter = platformTop - PLAYER_HALF_H;
+            if (gem.y >= apex - GEM_R && gem.y <= highestCenter + GEM_R &&
+                Math.abs(gem.x - p.x) <= p.w / 2 + HORIZ_REACH) {
+                reachable = true;
+                break;
+            }
+        }
+        if (!reachable) return false;
+    }
+    return true;
+}
+
+// Todos los trampolines deben tener el pasillo libre y al menos una plataforma
+// más alta a su alcance (cerca en horizontal y dentro de lo que llega el rebote)
+// para que sirvan para subir.
+_trampolinesUsable(cfg) {
+    const platforms = (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
+
+    for (const t of cfg.trampolines || []) {
+        if (this._isPortalBound(cfg, t)) {
                 // Solo el pasillo vertical del rebote tiene que estar libre.
                 if (platforms.some((p) => this._blocksBounceLane(t, p))) return false;
                 continue;
@@ -1710,7 +1777,7 @@ export class LevelGenerator {
         // meta de arriba a abajo (o al revés) cambia demasiado la dificultad.
         const baseY = this._ctx().baseConfig?.goal?.y;
         const surfaces = this._surfaces(cfg).filter((s) => s.w >= 110 &&
-            (baseY === undefined || Math.abs(top(s) - GOAL_HEIGHT_ABOVE_TOP - baseY) <= GOAL_Y_TOLERANCE));
+            (baseY === undefined || Math.abs(top(s) - GOAL_HEIGHT_ABOVE_TOP - baseY) <= this.goalYTolerance));
         if (surfaces.length === 0) return false;
         for (let tries = 0; tries < 24; tries++) {
             const surface = rng.pick(surfaces);
@@ -1740,6 +1807,42 @@ export class LevelGenerator {
                 continue;
             }
             return true;
+        }
+        return false;
+    }
+
+    // Momento didáctico: al menos un punto debe estar al alcance directo del
+    // spawn (suelo o primera plataforma), sin exigir combos de salto al empezar.
+    _ensureFirstSpotNearSpawn(rng, cfg) {
+        const spots = cfg.pointSpots || [];
+        if (spots.length === 0) return false;
+
+        const JUMP_RISE = 117.6;
+        const PLAYER_HALF_H = 24;
+        const NEAR_X = 220;
+
+        const alreadyNear = spots.some((sp) =>
+            Math.abs(sp.x - cfg.spawn.x) <= NEAR_X &&
+            sp.y >= FLOOR_TOP - 24 - JUMP_RISE - 30 &&
+            sp.y <= FLOOR_TOP - 24 + 30);
+        if (alreadyNear) return false;
+
+        // Intenta poner un punto en el suelo cerca del spawn, o sobre la
+        // plataforma más cercana que esté a un salto.
+        const surfaces = this._surfaces(cfg).filter((s) =>
+            Math.abs(s.x - cfg.spawn.x) <= s.w / 2 + NEAR_X && s.y <= FLOOR_TOP - 20);
+        for (const surface of surfaces) {
+            const x = Math.round(rng.range(
+                Math.max(left(surface) + 30, cfg.spawn.x - NEAR_X),
+                Math.min(right(surface) - 30, cfg.spawn.x + NEAR_X)));
+            const y = top(surface) - 24;
+            const free = !(cfg.gems || []).some((g) => Math.hypot(g.x - x, g.y - y) < 60) &&
+                Math.hypot(cfg.goal.x - x, cfg.goal.y - y) > 60 &&
+                this._hasHeadroom(cfg, x, y, 48);
+            if (free) {
+                spots[0] = { x, y };
+                return true;
+            }
         }
         return false;
     }
