@@ -20,6 +20,7 @@ const DEVIATION_Y = 34;
 const STUCK_FRAMES = 60 * 40;
 
 let clock = 0;
+let levelStartClock = 0;
 
 function step(game, n = 1) {
     for (let i = 0; i < n; i++) {
@@ -77,7 +78,7 @@ function planBest(validator, config, scene, ctx) {
     let best = null;
 
     for (const target of targets(scene, ctx)) {
-        let path = validator.findPath(config, start, target);
+        let path = validator.findPath(config, start, target, 600, { startFrame: Math.round((clock - levelStartClock) / FRAME_MS) });
         if (!path) { failed.push(target); continue; }
         if (path.length === 0) {
             // El simulador ya lo da por alcanzado pero el juego aún no lo
@@ -101,6 +102,7 @@ export async function playLevel(game, { levelIndex, campaign, seed, comfort = 1,
     game.loop.sleep?.();
     for (const sc of game.scene.getScenes(true)) game.scene.stop(sc.scene.key);
     game.scene.start('Game', { levelIndex, completedScore: 0, campaignSeed: seed, campaign });
+    levelStartClock = clock;
     step(game, 4);
 
     const scene = game.scene.getScene('Game');

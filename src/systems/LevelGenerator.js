@@ -96,6 +96,8 @@ export const POLISH_SAMPLES = 10;
 // Cuánto puede diferir el reparto de spots por alturas respecto del base (suma
 // de diferencias entre las 3 franjas horizontales).
 export const ROW_DEVIATION = 3;
+// Con carriles los spots del aire se mueven con ellos: el perfil de alturas varia mas.
+export const ROW_DEVIATION_LANES = 3;
 
 // Escala de capacidades con la que se valida cada mapa generado (1 = las del
 // jugador). El validador ya es conservador por otros lados (sin trepar pegado a
@@ -119,7 +121,7 @@ export const TIMER_RULES = { minScale: 0.85, maxScale: 1.25, damping: 0.7 };
 export const TIMER_BANDS = {
     1: { min: 55, max: 66 },
     2: { min: 50, max: 57 },
-    3: { min: 47, max: 54 },
+    3: { min: 47, max: 53 },
     4: { min: 44, max: 51 },
     5: { min: 54, max: 62 }
 };
@@ -256,7 +258,11 @@ export class LevelGenerator {
             const b = base.pointSpots?.[i];
             return !b || b.x !== sp.x || b.y !== sp.y;
         }).length;
-        return changed * 1.5 + goalMoved + spotsMoved * 0.2;
+        const lanesMoved = (cand.movingPlatforms || []).filter((m, i) => {
+            const b = base.movingPlatforms?.[i];
+            return !b || b.x !== m.x || b.y !== m.y || b.distance !== m.distance;
+        }).length;
+        return changed * 1.5 + goalMoved + spotsMoved * 0.2 + lanesMoved;
     }
 
     effortOf(res) {
@@ -295,7 +301,7 @@ export class LevelGenerator {
             baseCount: baseConfig.platforms.length,
             assist
         };
-        const stats = { layout: 0, structure: 0, unreachable: 0, difficulty: 0, tame: 0, dense: 0, crowded: 0, isolated: 0, trampolines: 0, uneven: 0, placement: 0 };
+        const stats = { layout: 0, structure: 0, unreachable: 0, shortcut: 0, lanes: 0, difficulty: 0, tame: 0, dense: 0, crowded: 0, isolated: 0, trampolines: 0, uneven: 0, placement: 0 };
         let tried = 0;
         let validations = 0;
 
@@ -322,6 +328,13 @@ export class LevelGenerator {
                     .map((pl, index) => (base.keys.has(this._platformKey(pl)) ? -1 : index)).filter((index) => index >= 0);
                 const res = this.validator.validate(candidate, { platformTargets: touched });
                 if (!res.ok || (this.exactValidator && !this.exactValidator.validate(candidate).ok)) { stats.unreachable++; continue; }
+
+                // Los carriles tienen que ser necesarios: sin ellos la salida no se
+                // alcanza (si no, hay un atajo fijo y el nivel pierde su mecanica).
+                if (candidate.timedMovers && this.validator.validate({ ...candidate, movingPlatforms: [], timedMovers: false }).goalOk) {
+                    stats.shortcut++;
+                    continue;
+                }
 
                 // Plataformas nuevas o movidas a las que no se puede llegar: se quitan
                 // (nunca se usaron en una ruta, así que sacarlas no rompe nada). Las
@@ -362,6 +375,7 @@ export class LevelGenerator {
     _cheapReject(candidate, base, baseConfig, i, attempts) {
         if (this.validator.checkLayout(candidate).length > 0) return 'layout';
         if (!this.structureNoWorse(candidate.platforms, base.structure)) return 'structure';
+        if (!this._laneZoneOk(candidate)) return 'lanes';
         // Novedad mínima y menos densidad que el base: se exigen durante la mayor
         // parte de los intentos; los últimos aceptan cambios chicos.
         const strict = i < attempts * MIN_NOVELTY_UNTIL;
@@ -376,6 +390,16 @@ export class LevelGenerator {
         // Lo que el generador mueve o agrega no puede estorbar a las demás.
         if (this._crowdedPlatforms(candidate, base.keys) > 0) return 'crowded';
         return null;
+    }
+
+    // Zona carril: pocas plataformas fijas en el centro y lo alto, para que el
+    // movimiento dependa de los carriles (ver laneZone en assets/levels.js).
+    _laneZoneOk(cfg) {
+        const z = cfg.laneZone;
+        if (!z) return true;
+        const fixed = (cfg.platforms || []).filter((p) => p.h <= 26 && p.w < 1000 &&
+            p.x >= z.x1 && p.x <= z.x2 && p.y >= z.y1 && p.y <= z.y2);
+        return fixed.length <= z.maxFixed;
     }
 
     // Aire libre sobre una plataforma: distancia hasta la plataforma más cercana
@@ -475,6 +499,9 @@ export class LevelGenerator {
             log.push('espejo');
         }
 
+        // Carriles (solo niveles con timedMovers): posicion, largo, fase y velocidad.
+        if (cfg.timedMovers) apply('carriles', 1.0, () => this._mutateLanes(rng, cfg, intensity));
+
         // 2) Estructura: se pueden quitar y agregar plataformas libres (la
         //    cantidad no es fija: lo que importa es que todo siga alcanzable).
         apply('quitar', 1.0, () => this._removePlatforms(rng, cfg, intensity));
@@ -503,6 +530,53 @@ export class LevelGenerator {
         this._polishSpots(rng, cfg);
         this._enforce(rng, cfg);
         return cfg;
+    }
+
+    // Mueve y estira los carriles dentro de limites: una ferry se corre en x y
+    // cambia de largo, un ascensor sube/baja y cambia de largo; fase y velocidad
+    // varian siempre. Cada cambio se deshace si la ruta choca con una plataforma
+    // fija u otro carril. Los spots/gemas sobre la ferry viajan con ella.
+    _mutateLanes(rng, cfg, intensity) {
+        const lanes = cfg.movingPlatforms || [];
+        const box = (m) => {
+            const w = m.w ?? 80;
+            const h = m.h ?? 20;
+            const d = m.distance ?? 200;
+            return (m.axis ?? 'x') === 'x'
+                ? { x1: m.x - d / 2 - w / 2, x2: m.x + d / 2 + w / 2, y1: m.y - h / 2, y2: m.y + h / 2 }
+                : { x1: m.x - w / 2, x2: m.x + w / 2, y1: m.y - d / 2 - h / 2, y2: m.y + d / 2 + h / 2 };
+        };
+        const hit = (a, b, pad) => a.x1 < b.x2 + pad && a.x2 > b.x1 - pad && a.y1 < b.y2 + pad && a.y2 > b.y1 - pad;
+        const fits = (m) => {
+            const b = box(m);
+            if (b.x1 < 70 || b.x2 > WORLD.width - 70 || b.y1 < 100 || b.y2 > 690) return false;
+            const solids = (cfg.platforms || []).map((p) => ({ x1: left(p), x2: right(p), y1: top(p), y2: bottom(p) }));
+            return !solids.some((s) => hit(b, s, 8)) && !lanes.some((o) => o !== m && hit(b, box(o), 10));
+        };
+        const sign = () => rng.range(-1, 1);
+        let changed = 0;
+
+        for (const m of lanes) {
+            const old = { ...m };
+            const horizontal = (m.axis ?? 'x') === 'x';
+            if (horizontal) {
+                m.x = Math.round(m.x + sign() * (30 + 50 * intensity));
+                m.distance = Math.round(Math.max(140, Math.min(360, m.distance + sign() * (20 + 40 * intensity))));
+            } else {
+                m.y = Math.round(m.y + sign() * (20 + 30 * intensity));
+                m.distance = Math.round(Math.max(110, Math.min(230, m.distance + sign() * (15 + 25 * intensity))));
+            }
+            if (rng.chance(0.8)) m.phase = Math.round(rng.range(0, 1) * 20) / 20;
+            m.speed = Math.round(Math.max(70, Math.min(130, m.speed * rng.range(0.85, 1.2))));
+
+            if (!fits(m)) { Object.assign(m, old); continue; }
+            if (horizontal && m.x !== old.x) {
+                const near = (e) => Math.abs(e.x - old.x) <= old.distance / 2 + (old.w ?? 80) / 2 && e.y < old.y - 10 && e.y > old.y - 130;
+                for (const e of [...(cfg.pointSpots || []), ...(cfg.gems || [])]) if (near(e)) e.x += m.x - old.x;
+            }
+            changed++;
+        }
+        return changed > 0;
     }
 
     _mirror(cfg) {
@@ -1141,7 +1215,7 @@ export class LevelGenerator {
             m.maxBand <= Math.max(SPOT_MAX_PER_BAND, basePlacement.maxBand) &&
             m.goalSpawn >= Math.min(GOAL_MIN_FROM_SPAWN, basePlacement.goalSpawn) &&
             m.goalSpot >= GOAL_MIN_FROM_SPOT &&
-            (!basePlacement.rows || m.rows.reduce((acc, n, r) => acc + Math.abs(n - basePlacement.rows[r]), 0) <= ROW_DEVIATION);
+            (!basePlacement.rows || m.rows.reduce((acc, n, r) => acc + Math.abs(n - basePlacement.rows[r]), 0) <= ROW_DEVIATION + (cfg.timedMovers ? ROW_DEVIATION_LANES : 0));
     }
 
     // Tras mover estructura, algún spot puede haber quedado dentro de una

@@ -12,9 +12,9 @@ export const LEVEL_BASELINES = {
         "goalFrames": 57
     },
     "3": {
-        "pathLengthFrames": 184,
-        "meanFrames": 73.9,
-        "goalFrames": 106
+        "pathLengthFrames": 146,
+        "meanFrames": 79.3,
+        "goalFrames": 173
     },
     "4": {
         "pathLengthFrames": 132,

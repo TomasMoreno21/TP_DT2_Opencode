@@ -2,6 +2,7 @@ import { PLAYER_CONFIG } from '../entities/Player.js';
 import { WORLD } from '../assets/levels.js';
 import { TRAMPOLINE_CONFIG } from '../entities/Trampoline.js';
 import { PORTAL_CONFIG } from '../entities/Portal.js';
+import { moverOffset } from '../entities/MovingPlatform.js';
 
 const DT = 1 / 60;
 // El Player se estira al correr (hasta +18 % de ancho, ver applyMotionScale) y
@@ -16,6 +17,8 @@ const WALL_JUMP_X = PLAYER_CONFIG.wallJumpXVelocity;
 const GRAVITY = 900;
 const MAX_FRAMES = 720;
 const MOVER_SAMPLES = 5;
+// Modo con tiempo: frames que se agrupan al deduplicar estados cerca de una movil.
+const TIME_BUCKET = 15;
 const EXTRA_SEARCH_FRAMES = 70;
 const PICKUP_DX = 24;
 const PICKUP_DY = 32;
@@ -56,7 +59,31 @@ const WALL_JUMP_PROFILES = {
         Math.max(SPEED, WALL_JUMP_X - PLAYER_CONFIG.airDecel * DT * k))
 };
 
-function buildPlatforms(config) {
+// Modo con tiempo: cada movil sigue su onda real (con fase) y el BFS avanza
+// frame a frame. Devuelve su rectangulo en el frame f y el centro a lo largo del eje.
+function timedMover(m) {
+    const w = m.w ?? 80;
+    const h = m.h ?? 20;
+    const dist = m.distance ?? 200;
+    const horizontal = (m.axis ?? 'x') === 'x';
+    const speed = m.speed ?? 90;
+    const phase = m.phase ?? 0;
+    const origin = (horizontal ? m.x : m.y) - dist / 2;
+    const at = (f) => {
+        const c = origin + moverOffset(dist, speed, phase, f * DT);
+        const cx = horizontal ? c : m.x;
+        const cy = horizontal ? m.y : c;
+        return { x1: cx - w / 2, x2: cx + w / 2, y1: cy - h / 2, y2: cy + h / 2, tall: false, mover: true, c };
+    };
+    // Caja de toda la ruta con margen: fuera de ella el tiempo no importa.
+    const pad = 70;
+    const box = horizontal
+        ? { x1: m.x - dist / 2 - w / 2 - pad, x2: m.x + dist / 2 + w / 2 + pad, y1: m.y - h / 2 - pad, y2: m.y + h / 2 + pad }
+        : { x1: m.x - w / 2 - pad, x2: m.x + w / 2 + pad, y1: m.y - dist / 2 - h / 2 - pad, y2: m.y + dist / 2 + h / 2 + pad };
+    return { at, box, horizontal };
+}
+
+function buildPlatforms(config, timed = false) {
     const plats = [];
     for (const p of config.platforms || []) {
         plats.push({
@@ -80,7 +107,7 @@ function buildPlatforms(config) {
         });
     }
 
-    for (const m of config.movingPlatforms || []) {
+    for (const m of timed ? [] : config.movingPlatforms || []) {
         const w = m.w ?? 80;
         const h = m.h ?? 20;
         const dist = m.distance ?? 200;
@@ -174,14 +201,14 @@ const CELL = 4;
 const VY_BUCKET = 100;
 
 // Clave numérica (más barata que un string en el Set del BFS).
-function stateKey(state) {
+function stateKey(state, tb = 0) {
     const wj = state.wj ? (state.wj.v === 'hug' ? 1 : 2) * 16 + state.wj.s : 0;
     const dash = (state.dash ? 1 + state.dash.s : 0) * 2 + (state.dashUsed ? 1 : 0);
     const vyBucket = state.grounded ? 0 : Math.round(state.vy / VY_BUCKET) + 12;
     const vxIndex = state.vx < 0 ? 0 : state.vx > 0 ? 2 : 1;
     const cx = Math.round(state.x / CELL);
     const cy = Math.round(state.y / CELL);
-    return (((((cx * 256 + cy) * 2 + (state.grounded ? 1 : 0)) * 32 + vyBucket) * 3 + vxIndex) * 48 + wj) * 28 + dash;
+    return ((((((cx * 256 + cy) * 2 + (state.grounded ? 1 : 0)) * 32 + vyBucket) * 3 + vxIndex) * 48 + wj) * 28 + dash) * 128 + tb;
 }
 
 export class LevelValidator {
@@ -257,7 +284,35 @@ export class LevelValidator {
         const jumpV = JUMP_V * this.comfort;
         const wallJumpV = WALL_JUMP_V * this.comfort;
         const wallJumpX = WALL_JUMP_X * this.comfort;
-        const platforms = buildPlatforms(config);
+        // opts.timed: las moviles siguen su onda real; el BFS (profundidad = frame)
+        // las coloca en cada paso y el jugador parado encima viaja con ellas.
+        const timed = opts.timed ?? Boolean(config.timedMovers);
+        const movers = timed ? (config.movingPlatforms || []).map(timedMover) : [];
+        const staticPlatforms = buildPlatforms(config, timed);
+        let cachedFrame = -1;
+        let cachedPlatforms = staticPlatforms;
+        const platformsAt = (f) => {
+            if (!timed) return staticPlatforms;
+            if (f !== cachedFrame) {
+                cachedFrame = f;
+                cachedPlatforms = staticPlatforms.concat(movers.map((m) => m.at(f)));
+            }
+            return cachedPlatforms;
+        };
+        const nearMover = (st) => movers.some((m) => st.x > m.box.x1 && st.x < m.box.x2 && st.y > m.box.y1 && st.y < m.box.y2);
+        // Arrastra al jugador apoyado sobre una movil (como Game.updateMovingPlatforms).
+        const carry = (st, f) => {
+            for (const m of movers) {
+                const cur = m.at(f);
+                if (st.vy < 0 || Math.abs(st.y + HH - cur.y1) > 3 || st.x + HW <= cur.x1 || st.x - HW >= cur.x2) continue;
+                const nxt = m.at(f + 1);
+                return { ...st, x: st.x + (nxt.x1 - cur.x1), y: st.y + (nxt.y1 - cur.y1) };
+            }
+            return st;
+        };
+        // opts.startFrame: frame del nivel en el que arranca la busqueda (replanificar en vivo).
+        const f0 = opts.startFrame ?? 0;
+        const platforms = platformsAt(f0);
         const portals = this.pairPortals(config);
         const wantPath = Boolean(opts.path);
         const start = opts.start ?? { x: config.spawn.x, y: config.spawn.y, vx: 0, vy: 0 };
@@ -299,8 +354,9 @@ export class LevelValidator {
             buckets[depth] = null;
 
             for (const node of bucket) {
-                const { state } = node;
-                const key = stateKey(state);
+                let { state } = node;
+                const near = timed && nearMover(state);
+                const key = stateKey(state, near ? 1 + Math.min(126, Math.floor(depth / TIME_BUCKET)) : 0);
                 if (seen.has(key)) continue;
                 seen.add(key);
                 visitedCount++;
@@ -321,8 +377,11 @@ export class LevelValidator {
                 if (pending.length === 0 || (wantPath && found)) { pending.length = 0; break; }
 
                 // Broad-phase: un paso mueve a lo sumo ~16 px, así que solo importan
-                // las plataformas cercanas al estado.
-                const local = platforms.filter((p) => p.x2 > state.x - HW - 14 && p.x1 < state.x + HW + 14 &&
+                // las plataformas cercanas al estado. En modo con tiempo, las del
+                // frame siguiente (el paso termina ahí).
+                if (near) state = carry(state, f0 + depth);
+                const stepPlatforms = platformsAt(f0 + depth + 1);
+                const local = stepPlatforms.filter((p) => p.x2 > state.x - HW - 14 && p.x1 < state.x + HW + 14 &&
                     p.y2 > state.y - HH - 26 && p.y1 < state.y + HH + 26);
                 const gravityVy = state.grounded ? 0 : state.vy + GRAVITY * DT;
 
@@ -392,7 +451,7 @@ export class LevelValidator {
                         if (Math.abs(state.x - portal.x) < PORTAL_CONFIG.width / 2 + HW &&
                             Math.abs(state.y - portal.y) < PORTAL_CONFIG.height / 2 + HH) {
                             const dest = portal.linked;
-                            const landed = withDash(moveBody({ x: dest.x, y: dest.y - HH, vx: 0, vy: 0 }, platforms), false);
+                            const landed = withDash(moveBody({ x: dest.x, y: dest.y - HH, vx: 0, vy: 0 }, stepPlatforms), false);
                             push(depth + PORTAL_CHARGE_FRAMES, landed, node, { dir: 0, jump: false, wait: PORTAL_CHARGE_FRAMES });
                         }
                     }
@@ -413,8 +472,8 @@ export class LevelValidator {
 
     // Ruta (lista de movimientos de 1 frame) desde un estado real hasta el
     // objetivo, o null. La usa el bot de pruebas de tools/playbot.js.
-    findPath(config, start, target, maxFrames = 600) {
-        return this.explore(config, [{ ...target, frames: Infinity }], { start, path: true, maxFrames });
+    findPath(config, start, target, maxFrames = 600, opts = {}) {
+        return this.explore(config, [{ ...target, frames: Infinity }], { ...opts, start, path: true, maxFrames });
     }
 
     // Replica Level.materializePortals: pares consecutivos, el impar se descarta.
@@ -459,7 +518,7 @@ export class LevelValidator {
                 }))
             : [];
 
-        const visitedCount = this.explore(config, [...spots, ...gems, goalTarget, ...platformTargets]);
+        const visitedCount = this.explore(config, [...spots, ...gems, goalTarget, ...platformTargets], { timed: opts.timed });
 
         const reachableSpots = spots.filter((s) => Number.isFinite(s.frames));
         const badSpots = spots.filter((s) => !Number.isFinite(s.frames));

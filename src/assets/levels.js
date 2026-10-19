@@ -125,12 +125,17 @@ export const LEVELS = [
     {
         id: 3,
         name: 'Movimiento',
-        durationSeconds: 52,
-        quota: 12,
+        durationSeconds: 50,
+        quota: 13,
         spawn: { x: 120, y: 660 },
+        // Los carriles (movingPlatforms) son la via principal del centro y lo
+        // alto: la zona carril tiene pocas plataformas fijas y el generador
+        // valida con el tiempo real de las moviles (ver LevelValidator, timed).
+        timedMovers: true,
+        laneZone: { x1: 190, x2: 834, y1: 0, y2: 460, maxFixed: 3 },
         projectiles: {
-            initialInterval: 1200,
-            minInterval: 700,
+            initialInterval: 1150,
+            minInterval: 680,
             maxSpeedMultiplier: 2,
             wallGapX: 52
         },
@@ -140,45 +145,27 @@ export const LEVELS = [
             // Paredes de los bordes
             { x: 40, y: 400, w: 24, h: 720, color: 0x4a4270 },
             { x: 984, y: 400, w: 24, h: 720, color: 0x4a4270 },
-            // Fila 1 (y=630): escalera izquierda y derecha + centro
+            // Fila 1 (y=630)
             { x: 170, y: 630, w: 150, h: 20, color: 0x3a3a5c },
             { x: 512, y: 630, w: 170, h: 20, color: 0x3a3a5c },
             { x: 798, y: 630, w: 150, h: 20, color: 0x3a3a5c },
-            // Fila 2 (y=540): gran vacío central cruzado por la ferry
+            // Fila 2 (y=540): el vacio central lo cruza la ferry baja
             { x: 185, y: 540, w: 140, h: 20, color: 0x3a3a5c },
-            { x: 814, y: 540, w: 170, h: 20, color: 0x3a3a5c },
-            // Fila 3 (y=450): la derecha queda libre para el corredor del ascensor
-            { x: 180, y: 450, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 445, y: 450, w: 110, h: 20, color: 0x3a3a5c },
-            // Fila 4 (y=360): la derecha queda libre para el corredor del ascensor
-            { x: 180, y: 360, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 540, y: 360, w: 170, h: 20, color: 0x3a3a5c },
-            // Fila 5 (y=270): la derecha es el aterrizaje del ascensor (salida)
-            { x: 180, y: 270, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 470, y: 270, w: 170, h: 20, color: 0x3a3a5c },
-            { x: 810, y: 270, w: 140, h: 20, color: 0x3a3a5c },
-            // Fila 6 (y=180)
-            { x: 180, y: 180, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 560, y: 180, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 830, y: 180, w: 130, h: 20, color: 0x3a3a5c },
-            // Corona (y=90) desplazada a la derecha: deja libre el salto de la
-            // fila 6 izquierda a la fila 6 central.
-            { x: 600, y: 90, w: 170, h: 20, color: 0x3a3a5c }
-        ],
-        trampolines: [
-            // Conducto abierto del piso (entre fila 1 izquierda y central):
-            // subida recta segura; con deriva a la izquierda aterriza en la fila 2 izquierda.
-            { x: 330, y: 706, w: 80 },
-            // Esquina derecha libre: con deriva a la izquierda aterriza en la fila 2 derecha.
-            { x: 945, y: 706, w: 54 }
+            { x: 851, y: 540, w: 243, h: 20, color: 0x3a3a5c },
+            // Escalera del borde izquierdo (unica via fija hacia arriba)
+            { x: 150, y: 450, w: 120, h: 20, color: 0x3a3a5c },
+            { x: 150, y: 360, w: 120, h: 20, color: 0x3a3a5c },
+            { x: 150, y: 270, w: 120, h: 20, color: 0x3a3a5c },
+            // Aterrizaje de la salida (unica fija en la zona carril)
+            { x: 856, y: 270, w: 232, h: 20, color: 0x3a3a5c }
         ],
         movingPlatforms: [
-            // Ferry horizontal: cruza el vacío central de la fila 2 (45 px de
-            // hueco con cada borde). La gema está sobre su recorrido.
-            { x: 512, y: 540, w: 110, h: 20, distance: 254, speed: 80, axis: 'x' },
-            // Ascensor vertical: del alféizar de la fila 2 derecha al de la
-            // fila 5 derecha, por el corredor libre (filas 3 y 4 sin derecha).
-            { x: 700, y: 405, w: 70, h: 20, distance: 270, speed: 90, axis: 'y' }
+            // Ferry baja: cruza el vacio central de la fila 2.
+            { x: 470, y: 540, w: 100, h: 20, distance: 190, speed: 85, axis: 'x', phase: 0 },
+            // Ascensor: del alfeizar de la fila 2 derecha hasta el nivel de la ferry alta.
+            { x: 680, y: 475, w: 70, h: 20, distance: 150, speed: 100, axis: 'y', phase: 0.25 },
+            // Ferry alta: ancha, desfasada y mas rapida; une la escalera con la salida.
+            { x: 520, y: 330, w: 90, h: 20, distance: 300, speed: 110, axis: 'x', phase: 0.5 }
         ],
         pointSpots: [
             // Piso
@@ -186,26 +173,22 @@ export const LEVELS = [
             { x: 880, y: 688 },
             // Fila 1
             { x: 170, y: 600 },
+            { x: 512, y: 600 },
             { x: 798, y: 600 },
             // Fila 2
             { x: 185, y: 510 },
             { x: 814, y: 510 },
-            // Fila 3
-            { x: 180, y: 420 },
-            { x: 445, y: 420 },
-            // Fila 4
-            { x: 180, y: 330 },
-            // Fila 5
-            { x: 470, y: 240 },
-            // Fila 6
-            { x: 830, y: 150 },
-            // Corona
-            { x: 600, y: 60 }
+            // Escalera
+            { x: 150, y: 420 },
+            { x: 150, y: 330 },
+            { x: 150, y: 240 },
+            // Sobre las rutas de las ferries (se toman en el aire con timing)
+            { x: 470, y: 460 },
+            { x: 520, y: 280 }
         ],
         gems: [
-            // Sobre el vacío central, a la altura del salto desde la ferry:
-            // la ruta obvia es subirla en ferry y saltar.
-            { x: 512, y: 450 }
+            // Sobre la ferry alta: hay que saltar desde ella.
+            { x: 520, y: 215 }
         ],
         goal: { x: 810, y: 224 }
     },
