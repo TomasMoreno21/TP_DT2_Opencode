@@ -1677,10 +1677,16 @@ _allGemsReachable(cfg) {
 
     // El suelo se trata como una plataforma de ancho completo para los saltos iniciales.
     const platforms = [...(cfg.platforms || []), { x: WORLD.width / 2, y: FLOOR_TOP, w: WORLD.width, h: 0 }];
+    // Las plataformas móviles también sirven como punto de salto (ej. la gema de
+    // N3 solo se alcanza desde la ferry).
+    const moverSurfaces = (cfg.movingPlatforms || []).map((m) => ({
+        x: m.x, y: m.y, w: m.w ?? MOVING_PLATFORM_CONFIG.width,
+        h: m.h ?? MOVING_PLATFORM_CONFIG.height
+    }));
 
     for (const gem of gems) {
         let reachable = false;
-        for (const p of platforms) {
+        for (const p of [...platforms, ...moverSurfaces]) {
             const platformTop = p.h > 0 ? p.y - p.h / 2 : p.y;
             const apex = platformTop - PLAYER_HALF_H - JUMP_RISE;
             const highestCenter = platformTop - PLAYER_HALF_H;
