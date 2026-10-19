@@ -132,6 +132,9 @@ export const LEVEL_TUNING = {
         requireMovingPlatform: true,
         movingPlatformMinRise: 60,
         movingPlatformMaxRise: 260,
+        // Foco en móviles: menos plataformas estáticas y al menos dos móviles.
+        maxStaticPlatforms: 9,
+        minMovingPlatforms: 2,
     },
 };
 
@@ -323,6 +326,8 @@ export class LevelGenerator {
         this.requireMovingPlatform = tuning.requireMovingPlatform ?? false;
         this.movingPlatformMinRise = tuning.movingPlatformMinRise ?? 60;
         this.movingPlatformMaxRise = tuning.movingPlatformMaxRise ?? 260;
+        this.maxStaticPlatforms = tuning.maxStaticPlatforms ?? Infinity;
+        this.minMovingPlatforms = tuning.minMovingPlatforms ?? 0;
 
         const band = tuning.difficulty;
         this.ctx = {
@@ -445,6 +450,12 @@ export class LevelGenerator {
         // En N3, las plataformas móviles deben ser útiles: alcanzables y con algo
         // que alcanzar en su ruta (spots, gemas o salida), o conectar áreas.
         if (this.requireMovingPlatform && !this._movingPlatformsUseful(candidate)) return 'movers';
+        // N3 foco en móviles: no demasiadas estáticas y al menos el mínimo de móviles.
+        if (levelId === 3) {
+            const statics = (candidate.platforms || []).filter((p) => this._isPlayPlatform(p)).length;
+            if (statics > this.maxStaticPlatforms) return 'statics';
+            if ((candidate.movingPlatforms || []).length < this.minMovingPlatforms) return 'movers';
+        }
         return null;
     }
 
@@ -1255,6 +1266,16 @@ export class LevelGenerator {
             if (!this._removePlatforms(rng, cfg, 1, 1)) break;
         }
 
+        // N3 foco en móviles: quita estáticas sobrantes y asegura el mínimo de móviles.
+        if (levelId === 3) {
+            for (let i = 0; i < 6 && this._countStaticPlatforms(cfg) > this.maxStaticPlatforms; i++) {
+                if (!this._removePlatforms(rng, cfg, 1, 1)) break;
+            }
+            for (let i = 0; i < 4 && (cfg.movingPlatforms || []).length < this.minMovingPlatforms; i++) {
+                this._addMovingPlatform(rng, cfg, 1);
+            }
+        }
+
         // Reparto por el escenario.
         if (!this._distributionOk(cfg, ctx.baseDistribution)) this._fixDistribution(rng, cfg);
 
@@ -1396,6 +1417,11 @@ export class LevelGenerator {
     // Plataformas "de juego": sin piso, paredes ni columnas.
     _isPlayPlatform(p) {
         return !(p.w >= 1000 || (p.h > 60 && p.w < p.h));
+    }
+
+    // Cuenta plataformas estáticas de juego (sin piso, paredes ni columnas).
+    _countStaticPlatforms(cfg) {
+        return (cfg.platforms || []).filter((p) => this._isPlayPlatform(p)).length;
     }
 
     // Cuántas plataformas hay cerca (en un radio de 230 px): cuanto más, más
@@ -1694,10 +1720,10 @@ _movingPlatformsUseful(cfg) {
                 const pTop = p.y - p.h / 2;
                 const apex = pTop - PLAYER_HALF_H - JUMP_RISE;
                 const highestCenter = pTop - PLAYER_HALF_H;
-                const canJumpUp = sample.y >= apex - 12 && sample.y <= highestCenter + 12 &&
+                const canJumpUp = topY >= apex - 12 && topY <= highestCenter + 12 &&
                     Math.abs(sample.x - p.x) <= p.w / 2 + HORIZ_REACH;
                 // También se puede llegar saltando desde el lado si está a la misma altura.
-                const canSideJump = Math.abs(sample.y - (p.y - p.h / 2)) < 40 &&
+                const canSideJump = Math.abs(topY - pTop) < 40 &&
                     Math.abs(sample.x - p.x) <= p.w / 2 + w / 2 + HORIZ_REACH;
                 if (canJumpUp || canSideJump) { reachable = true; break; }
             }
@@ -2081,16 +2107,20 @@ _trampolinesUsable(cfg) {
     }
 
     // Agrega una plataforma móvil nueva en un lugar útil: cruza un vacío entre
-    // dos plataformas o lleva a un punto/gema. Solo para N3.
+    // dos plataformas o lleva a un punto/gema. Solo para N3. La móvil debe
+    // quedar a una altura alcanzable (salto desde abajo o desde el costado),
+    // para que el jugador no se quede sin poder subir (que "se caiga").
     _addMovingPlatform(rng, cfg, intensity) {
         const existing = cfg.movingPlatforms || [];
-        if (existing.length >= 3) return false;
+        if (existing.length >= 4) return false;
 
         const surfaces = this._surfaces(cfg);
         if (surfaces.length < 2) return false;
 
-        // Busca dos superficies separadas por un vacío cruzable.
-        for (let tries = 0; tries < 20; tries++) {
+        const JUMP_RISE = 117.6;
+        const PLAYER_HALF_H = 24;
+
+        for (let tries = 0; tries < 30; tries++) {
             const a = rng.pick(surfaces);
             const b = rng.pick(surfaces);
             if (a === b) continue;
@@ -2120,6 +2150,22 @@ _trampolinesUsable(cfg) {
                 Math.abs(p.x - candidate.x) < (p.w + candidate.w) / 2 + 30 &&
                 Math.abs(p.y - candidate.y) < (p.h + candidate.h) / 2 + 30);
             if (!fits) continue;
+
+            // Debe ser alcanzable desde alguna superficie: su borde superior
+            // debe estar dentro del alcance del salto (arriba o a la par).
+            const topY = candidate.y - candidate.h / 2;
+            let reachable = false;
+            for (const s of surfaces) {
+                const sTop = s.y - s.h / 2;
+                const apex = sTop - PLAYER_HALF_H - JUMP_RISE;
+                const highestCenter = sTop - PLAYER_HALF_H;
+                const canJumpUp = topY >= apex - 12 && topY <= highestCenter + 12 &&
+                    Math.abs(candidate.x - s.x) <= s.w / 2 + candidate.w / 2 + 220;
+                const canSideJump = Math.abs(topY - sTop) < 40 &&
+                    Math.abs(candidate.x - s.x) <= s.w / 2 + candidate.w / 2 + 220;
+                if (canJumpUp || canSideJump) { reachable = true; break; }
+            }
+            if (!reachable) continue;
 
             // Hay al menos un punto/gema cerca de la ruta para que valga la pena subir.
             const targets = [...(cfg.pointSpots || []), ...(cfg.gems || [])];
