@@ -132,9 +132,9 @@ export const LEVEL_TUNING = {
         requireMovingPlatform: true,
         movingPlatformMinRise: 60,
         movingPlatformMaxRise: 260,
-        // Foco en móviles: menos plataformas estáticas y al menos tres móviles.
-        maxStaticPlatforms: 7,
-        minMovingPlatforms: 3,
+        // Foco en móviles: menos plataformas estáticas y al menos dos móviles.
+        maxStaticPlatforms: 9,
+        minMovingPlatforms: 2,
     },
 };
 
@@ -149,7 +149,7 @@ export const TIMER_RULES = { minScale: 0.85, maxScale: 1.25, damping: 0.7 };
 export const TIMER_BANDS = {
     1: { min: 55, max: 66 },
     2: { min: 50, max: 57 },
-    3: { min: 47, max: 54 },
+    3: { min: 47, max: 52 },
     4: { min: 44, max: 51 },
     5: { min: 54, max: 62 }
 };
@@ -343,7 +343,7 @@ export class LevelGenerator {
             baseCount: variedBase.platforms.length,
             assist
         };
-        const stats = { layout: 0, structure: 0, unreachable: 0, difficulty: 0, tame: 0, dense: 0, crowded: 0, isolated: 0, trampolines: 0, uneven: 0, placement: 0 };
+        const stats = { layout: 0, structure: 0, unreachable: 0, difficulty: 0, tame: 0, dense: 0, crowded: 0, isolated: 0, trampolines: 0, uneven: 0, placement: 0, statics: 0, movers: 0 };
         let tried = 0;
         let validations = 0;
 
@@ -358,7 +358,7 @@ export class LevelGenerator {
                 const intensity = Math.min(1 - 0.6 * (i / attempts), this.maxIntensity);
                 const mutations = [];
                 const candidate = this._mutate(rng, clone(baseConfig), levelId, intensity, mutations);
-                const reason = this._cheapReject(candidate, base, baseConfig, i, attempts);
+                const reason = this._cheapReject(candidate, base, baseConfig, levelId, i, attempts);
                 if (reason) { stats[reason]++; continue; }
                 pool.push({ candidate, mutations, quality: this._quality(candidate, assist) });
             }
@@ -431,7 +431,7 @@ export class LevelGenerator {
     }
 
     // Filtros baratos (sin BFS). Devuelve el motivo del rechazo o null.
-    _cheapReject(candidate, base, baseConfig, i, attempts) {
+    _cheapReject(candidate, base, baseConfig, levelId, i, attempts) {
         if (this.validator.checkLayout(candidate).length > 0) return 'layout';
         if (!this.structureNoWorse(candidate.platforms, base.structure)) return 'structure';
         // Novedad mínima y menos densidad que el base: se exigen durante la mayor
@@ -453,9 +453,11 @@ export class LevelGenerator {
         if (this._crowdedPlatforms(candidate, base.keys) > 0) return 'crowded';
         // En N3, las plataformas móviles deben ser útiles: alcanzables y con algo
         // que alcanzar en su ruta (spots, gemas o salida), o conectar áreas.
-        if (this.requireMovingPlatform && !this._movingPlatformsUseful(candidate)) return 'movers';
-        // N3 foco en móviles: no demasiadas estáticas y al menos el mínimo de móviles.
-        if (levelId === 3) {
+        if (this.requireMovingPlatform && strict && !this._movingPlatformsUseful(candidate)) return 'movers';
+        // N3 foco en móviles: no demasiadas estáticas y al menos el mínimo de
+        // móviles. Solo se exigen estrictamente durante la mayor parte de los
+        // intentos; los últimos aceptan lo que sea para no quedarse sin mutar.
+        if (levelId === 3 && strict) {
             const statics = (candidate.platforms || []).filter((p) => this._isPlayPlatform(p)).length;
             if (statics > this.maxStaticPlatforms) return 'statics';
             if ((candidate.movingPlatforms || []).length < this.minMovingPlatforms) return 'movers';
@@ -572,10 +574,29 @@ export class LevelGenerator {
             if (!rng.chance(0.5)) continue;
             const dx = rng.pick([-1, 1]) * rng.int(10, 30);
             const dy = rng.pick([-1, 1]) * rng.int(5, 15);
+            const oldX = p.x;
+            const oldY = p.y;
             p.x = Math.max(100, Math.min(WORLD.width - 100, p.x + dx));
             p.y = Math.max(120, Math.min(680, p.y + dy));
+            // Si el movimiento genera solape con otra plataforma, deshacer.
+            if (this._platformOverlapsAnother(cfg, p)) {
+                p.x = oldX;
+                p.y = oldY;
+            }
         }
         return cfg;
+    }
+
+    // ¿`p` se solapa con alguna otra plataforma del nivel?
+    _platformOverlapsAnother(cfg, p) {
+        const inflate = 8;
+        for (const q of cfg.platforms || []) {
+            if (q === p) continue;
+            const overlapX = Math.abs(p.x - q.x) < (p.w + q.w) / 2 + inflate;
+            const overlapY = Math.abs(p.y - q.y) < (p.h + q.h) / 2 + inflate;
+            if (overlapX && overlapY) return true;
+        }
+        return false;
     }
 
     _mutate(rng, cfg, id, intensity, log) {
@@ -626,7 +647,7 @@ export class LevelGenerator {
 
         this._repairSpots(rng, cfg);
         this._polishSpots(rng, cfg);
-        this._enforce(rng, cfg);
+        this._enforce(rng, cfg, id);
         return cfg;
     }
 
@@ -1073,7 +1094,7 @@ export class LevelGenerator {
 
             const x = Math.round(rng.range(minX, maxX));
             const y = top(surface) - SPOT_HEIGHT_ABOVE_TOP;
-            if (!this._spotIsFree(cfg, x, y, index, allowOnMovers = includeMovers)) continue;
+            if (!this._spotIsFree(cfg, x, y, index, includeMovers)) continue;
             return { x, y };
         }
         return null;
@@ -1291,7 +1312,7 @@ export class LevelGenerator {
     // Último paso de la mutación: en vez de dejar que los filtros descarten el
     // candidato, se corrige lo que falte (densidad, novedad, salida, spots,
     // reparto). Cada corrección es barata; si no alcanza, el filtro lo descarta.
-    _enforce(rng, cfg) {
+    _enforce(rng, cfg, levelId) {
         const ctx = this.ctx;
         if (!ctx) return;
 

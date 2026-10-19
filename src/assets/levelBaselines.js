@@ -7,14 +7,14 @@ export const LEVEL_BASELINES = {
         "goalFrames": 67
     },
     "2": {
-        "pathLengthFrames": 123,
-        "meanFrames": 76.7,
+        "pathLengthFrames": 125,
+        "meanFrames": 76.8,
         "goalFrames": 51
     },
     "3": {
-        "pathLengthFrames": 172,
-        "meanFrames": 70.1,
-        "goalFrames": 97
+        "pathLengthFrames": 175,
+        "meanFrames": 72.1,
+        "goalFrames": 100
     },
     "4": {
         "pathLengthFrames": 120,
@@ -22,8 +22,8 @@ export const LEVEL_BASELINES = {
         "goalFrames": 141
     },
     "5": {
-        "pathLengthFrames": 150,
-        "meanFrames": 87.3,
-        "goalFrames": 72
+        "pathLengthFrames": 156,
+        "meanFrames": 91.3,
+        "goalFrames": 77
     }
 };
