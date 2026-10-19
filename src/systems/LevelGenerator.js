@@ -314,7 +314,11 @@ export class LevelGenerator {
     generateLevelFor(levelId, seed, baseConfig, attempts = DEFAULT_ATTEMPTS, opts = {}) {
         const assist = Math.min(ASSIST_MAX, Math.max(0, opts.assist ?? 0));
         const rng = createRng((seed ^ Math.imul(levelId, 131542391)) >>> 0);
-        const base = this.baseline(baseConfig);
+        // Pre-mutación suave: cada semilla parte de un diseño base ligeramente
+        // distinto (plataformas movidas pocos px) para tener más variedad de
+        // niveles buenos sin perder la estructura ni la dificultad del nivel.
+        const variedBase = this._preMutateBase(rng, clone(baseConfig));
+        const base = this.baseline(variedBase);
 
         // Ajuste específico por nivel (N1-N3 pulidos): la mutación de N1 es más
         // suave, la salida se mantiene baja y la banda de dificultad es más
@@ -331,12 +335,12 @@ export class LevelGenerator {
 
         const band = tuning.difficulty;
         this.ctx = {
-            baseConfig,
+            baseConfig: variedBase,
             baseKeys: base.keys,
             baseStructure: base.structure,
             baseDistribution: base.distribution,
             basePlacement: base.placement,
-            baseCount: baseConfig.platforms.length,
+            baseCount: variedBase.platforms.length,
             assist
         };
         const stats = { layout: 0, structure: 0, unreachable: 0, difficulty: 0, tame: 0, dense: 0, crowded: 0, isolated: 0, trampolines: 0, uneven: 0, placement: 0 };
@@ -555,6 +559,24 @@ export class LevelGenerator {
     // ------------------------------------------------------------------
     // Mutaciones
     // ------------------------------------------------------------------
+
+    // Pre-mutación suave aplicada al diseño base antes de empezar: desplaza 1-3
+    // plataformas libres pocos px para que cada semilla parta de un punto de
+    // partida distinto, sin perder la estructura ni la dificultad del nivel.
+    _preMutateBase(rng, cfg) {
+        const plats = (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
+        const count = rng.int(1, 3);
+        const shuffled = plats.sort(() => rng.next() - 0.5);
+        for (let i = 0; i < Math.min(count, shuffled.length); i++) {
+            const p = shuffled[i];
+            if (!rng.chance(0.5)) continue;
+            const dx = rng.pick([-1, 1]) * rng.int(10, 30);
+            const dy = rng.pick([-1, 1]) * rng.int(5, 15);
+            p.x = Math.max(100, Math.min(WORLD.width - 100, p.x + dx));
+            p.y = Math.max(120, Math.min(680, p.y + dy));
+        }
+        return cfg;
+    }
 
     _mutate(rng, cfg, id, intensity, log) {
         const apply = (name, p, fn) => {
