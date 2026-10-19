@@ -18,128 +18,59 @@ const HOMING_DURATION_RASTRA = PROJECTILE_CONFIG.homingDurationMs * 0.7;
 
 class StandardBehavior {
     constructor(projectile) {
-        this.phase = 'homing';
-        this.homingTimer = 0;
+        this.phase = 'line';
         this.projectile = projectile;
     }
 
     update(deltaMs) {
         const p = this.projectile;
 
-        if (this.phase === 'homing') {
-            this.homingTimer += deltaMs;
-
-            const dx = p.target.x - p.circle.x;
-            const dy = p.target.y - p.circle.y;
-            const dist = Math.hypot(dx, dy);
-
-            if (dist > 0) {
-                p.circle.body.setVelocity(dx / dist * PROJECTILE_CONFIG.homingSpeed, dy / dist * PROJECTILE_CONFIG.homingSpeed);
-            }
-
-            if (this.homingTimer >= PROJECTILE_CONFIG.homingDurationMs) {
-                this.phase = 'line';
-                p.circle.setFillStyle(PROJECTILE_CONFIG.color);
-
-                const v = p.circle.body.velocity;
-                const length = Math.hypot(v.x, v.y) || 1;
-
-                p.direction.x = v.x / length;
-                p.direction.y = v.y / length;
-                p.speed = PROJECTILE_CONFIG.homingSpeed;
-            }
-        } else {
-            p.speed = Math.min(p.maxSpeed, p.speed + p.acceleration * (deltaMs / 1000));
-            p.circle.body.setVelocity(p.direction.x * p.speed, p.direction.y * p.speed);
-        }
+        p.speed = Math.min(p.maxSpeed, p.speed + p.acceleration * (deltaMs / 1000));
+        p.circle.body.setVelocity(p.direction.x * p.speed, p.direction.y * p.speed);
     }
 }
 
 class RicochetBehavior {
     constructor(projectile) {
-        this.phase = 'homing';
-        this.homingTimer = 0;
+        this.phase = 'ricochet';
         this.projectile = projectile;
+
+        const p = projectile;
+        p.circle.setFillStyle(PROJECTILE_CONFIG.ricochetColor);
+        p.circle.body.setCollideWorldBounds(true);
+        p.circle.body.setBounce(1, 1);
+        p.expireAt = p.spawnTime + PROJECTILE_CONFIG.ricochetMaxLifeMs;
     }
 
     update(deltaMs) {
         const p = this.projectile;
 
-        if (this.phase === 'homing') {
-            this.homingTimer += deltaMs;
-
-            const dx = p.target.x - p.circle.x;
-            const dy = p.target.y - p.circle.y;
-            const dist = Math.hypot(dx, dy);
-
-            if (dist > 0) {
-                p.circle.body.setVelocity(dx / dist * PROJECTILE_CONFIG.homingSpeed, dy / dist * PROJECTILE_CONFIG.homingSpeed);
-            }
-
-            if (this.homingTimer >= PROJECTILE_CONFIG.homingDurationMs) {
-                this.phase = 'ricochet';
-                p.circle.setFillStyle(PROJECTILE_CONFIG.ricochetColor);
-                p.circle.body.setCollideWorldBounds(true);
-                p.circle.body.setBounce(1, 1);
-
-                const v = p.circle.body.velocity;
-                const length = Math.hypot(v.x, v.y) || 1;
-
-                p.direction.x = v.x / length;
-                p.direction.y = v.y / length;
-                p.speed = PROJECTILE_CONFIG.homingSpeed;
-                p.expireAt = p.spawnTime + PROJECTILE_CONFIG.ricochetMaxLifeMs;
-            }
-        } else {
-            p.speed = Math.min(p.maxSpeed, p.speed + p.acceleration * (deltaMs / 1000));
-            p.circle.body.setVelocity(p.direction.x * p.speed, p.direction.y * p.speed);
-        }
+        p.speed = Math.min(p.maxSpeed, p.speed + p.acceleration * (deltaMs / 1000));
+        p.circle.body.setVelocity(p.direction.x * p.speed, p.direction.y * p.speed);
     }
 }
 
 class RastraBehavior {
     constructor(projectile) {
-        this.phase = 'homing';
-        this.homingTimer = 0;
+        this.phase = 'line';
         this.trailTimer = 0;
         this.projectile = projectile;
+
+        const p = projectile;
+        p.circle.setFillStyle(PROJECTILE_CONFIG.rastraColor);
     }
 
     update(deltaMs) {
         const p = this.projectile;
 
-        if (this.phase === 'homing') {
-            this.homingTimer += deltaMs;
+        p.speed = Math.min(p.maxSpeed, p.speed + p.acceleration * (deltaMs / 1000));
+        p.circle.body.setVelocity(p.direction.x * p.speed, p.direction.y * p.speed);
 
-            const dx = p.target.x - p.circle.x;
-            const dy = p.target.y - p.circle.y;
-            const dist = Math.hypot(dx, dy);
+        this.trailTimer += deltaMs;
 
-            if (dist > 0) {
-                p.circle.body.setVelocity(dx / dist * PROJECTILE_CONFIG.homingSpeed, dy / dist * PROJECTILE_CONFIG.homingSpeed);
-            }
-
-            if (this.homingTimer >= HOMING_DURATION_RASTRA) {
-                this.phase = 'line';
-                p.circle.setFillStyle(PROJECTILE_CONFIG.rastraColor);
-
-                const v = p.circle.body.velocity;
-                const length = Math.hypot(v.x, v.y) || 1;
-
-                p.direction.x = v.x / length;
-                p.direction.y = v.y / length;
-                p.speed = PROJECTILE_CONFIG.homingSpeed;
-            }
-        } else {
-            p.speed = Math.min(p.maxSpeed, p.speed + p.acceleration * (deltaMs / 1000));
-            p.circle.body.setVelocity(p.direction.x * p.speed, p.direction.y * p.speed);
-
-            this.trailTimer += deltaMs;
-
-            if (this.trailTimer >= PROJECTILE_CONFIG.rastraTrailEveryMs) {
-                this.trailTimer = 0;
-                this.spawnTrail();
-            }
+        if (this.trailTimer >= PROJECTILE_CONFIG.rastraTrailEveryMs) {
+            this.trailTimer = 0;
+            this.spawnTrail();
         }
     }
 
@@ -194,9 +125,18 @@ export class Projectile {
 
         this.maxSpeed = PROJECTILE_CONFIG.maxSpeed * speedMultiplier;
         this.acceleration = PROJECTILE_CONFIG.acceleration;
-        this.speed = PROJECTILE_CONFIG.minStraightSpeed;
+        this.speed = PROJECTILE_CONFIG.homingSpeed;
         this.direction = { x: 0, y: 0 };
         this.trail = [];
+
+        // Dirección fija hacia donde está el jugador en el instante del spawn.
+        // No se corrige después: el proyectil mantiene esta trayectoria.
+        const dx = target.x - x;
+        const dy = target.y - y;
+        const dist = Math.hypot(dx, dy) || 1;
+        this.direction.x = dx / dist;
+        this.direction.y = dy / dist;
+        this.circle.body.setVelocity(this.direction.x * this.speed, this.direction.y * this.speed);
 
         const factory = BEHAVIORS[variant] ?? BEHAVIORS.standard;
         this.behavior = factory(this);
