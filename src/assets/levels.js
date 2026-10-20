@@ -127,7 +127,7 @@ export const LEVELS = [
         name: 'Movimiento',
         durationSeconds: 50,
         quota: 13,
-        spawn: { x: 120, y: 660 },
+        spawn: { x: 120, y: 684 },
         // Los carriles (movingPlatforms) son la via principal del centro y lo
         // alto: la zona carril tiene pocas plataformas fijas y el generador
         // valida con el tiempo real de las moviles (ver LevelValidator, timed).
@@ -146,26 +146,32 @@ export const LEVELS = [
             { x: 40, y: 400, w: 24, h: 720, color: 0x4a4270 },
             { x: 984, y: 400, w: 24, h: 720, color: 0x4a4270 },
             // Fila 1 (y=630)
-            { x: 170, y: 630, w: 150, h: 20, color: 0x3a3a5c },
+            // Las plataformas del borde izquierdo llegan hasta la pared (fixed): sin
+            // canal para trepar por wall jump y esquivar los carriles.
+            { x: 149, y: 630, w: 194, h: 20, color: 0x3a3a5c, fixed: true },
             { x: 512, y: 630, w: 170, h: 20, color: 0x3a3a5c },
             { x: 798, y: 630, w: 150, h: 20, color: 0x3a3a5c },
             // Fila 2 (y=540): el vacio central lo cruza la ferry baja
-            { x: 185, y: 540, w: 140, h: 20, color: 0x3a3a5c },
+            { x: 154, y: 540, w: 206, h: 20, color: 0x3a3a5c, fixed: true },
             { x: 851, y: 540, w: 243, h: 20, color: 0x3a3a5c },
             // Escalera del borde izquierdo (unica via fija hacia arriba)
-            { x: 150, y: 450, w: 120, h: 20, color: 0x3a3a5c },
-            { x: 150, y: 360, w: 120, h: 20, color: 0x3a3a5c },
-            { x: 150, y: 270, w: 120, h: 20, color: 0x3a3a5c },
+            { x: 131, y: 450, w: 158, h: 20, color: 0x3a3a5c, fixed: true },
+            { x: 131, y: 360, w: 158, h: 20, color: 0x3a3a5c, fixed: true },
+            { x: 131, y: 270, w: 158, h: 20, color: 0x3a3a5c, fixed: true },
+            // Techo desde la pared hasta el centro: sin el, el salto + dash desde el
+            // ultimo escalon cruza directo a la salida (o se trepa la pared) y los
+            // carriles sobran.
+            { x: 316, y: 170, w: 528, h: 20, color: 0x3a3a5c, fixed: true },
             // Aterrizaje de la salida (unica fija en la zona carril)
-            { x: 856, y: 270, w: 232, h: 20, color: 0x3a3a5c }
+            { x: 881, y: 270, w: 182, h: 20, color: 0x3a3a5c }
         ],
         movingPlatforms: [
             // Ferry baja: cruza el vacio central de la fila 2.
-            { x: 470, y: 540, w: 100, h: 20, distance: 190, speed: 85, axis: 'x', phase: 0 },
+            { x: 470, y: 540, w: 100, h: 20, distance: 190, speed: 85, axis: 'x', phase: 0, dwell: 0.4 },
             // Ascensor: del alfeizar de la fila 2 derecha hasta el nivel de la ferry alta.
-            { x: 680, y: 475, w: 70, h: 20, distance: 150, speed: 100, axis: 'y', phase: 0.25 },
+            { x: 680, y: 475, w: 70, h: 20, distance: 150, speed: 100, axis: 'y', phase: 0.25, dwell: 0.6 },
             // Ferry alta: ancha, desfasada y mas rapida; une la escalera con la salida.
-            { x: 520, y: 330, w: 90, h: 20, distance: 300, speed: 110, axis: 'x', phase: 0.5 }
+            { x: 520, y: 330, w: 90, h: 20, distance: 300, speed: 110, axis: 'x', phase: 0.5, dwell: 0.3 }
         ],
         pointSpots: [
             // Piso
@@ -190,7 +196,7 @@ export const LEVELS = [
             // Sobre la ferry alta: hay que saltar desde ella.
             { x: 520, y: 215 }
         ],
-        goal: { x: 810, y: 224 }
+        goal: { x: 880, y: 224 }
     },
     {
         id: 4,

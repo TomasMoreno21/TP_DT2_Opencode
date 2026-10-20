@@ -289,7 +289,7 @@ export class Game extends Scene
         this.updateTrail(delta);
         this.timer.update();
         this.projectileManager.update(delta);
-        this.updateMovingPlatforms();
+        this.updateMovingPlatforms(delta);
         this.updateHazards();
 
         const seconds = this.timer.remainingSeconds;
@@ -360,7 +360,9 @@ export class Game extends Scene
     }
 
     // Arrastra al jugador parado sobre una plataforma móvil para que viaje con ella.
-    updateMovingPlatforms() {
+    updateMovingPlatforms(frameMs) {
+        this.player.platformVelocity = null;
+
         if (this.level.movingPlatformList.length === 0) {
             return;
         }
@@ -368,9 +370,9 @@ export class Game extends Scene
         const playerRect = this.player.rect;
 
         for (const platform of this.level.movingPlatformList) {
-            const delta = platform.update();
+            const moved = platform.update(frameMs);
 
-            if (delta === 0) {
+            if (moved === 0) {
                 continue;
             }
 
@@ -382,9 +384,14 @@ export class Game extends Scene
 
             if (standing) {
                 if (platform.axis === 'x') {
-                    this.player.body.x += delta;
+                    this.player.body.x += moved;
                 } else {
-                    this.player.body.y += delta;
+                    this.player.body.y += moved;
+                }
+
+                // Solo en niveles con carriles el salto hereda la velocidad de la movil.
+                if (this.level.config.timedMovers) {
+                    this.player.platformVelocity = { x: platform.body.velocity.x, y: platform.body.velocity.y };
                 }
             }
         }

@@ -8,14 +8,21 @@ export const MOVING_PLATFORM_CONFIG = {
     height: 20
 };
 
-// Onda triangular de la ruta: posicion (0..distance) a lo largo del eje a los
-// `t` segundos. Parte del centro de la ruta yendo hacia `end`; `phase` (0..1)
-// la desfasa un ciclo completo. La usan MovingPlatform y el validador (modo
-// con tiempo), asi que el juego y la simulacion no pueden divergir.
-export function moverOffset(distance, speed, phase, t) {
-    const cycle = 2 * distance;
-    const u = (((distance / 2 + phase * cycle + speed * t) % cycle) + cycle) % cycle;
-    return u <= distance ? u : cycle - u;
+// Posicion (0..distance) a lo largo del eje a los `t` segundos: ida, pausa de
+// `dwell` s en la punta, vuelta y pausa. Parte del centro de la ruta yendo hacia
+// `end`; `phase` (0..1) la desfasa un ciclo completo. Con dwell = 0 es una onda
+// triangular. La usan MovingPlatform y el validador (modo con tiempo), asi que
+// el juego y la simulacion no pueden divergir.
+export function moverOffset(distance, speed, phase, t, dwell = 0) {
+    const travel = distance / speed;
+    const cycle = 2 * (travel + dwell);
+    let u = (((travel / 2 + phase * cycle + t) % cycle) + cycle) % cycle;
+    if (u < travel) return distance * (u / travel);
+    u -= travel;
+    if (u < dwell) return distance;
+    u -= dwell;
+    if (u < travel) return distance * (1 - u / travel);
+    return 0;
 }
 
 export class MovingPlatform {
@@ -26,16 +33,14 @@ export class MovingPlatform {
         this.width = data.w ?? MOVING_PLATFORM_CONFIG.width;
         this.height = data.h ?? MOVING_PLATFORM_CONFIG.height;
         this.distance = data.distance ?? MOVING_PLATFORM_CONFIG.distance;
-        this.direction = 1;
         this.phase = data.phase ?? 0;
+        this.dwell = data.dwell ?? 0;
+        this.t = 0;
 
         // La posicion inicial ya incluye la fase (con fase 0 es el centro de la
         // ruta, `data.x|y`). Se fija en el rectangulo: el body se resincroniza
         // desde el en cada preUpdate.
-        const cycle = 2 * this.distance;
-        const u = (((this.distance / 2 + this.phase * cycle) % cycle) + cycle) % cycle;
-        if (u > this.distance) this.direction = -1;
-        const shift = moverOffset(this.distance, this.speed, this.phase, 0) - this.distance / 2;
+        const shift = moverOffset(this.distance, this.speed, this.phase, 0, this.dwell) - this.distance / 2;
         const horizontal = this.axis === 'x';
         this.rect = scene.add.rectangle(
             data.x + (horizontal ? shift : 0), data.y + (horizontal ? 0 : shift),
@@ -53,34 +58,28 @@ export class MovingPlatform {
         this.start = origin - this.distance / 2;
         this.end = origin + this.distance / 2;
 
-        this.setMovingVelocity();
         this.prevPos = this.axis === 'x' ? this.body.x : this.body.y;
         this.drawRoute();
     }
 
-    setMovingVelocity() {
-        const v = this.speed * this.direction;
+    // Cada frame fija la velocidad que lleva el body a la posicion de la formula
+    // en el frame siguiente (corrige sola cualquier deriva de la fisica).
+    // Devuelve el delta (dx o dy) recorrido desde el frame anterior, para arrastrar
+    // al jugador parado encima.
+    update(deltaMs = 1000 / 60) {
+        const dt = Math.min(deltaMs, 50) / 1000;
+        const pos = this.axis === 'x' ? this.body.x : this.body.y;
+        const delta = pos - this.prevPos;
+        this.prevPos = pos;
 
+        const target = this.start + moverOffset(this.distance, this.speed, this.phase, this.t + dt, this.dwell);
+        const v = (target - pos) / dt;
         if (this.axis === 'x') {
             this.body.setVelocity(v, 0);
         } else {
             this.body.setVelocity(0, v);
         }
-    }
-
-    // Devuelve el delta (dx o dy) recorrido en este paso para arrastrar al jugador parado encima.
-    update() {
-        const pos = this.axis === 'x' ? this.body.x : this.body.y;
-        const delta = pos - this.prevPos;
-        this.prevPos = pos;
-
-        if (this.direction === 1 && pos >= this.end) {
-            this.direction = -1;
-            this.setMovingVelocity();
-        } else if (this.direction === -1 && pos <= this.start) {
-            this.direction = 1;
-            this.setMovingVelocity();
-        }
+        this.t += dt;
 
         return delta;
     }

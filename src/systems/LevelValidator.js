@@ -68,9 +68,10 @@ function timedMover(m) {
     const horizontal = (m.axis ?? 'x') === 'x';
     const speed = m.speed ?? 90;
     const phase = m.phase ?? 0;
+    const dwell = m.dwell ?? 0;
     const origin = (horizontal ? m.x : m.y) - dist / 2;
     const at = (f) => {
-        const c = origin + moverOffset(dist, speed, phase, f * DT);
+        const c = origin + moverOffset(dist, speed, phase, f * DT, dwell);
         const cx = horizontal ? c : m.x;
         const cy = horizontal ? m.y : c;
         return { x1: cx - w / 2, x2: cx + w / 2, y1: cy - h / 2, y2: cy + h / 2, tall: false, mover: true, c };
@@ -80,7 +81,9 @@ function timedMover(m) {
     const box = horizontal
         ? { x1: m.x - dist / 2 - w / 2 - pad, x2: m.x + dist / 2 + w / 2 + pad, y1: m.y - h / 2 - pad, y2: m.y + h / 2 + pad }
         : { x1: m.x - w / 2 - pad, x2: m.x + w / 2 + pad, y1: m.y - dist / 2 - h / 2 - pad, y2: m.y + dist / 2 + h / 2 + pad };
-    return { at, box, horizontal };
+    // Velocidad (px/s) en el frame f: la misma que MovingPlatform.update fija al body.
+    const vel = (f) => (at(f + 1).c - at(f).c) / DT;
+    return { at, box, horizontal, vel };
 }
 
 function buildPlatforms(config, timed = false) {
@@ -301,14 +304,19 @@ export class LevelValidator {
         };
         const nearMover = (st) => movers.some((m) => st.x > m.box.x1 && st.x < m.box.x2 && st.y > m.box.y1 && st.y < m.box.y2);
         // Arrastra al jugador apoyado sobre una movil (como Game.updateMovingPlatforms).
-        const carry = (st, f) => {
+        const rider = (st, f) => {
             for (const m of movers) {
                 const cur = m.at(f);
                 if (st.vy < 0 || Math.abs(st.y + HH - cur.y1) > 3 || st.x + HW <= cur.x1 || st.x - HW >= cur.x2) continue;
-                const nxt = m.at(f + 1);
-                return { ...st, x: st.x + (nxt.x1 - cur.x1), y: st.y + (nxt.y1 - cur.y1) };
+                return { m, cur };
             }
-            return st;
+            return null;
+        };
+        const carry = (st, f) => {
+            const r = rider(st, f);
+            if (!r) return st;
+            const nxt = r.m.at(f + 1);
+            return { ...st, x: st.x + (nxt.x1 - r.cur.x1), y: st.y + (nxt.y1 - r.cur.y1) };
         };
         // opts.startFrame: frame del nivel en el que arranca la busqueda (replanificar en vivo).
         const f0 = opts.startFrame ?? 0;
@@ -379,7 +387,16 @@ export class LevelValidator {
                 // Broad-phase: un paso mueve a lo sumo ~16 px, así que solo importan
                 // las plataformas cercanas al estado. En modo con tiempo, las del
                 // frame siguiente (el paso termina ahí).
-                if (near) state = carry(state, f0 + depth);
+                // Saltar desde una movil hereda su velocidad (Player: platformVelocity).
+                let inherit = null;
+                if (near) {
+                    const r = rider(state, f0 + depth);
+                    if (r) {
+                        const v = r.m.vel(f0 + depth);
+                        inherit = r.m.horizontal ? { x: v, y: 0 } : { x: 0, y: v };
+                    }
+                    state = carry(state, f0 + depth);
+                }
                 const stepPlatforms = platformsAt(f0 + depth + 1);
                 const local = stepPlatforms.filter((p) => p.x2 > state.x - HW - 14 && p.x1 < state.x + HW + 14 &&
                     p.y2 > state.y - HH - 26 && p.y1 < state.y + HH + 26);
@@ -420,7 +437,7 @@ export class LevelValidator {
                     }
 
                     if (state.grounded) {
-                        push(depth + 1, withDash(moveBody({ x: state.x, y: state.y, vx, vy: -jumpV }, local), false), node, { dir, jump: true });
+                        push(depth + 1, withDash(moveBody({ x: state.x, y: state.y, vx: vx + (inherit ? inherit.x : 0), vy: -jumpV + (inherit ? inherit.y : 0) }, local), false), node, { dir, jump: true });
                     } else if ((wall === 'left' && dir < 0) || (wall === 'right' && dir > 0)) {
                         const sign = wall === 'left' ? 1 : -1;
                         for (const variant of (this.allowHug ? ['hug', 'away'] : ['away'])) {
@@ -486,6 +503,14 @@ export class LevelValidator {
             list[i + 1].linked = list[i];
         }
         return list;
+    }
+
+    // ¿Se alcanza la salida en menos de `maxFrames` frames? (busqueda solo de la
+    // salida, sin spots ni gemas: el chequeo de atajos de los carriles).
+    hasStaticRoute(config, maxFrames) {
+        const goal = { x: config.goal.x, y: config.goal.y, dx: GOAL_DX, dy: GOAL_DY, frames: Infinity };
+        this.explore(config, [goal], { maxFrames });
+        return Number.isFinite(goal.frames);
     }
 
     // opts.platformTargets: además de spots, gemas y salida, comprueba que se

@@ -107,7 +107,9 @@ export const ROW_DEVIATION = 3;
 export const ROW_DEVIATION_LANES = 3;
 // Presupuesto de BFS por nivel con carriles (unidades de ~0,25 s): el chequeo de
 // atajo cuesta ~0,75 s y la validacion con tiempo ~1,25 s.
-export const LANE_BFS_BUDGET = 16;
+export const LANE_BFS_BUDGET = 8;
+// Una ruta fija a la salida mas larga que esto no cuenta como atajo de los carriles.
+export const LANE_SHORTCUT_FRAMES = 420;
 const LANE_SHORTCUT_COST = 3;
 const LANE_TIMED_COST = 5;
 
@@ -140,7 +142,7 @@ export const LEVEL_TUNING = {
         movingPlatformMinRise: 60,
         movingPlatformMaxRise: 260,
         // Foco en móviles: menos plataformas estáticas y al menos dos móviles.
-        maxStaticPlatforms: 9,
+        maxStaticPlatforms: 10,
         minMovingPlatforms: 2,
     },
 };
@@ -297,7 +299,7 @@ export class LevelGenerator {
             const b = base.movingPlatforms?.[i];
             return !b || b.x !== m.x || b.y !== m.y || b.distance !== m.distance;
         }).length;
-        return changed * 1.5 + goalMoved + spotsMoved * 0.2 + lanesMoved;
+        return changed * 1.5 + goalMoved + spotsMoved * 0.2 + lanesMoved * 2.5;
     }
 
     effortOf(res) {
@@ -392,7 +394,7 @@ export class LevelGenerator {
                 // Es el chequeo barato: va antes de la validacion con tiempo.
                 if (candidate.timedMovers) {
                     heavy += LANE_SHORTCUT_COST;
-                    if (this.validator.validate({ ...candidate, movingPlatforms: [], timedMovers: false }).goalOk) {
+                    if (this.validator.hasStaticRoute({ ...candidate, movingPlatforms: [], timedMovers: false }, LANE_SHORTCUT_FRAMES)) {
                         stats.shortcut++;
                         continue;
                     }
@@ -606,7 +608,7 @@ export class LevelGenerator {
     // plataformas libres pocos px para que cada semilla parta de un punto de
     // partida distinto, sin perder la estructura ni la dificultad del nivel.
     _preMutateBase(rng, cfg) {
-        const plats = (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
+        const plats = (cfg.platforms || []).filter((p) => this._isPlayPlatform(p) && !p.fixed);
         const count = rng.int(1, 3);
         const shuffled = plats.sort(() => rng.next() - 0.5);
         for (let i = 0; i < Math.min(count, shuffled.length); i++) {
@@ -730,6 +732,7 @@ export class LevelGenerator {
             }
             if (rng.chance(0.8)) m.phase = Math.round(rng.range(0, 1) * 20) / 20;
             m.speed = Math.round(Math.max(70, Math.min(130, m.speed * rng.range(0.85, 1.2))));
+            if (rng.chance(0.7)) m.dwell = Math.round(rng.range(0.2, 0.8) * 10) / 10;
 
             if (!fits(m)) { Object.assign(m, old); continue; }
             if (horizontal && m.x !== old.x) {
@@ -808,6 +811,7 @@ export class LevelGenerator {
     // Con `allowMate` también se mueven las compañeras de un trampolín (para correrlas
     // fuera de su pasillo de rebote).
     _isMovable(p, cfg, allowMate = false) {
+        if (p.fixed) return false;
         if (!(p.h <= 26 && p.w >= 60 && p.w <= 280 && p.y >= 90 && p.y <= 700)) return false;
         if ((cfg.movingPlatforms || []).some((m) => this._nearMover(p, m))) return false;
         if (!allowMate && this._isCorridorMate(cfg, p)) return false;
@@ -2010,6 +2014,8 @@ _trampolinesUsable(cfg) {
             cells.add(`${c},${r}`);
             cols[c]++;
             rows[r]++;
+            // Las `fixed` (cierres estructurales del diseño) no cuentan para el balance.
+            if (p.fixed) continue;
             if (p.x < WORLD.width / 2 - 60) left++;
             else if (p.x > WORLD.width / 2 + 60) right++;
         }
@@ -2207,6 +2213,7 @@ _trampolinesUsable(cfg) {
     // Una plataforma se puede mutar si es flotante, de tamaño normal y nada
     // (trampolín, pincho, portal, móvil…) depende de su posición.
     _isFree(p, anchors, cfg) {
+        if (p.fixed) return false;
         if (this._isCorridorMate(cfg, p)) return false;
         if (!(p.h <= 26 && p.w >= 100 && p.w <= 280 && p.y >= 150 && p.y <= 700)) return false;
         if (this._isAnchored(p, anchors)) return false;

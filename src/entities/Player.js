@@ -47,6 +47,7 @@ export class Player {
         this.body.setBounce(0);
 
         this.jumpPressed = false;
+        this.platformVelocity = null;
         this.wallGrabbing = false;
         this.lastWallJumpTime = 0;
         this.multiplier = 1;
@@ -334,7 +335,11 @@ export class Player {
 
         // Durante el dash no se salta: el impulso se mantiene en línea recta.
         if (bufferReady && canGroundJump && !this.isDashing) {
-            this.body.setVelocityY(PLAYER_CONFIG.jumpVelocity);
+            // Sobre una movil (N3) el salto hereda su velocidad: ferry rapida = salto
+            // mas largo, ascensor subiendo = mas alto (y bajando, mas bajo).
+            const inherit = this.platformVelocity;
+            this.body.setVelocityY(PLAYER_CONFIG.jumpVelocity + (inherit ? inherit.y : 0));
+            if (inherit) this.body.setVelocityX(this.body.velocity.x + inherit.x);
             this.jumpBufferUntil = 0;
             this.lastOnFloorTime = -Infinity;
             this.squashBounce(1.2, 0.8);
