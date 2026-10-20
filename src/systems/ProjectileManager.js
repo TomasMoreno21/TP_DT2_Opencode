@@ -86,6 +86,7 @@ export class ProjectileManager {
 
         if (this.startTime === null) {
             this.startTime = this.scene.time.now;
+            this.nextSpawnTime = this.scene.time.now + this.config.initialInterval;
         }
 
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
