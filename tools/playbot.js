@@ -191,6 +191,13 @@ export async function playLevel(game, { levelIndex, campaign, seed, comfort = 1,
                 needPlan = true;
             } else {
                 if (bestK === plan.k) plan.stall++; else plan.stall = 0;
+                // Parado sobre el nodo más cercano con comando "sin input" (primer nodo
+                // de la ruta): el vecino más próximo es siempre el actual y el bot no
+                // arranca nunca. Se fuerza el avance al siguiente nodo.
+                if (plan.k === -1 && plan.stall > 2 && plan.path.length > 2) {
+                    bestK = 0;
+                    plan.stall = 0;
+                }
                 plan.k = bestK;
                 if (plan.stall > 90) needPlan = true;
                 else move = plan.path[bestK + 1];

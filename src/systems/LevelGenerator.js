@@ -158,8 +158,8 @@ export const TIMER_RULES = { minScale: 0.85, maxScale: 1.25, damping: 0.7 };
 export const TIMER_BANDS = {
     1: { min: 55, max: 66 },
     2: { min: 50, max: 57 },
-    3: { min: 47, max: 51 },
-    4: { min: 44, max: 51 },
+    3: { min: 47, max: 50 },
+    4: { min: 42, max: 48 },
     5: { min: 54, max: 62 }
 };
 
