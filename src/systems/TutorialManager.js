@@ -3,6 +3,7 @@ import { Audio } from './Audio';
 
 const DONE_KEY = 'fastMoveTutorialDone';
 const OFF_KEY = 'fastMoveTutorialOff';
+const PRACTICE_KEY = 'fastMoveTutorialPractice';
 
 // Cada paso se completa al HACER la mecánica (no al leer): `detect` recibe el
 // manager y devuelve true cuando el jugador la usó. Los eventos se anotan en
@@ -35,7 +36,10 @@ function save(key, value) {
 export const Tutorial = {
     isOff: () => load(OFF_KEY, false) === true,
     setOff: (off) => save(OFF_KEY, off),
-    reset: () => { save(DONE_KEY, []); save(OFF_KEY, false); }
+    // Micro-práctica por mecánica: se ofrece una sola vez (hecha o salteada).
+    wantsPractice: (mech) => !Tutorial.isOff() && !load(PRACTICE_KEY, []).includes(mech),
+    markPractice: (mech) => save(PRACTICE_KEY, [...new Set([...load(PRACTICE_KEY, []), mech])]),
+    reset: () => { save(DONE_KEY, []); save(PRACTICE_KEY, []); save(OFF_KEY, false); }
 };
 
 // Hints que se ganan: muestran solo el paso actual y desaparecen al usarlo.

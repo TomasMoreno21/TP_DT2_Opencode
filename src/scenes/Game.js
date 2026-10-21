@@ -10,7 +10,9 @@ import { ProjectileManager } from '../systems/ProjectileManager';
 import { FloatingText } from '../systems/FloatingText';
 import { GamePace } from '../systems/GamePace';
 import { Audio } from '../systems/Audio';
-import { TutorialManager } from '../systems/TutorialManager';
+import { TutorialManager, Tutorial } from '../systems/TutorialManager';
+import { PRACTICE, PRACTICE_BY_LEVEL } from '../assets/practice';
+import { Lang } from '../systems/Texts';
 import { LEVELS, WORLD } from '../assets/levels';
 import { LevelGenerator } from '../systems/LevelGenerator';
 
@@ -29,6 +31,9 @@ export class Game extends Scene
         this.campaign = data.campaign ?? null;
         // Muertes seguidas en este nivel: el reintento genera un mapa más accesible.
         this.deaths = data.deaths ?? 0;
+        // Micro-práctica: mapa mínimo de una mecánica nueva (ver assets/practice.js).
+        this.practice = data.practice ?? null;
+        this.initData = data;
     }
 
     // La campaña generada viaja con la escena (transición de nivel, reintento y
@@ -36,6 +41,10 @@ export class Game extends Scene
     // (arranque directo), se genera una sola vez con la semilla de la corrida.
     resolveLevelConfig ()
     {
+        if (this.practice) {
+            return PRACTICE[this.practice.mech];
+        }
+
         if (!this.campaign) {
             this.campaign = new LevelGenerator().generateCampaign(this.campaignSeed, LEVELS);
             console.log(`[FastMove] campaña generada al vuelo (semilla ${this.campaignSeed}):`,
@@ -52,6 +61,13 @@ export class Game extends Scene
 
     create ()
     {
+        // La primera vez que se llega a un nivel con mecánica nueva, antes va la práctica.
+        const mech = PRACTICE_BY_LEVEL[this.levelIndex];
+        if (!this.practice && mech && Tutorial.wantsPractice(mech)) {
+            this.scene.start('Game', { ...this.initData, practice: { mech } });
+            return;
+        }
+
         this.gameEnded = false;
         this.levelComplete = false;
         this.lastSecond = null;
@@ -162,7 +178,11 @@ export class Game extends Scene
         this.hud.setTimerTotal(levelConfig.durationSeconds);
         this.hud.setTime(this.timer.remainingSeconds);
 
-        this.floatingText.showBanner(512, 240, `Nivel ${this.levelIndex + 1} - ${levelConfig.name}`, '#00d1b2', 34);
+        if (this.practice) {
+            this.setupPractice();
+        } else {
+            this.floatingText.showBanner(512, 240, `Nivel ${this.levelIndex + 1} - ${levelConfig.name}`, '#00d1b2', 34);
+        }
         if (this.deaths > 0) {
             this.floatingText.showBanner(512, 286, 'Mapa nuevo: más espacio y más tiempo', '#66ff88', 20);
         }
@@ -193,7 +213,7 @@ export class Game extends Scene
         this.trailAcc = 0;
 
         // Hints que se ganan: solo en el nivel 1.
-        this.tutorial = this.levelIndex === 0 ? new TutorialManager(this, this.player) : null;
+        this.tutorial = this.levelIndex === 0 && !this.practice ? new TutorialManager(this, this.player) : null;
 
         this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots);
         this.projectileManager = new ProjectileManager(this, this.timer.durationMs, levelConfig.projectiles);
@@ -279,6 +299,36 @@ export class Game extends Scene
         // ritmo normal: si se apaga durante un hitstop, el mundo queda pausado.
         this.events.once('shutdown', () => this.pace.restore());
         this.events.once('shutdown', () => this.level.destroy());
+    }
+
+    // Práctica: sin timer ni proyectiles; los golpes reaparecen en vez de terminar.
+    setupPractice ()
+    {
+        const mech = this.practice.mech;
+        const name = Lang.t('pr' + mech[0].toUpperCase() + mech.slice(1));
+        this.hud.levelText.setText(Lang.t('prTitle', { m: name }));
+        this.add.text(512, 150, Lang.t('prTitle', { m: name }), {
+            fontFamily: 'Arial Black', fontSize: '26px', color: '#00d1b2', stroke: '#000000', strokeThickness: 5
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
+        this.add.text(512, 186, Lang.t('prHint' + mech[0].toUpperCase() + mech.slice(1)), {
+            fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
+        this.add.text(512, 210, Lang.t('prSkip'), { fontFamily: 'Arial', fontSize: '13px', color: '#9aa4c7' })
+            .setOrigin(0.5).setScrollFactor(0).setDepth(51);
+
+        this.input.keyboard.addKey('ENTER').on('down', () => this.endPractice());
+    }
+
+    endPractice ()
+    {
+        if (this.gameEnded) {
+            return;
+        }
+
+        this.gameEnded = true;
+        Tutorial.markPractice(this.practice.mech);
+        const { practice, ...next } = this.initData;
+        this.scene.start('Game', next);
     }
 
     update (time, delta)
@@ -450,6 +500,14 @@ export class Game extends Scene
             return;
         }
 
+        if (this.practice) {
+            Audio.play('goalReached');
+            this.floatingText.showBanner(512, 300, Lang.t('prDone'), '#00ff88', 32);
+            this.time.delayedCall(900, () => this.endPractice());
+            this.levelComplete = true;
+            return;
+        }
+
         this.levelComplete = true;
         this.gameEnded = true;
         Audio.play('goalReached');
@@ -512,6 +570,16 @@ export class Game extends Scene
         }
 
         if (this.player.isInvulnerable) {
+            return;
+        }
+
+        if (this.practice && !this.player.hasShield) {
+            const spawn = this.level.config.spawn;
+            this.player.rect.setPosition(spawn.x, spawn.y);
+            this.player.body.reset(spawn.x, spawn.y);
+            this.player.invulnerableUntil = this.time.now + 800;
+            Audio.play('hit');
+            this.floatingText.show(spawn.x, spawn.y - 50, Lang.t('prRetry'), '#ffdd44', 20);
             return;
         }
 

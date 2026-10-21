@@ -37,7 +37,18 @@ const STRINGS = {
         tutDash: 'Apretá Shift para hacer un dash',
         tutOk: '¡Bien!',
         tutDone: '¡Listo! Ya sabés moverte',
-        tutSkip: 'T = saltar tutorial'
+        tutSkip: 'T = saltar tutorial',
+        prTitle: 'Práctica: {m}',
+        prTrampoline: 'Trampolines',
+        prHazard: 'Pinchos y escudo',
+        prPortal: 'Portales',
+        prHintTrampoline: 'Pisá el centro del trampolín: rebote más alto. Juntá el punto de arriba',
+        prHintHazard: 'Los pinchos tiemblan antes de salir. Agarrá el escudo o cruzá cuando se retraen',
+        prHintPortal: 'Quedate sobre el portal un instante: te lleva arriba. Juntá el punto',
+        prExit: 'Ahora andá a la salida',
+        prRetry: 'Casi, ¡probá de nuevo!',
+        prSkip: 'Enter = saltar práctica',
+        prDone: '¡Práctica lista!'
     },
     en: {
         subtitle: 'Clear all {n} levels by hitting each point quota',
@@ -72,7 +83,18 @@ const STRINGS = {
         tutDash: 'Press Shift to dash',
         tutOk: 'Nice!',
         tutDone: 'Done! You know how to move',
-        tutSkip: 'T = skip tutorial'
+        tutSkip: 'T = skip tutorial',
+        prTitle: 'Practice: {m}',
+        prTrampoline: 'Trampolines',
+        prHazard: 'Spikes and shield',
+        prPortal: 'Portals',
+        prHintTrampoline: 'Land on the trampoline center for a higher bounce. Grab the top point',
+        prHintHazard: 'Spikes shake before they pop out. Grab the shield or cross when they retract',
+        prHintPortal: 'Stay on the portal for a moment: it takes you up. Grab the point',
+        prExit: 'Now head to the exit',
+        prRetry: 'Close, try again!',
+        prSkip: 'Enter = skip practice',
+        prDone: 'Practice done!'
     }
 };
 
