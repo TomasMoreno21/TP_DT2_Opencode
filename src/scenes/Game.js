@@ -11,6 +11,7 @@ import { FloatingText } from '../systems/FloatingText';
 import { GamePace } from '../systems/GamePace';
 import { Audio } from '../systems/Audio';
 import { TutorialManager, Tutorial, Coach } from '../systems/TutorialManager';
+import { Badges } from '../systems/Badges';
 import { PRACTICE, PRACTICE_BY_LEVEL } from '../assets/practice';
 import { Lang } from '../systems/Texts';
 import { LEVELS, WORLD } from '../assets/levels';
@@ -133,6 +134,7 @@ export class Game extends Scene
                 if (trampoline && !this.player.isDashing && player.body.velocity.y > -30) {
                     const perfect = trampoline.bounce(this.player.rect);
                     Audio.play(perfect ? 'perfect' : 'bounce');
+                    if (perfect) this.unlockBadge('perfect');
                 }
             });
         }
@@ -215,6 +217,8 @@ export class Game extends Scene
         this.events.on('player-dash', () => this.spawnDashGhosts());
         this.events.on('player-dash', () => this.cameras.main.shake(90, 0.0035));
         this.events.on('player-jump', (kind) => Audio.play('jump', { kind }));
+        this.events.on('player-jump', (kind) => kind === 'wall' && this.unlockBadge('wallJump'));
+        this.events.on('player-dash', () => this.unlockBadge('dash'));
         this.trailAcc = 0;
 
         // Hints que se ganan: solo en el nivel 1.
@@ -273,6 +277,7 @@ export class Game extends Scene
                 this.pace.hitstop(30);
                 this.applyComboZoom();
                 Audio.play('gem');
+                this.unlockBadge('gem');
                 this.burstAt(gem.x, gem.y, gem.color);
                 this.floatingText.show(gem.x, gem.y - 24, `+${gained}`, '#66ff88', 20);
 
@@ -304,6 +309,14 @@ export class Game extends Scene
         // ritmo normal: si se apaga durante un hitstop, el mundo queda pausado.
         this.events.once('shutdown', () => this.pace.restore());
         this.events.once('shutdown', () => this.level.destroy());
+    }
+
+    // Insignia de aprendizaje: aviso corto la primera vez que se usa una mecánica.
+    unlockBadge (id)
+    {
+        if (Badges.unlock(id)) {
+            this.floatingText.showBanner(512, 118, '★ ' + Lang.t('badgeNew', { n: Lang.t('badge_' + id) }), '#ffdd44', 20, 1200);
+        }
     }
 
     // Práctica: sin timer ni proyectiles; los golpes reaparecen en vez de terminar.
@@ -412,6 +425,7 @@ export class Game extends Scene
             if (portal.isCharged) {
                 portal.teleport(playerRect);
                 Audio.play('portal');
+                this.unlockBadge('portal');
                 this.burstAt(portal.x, portal.y, 0x9d7bff);
                 this.burstAt(this.player.rect.x, this.player.rect.y, 0x9d7bff);
                 this.cameras.main.flash(120, 157, 123, 255);
@@ -596,6 +610,7 @@ export class Game extends Scene
             }
 
             this.player.absorbHit();
+            this.unlockBadge('shield');
             Audio.play('hit');
             this.cameras.main.shake(160, 0.008);
             this.cameras.main.flash(150, 90, 220, 255);

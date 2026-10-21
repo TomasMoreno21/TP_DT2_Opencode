@@ -4,6 +4,8 @@ import { Audio } from '../systems/Audio';
 import { Lang } from '../systems/Texts';
 import { LEVELS } from '../assets/levels';
 import { CampaignBuilder } from '../systems/CampaignBuilder';
+import { Tutorial } from '../systems/TutorialManager';
+import { Badges, BADGES } from '../systems/Badges';
 
 const COLORS = {
     bgTop: 0x232045,
@@ -66,12 +68,15 @@ export class MainMenu extends Scene
 
         this.createSecondaryButton(376, 570, 'controlsButton', Lang.t('controls'), () => this.toggleControls());
         this.createSecondaryButton(648, 570, 'langButton', Lang.t('lang'), () => this.toggleLang());
+        this.createSecondaryButton(512, 646, 'tutorialButton', Lang.t('tutorialBtn'), () => this.toggleTutorial());
         this.buildLangPopup();
+        this.buildTutorialPopup();
         this.createSeedControls();
 
         this.input.keyboard.on('keydown-ESC', () => {
             this.toggleControls(false);
             this.toggleLang(false);
+            this.toggleTutorial(false);
         });
     }
 
@@ -196,6 +201,7 @@ export class MainMenu extends Scene
         this.controlsDim.on('pointerdown', () => {
             this.toggleControls(false);
             this.toggleLang(false);
+            this.toggleTutorial(false);
         });
 
         const popup = this.add.container(0, 0).setVisible(false).setDepth(10);
@@ -254,6 +260,7 @@ export class MainMenu extends Scene
         }
 
         this.toggleLang(false);
+        this.toggleTutorial(false);
         this.controlsPopup.setVisible(visible);
         this.controlsDim.setVisible(visible);
         Audio.play('ui');
@@ -369,6 +376,7 @@ export class MainMenu extends Scene
         }
 
         this.toggleControls(false);
+        this.toggleTutorial(false);
         this.langPopup.setVisible(visible);
         this.controlsDim.setVisible(visible);
         Audio.play('ui');
@@ -377,5 +385,72 @@ export class MainMenu extends Scene
             this.langPopup.setAlpha(0);
             this.tweens.add({ targets: this.langPopup, alpha: 1, duration: 160 });
         }
+    }
+
+    // Popup de tutorial: interruptor, reinicio de hints/prácticas y lista de insignias.
+    buildTutorialPopup () {
+        const popup = this.add.container(0, 0).setVisible(false).setDepth(10);
+
+        const panel = this.add.graphics();
+        panel.fillStyle(COLORS.panel, 1).fillRoundedRect(262, 232, 500, 330, 18);
+        panel.lineStyle(2, COLORS.panelBorder, 1).strokeRoundedRect(262, 232, 500, 330, 18);
+
+        const title = this.add.text(512, 256, Lang.t('tutorialTitle'), {
+            fontFamily: 'Arial Black', fontSize: 24, color: COLORS.gold, stroke: '#000000', strokeThickness: 5
+        }).setOrigin(0.5);
+
+        const on = !Tutorial.isOff();
+        const toggle = this.add.text(512, 302, `${on ? '● ' : '○ '}${Lang.t(on ? 'tutorialOn' : 'tutorialOff')}`, {
+            fontFamily: 'Arial Black', fontSize: 20, color: on ? COLORS.teal : COLORS.text
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        toggle.on('pointerdown', () => {
+            Tutorial.setOff(on);
+            Audio.play('ui');
+            this.scene.restart({ campaignSeed: this.campaignSeed });
+        });
+
+        const reset = this.add.text(512, 338, Lang.t('tutorialReset'), {
+            fontFamily: 'Arial', fontSize: 17, color: COLORS.grey
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        reset.on('pointerdown', () => {
+            Tutorial.reset();
+            Audio.play('ui');
+            this.scene.restart({ campaignSeed: this.campaignSeed });
+        });
+
+        const badgesTitle = this.add.text(512, 382, Lang.t('badgesTitle'), {
+            fontFamily: 'Arial Black', fontSize: 18, color: COLORS.teal
+        }).setOrigin(0.5);
+
+        const items = BADGES.map((id, i) => {
+            const owned = Badges.has(id);
+            const x = 372 + (i % 2) * 280;
+            const y = 420 + Math.floor(i / 2) * 36;
+
+            return this.add.text(x, y, `${owned ? '★' : '☆'} ${Lang.t('badge_' + id)}`, {
+                fontFamily: 'Arial', fontSize: 18, color: owned ? COLORS.gold : '#6b6b8a'
+            }).setOrigin(0, 0.5);
+        });
+
+        const hint = this.add.text(512, 540, Lang.t('popupHint'), {
+            fontFamily: 'Arial', fontSize: 13, color: COLORS.grey
+        }).setOrigin(0.5);
+
+        popup.add([panel, title, toggle, reset, badgesTitle, ...items, hint]);
+        this.tutorialPopup = popup;
+    }
+
+    toggleTutorial (show = null) {
+        const visible = show ?? !this.tutorialPopup.visible;
+
+        if (this.tutorialPopup.visible === visible) {
+            return;
+        }
+
+        this.toggleControls(false);
+        this.toggleLang(false);
+        this.tutorialPopup.setVisible(visible);
+        this.controlsDim.setVisible(visible);
+        Audio.play('ui');
     }
 }

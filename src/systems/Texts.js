@@ -51,7 +51,20 @@ const STRINGS = {
         prDone: '¡Práctica lista!',
         coachHazard: 'Tip: los pinchos tiemblan antes de salir. Cruzá cuando se retraen o usá el dash',
         coachProjectile: 'Tip: el círculo rojo avisa de dónde sale la bola. El dash te hace invulnerable',
-        coachTime: 'Tip: andá por los puntos cercanos primero. Las gemas suman +2 s'
+        coachTime: 'Tip: andá por los puntos cercanos primero. Las gemas suman +2 s',
+        tutorialBtn: 'TUTORIAL',
+        tutorialTitle: 'Tutorial e insignias',
+        tutorialOn: 'Tutorial activado',
+        tutorialOff: 'Tutorial desactivado',
+        tutorialReset: 'Reiniciar tutorial',
+        badgesTitle: 'Insignias',
+        badgeNew: 'Insignia: {n}',
+        badge_wallJump: 'Wall jump',
+        badge_dash: 'Dash',
+        badge_perfect: 'Rebote perfecto',
+        badge_shield: 'Escudo salvador',
+        badge_portal: 'Portal',
+        badge_gem: 'Gema'
     },
     en: {
         subtitle: 'Clear all {n} levels by hitting each point quota',
@@ -100,7 +113,20 @@ const STRINGS = {
         prDone: 'Practice done!',
         coachHazard: 'Tip: spikes shake before they pop out. Cross when they retract or use the dash',
         coachProjectile: 'Tip: the red circle warns where the ball comes from. Dash makes you invulnerable',
-        coachTime: 'Tip: grab the nearby points first. Gems give +2 s'
+        coachTime: 'Tip: grab the nearby points first. Gems give +2 s',
+        tutorialBtn: 'TUTORIAL',
+        tutorialTitle: 'Tutorial and badges',
+        tutorialOn: 'Tutorial on',
+        tutorialOff: 'Tutorial off',
+        tutorialReset: 'Reset tutorial',
+        badgesTitle: 'Badges',
+        badgeNew: 'Badge: {n}',
+        badge_wallJump: 'Wall jump',
+        badge_dash: 'Dash',
+        badge_perfect: 'Perfect bounce',
+        badge_shield: 'Saving shield',
+        badge_portal: 'Portal',
+        badge_gem: 'Gem'
     }
 };
 
