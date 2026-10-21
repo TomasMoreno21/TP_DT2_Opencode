@@ -10,6 +10,7 @@ import { ProjectileManager } from '../systems/ProjectileManager';
 import { FloatingText } from '../systems/FloatingText';
 import { GamePace } from '../systems/GamePace';
 import { Audio } from '../systems/Audio';
+import { TutorialManager } from '../systems/TutorialManager';
 import { LEVELS, WORLD } from '../assets/levels';
 import { LevelGenerator } from '../systems/LevelGenerator';
 
@@ -191,6 +192,9 @@ export class Game extends Scene
         this.events.on('player-jump', (kind) => Audio.play('jump', { kind }));
         this.trailAcc = 0;
 
+        // Hints que se ganan: solo en el nivel 1.
+        this.tutorial = this.levelIndex === 0 ? new TutorialManager(this, this.player) : null;
+
         this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots);
         this.projectileManager = new ProjectileManager(this, this.timer.durationMs, levelConfig.projectiles);
 
@@ -286,6 +290,7 @@ export class Game extends Scene
         }
 
         this.player.update(delta);
+        this.tutorial?.update();
         this.updateTrail(delta);
         this.timer.update();
         this.projectileManager.update(delta);

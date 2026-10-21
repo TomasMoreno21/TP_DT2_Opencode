@@ -281,6 +281,7 @@ Queda en firme la regla: cualquier control o mecánica central **fuera** de los 
 
 ## 8. Backlog posterior
 
+- **Tutorial (fase 1 de 5, G9 ampliado):** `systems/TutorialManager.js` muestra en el N1 un hint por paso (mover → saltar → wall grab → wall jump → dash) que se completa al usar la mecánica; progreso en `localStorage` (`fastMoveTutorialDone`), `T` lo saltea para siempre (`fastMoveTutorialOff`), textos es/en en `Texts.js`. Pendiente: micro-práctica por mecánica nueva (N2/N4/N5), coach al fallar, insignias y toggle en el menú.
 - ~~Bug `ProjectileManager.startTime`~~ — resuelto: se difiere al primer update (ver curva de progresión).
 - Plan desactualizado: parallax (`4123ad5`), viñeta y paneles del HUD, `maxCombo` en GameOver y menú nuevo ya están en código; falta reconciliar E11/E13/E14 con lo hecho.
 - Estadísticas por nivel en `localStorage` (mejor tiempo, mejor combo).

@@ -29,7 +29,15 @@ const STRINGS = {
         lang: 'IDIOMA',
         langTitle: 'Idioma / Language',
         langEs: 'Español',
-        langEn: 'English'
+        langEn: 'English',
+        tutMove: 'Movete con A / D  o  ← / →',
+        tutJump: 'Saltá con Espacio / W  o  ↑',
+        tutGrab: 'Pegate a una pared: mantené la dirección hacia ella',
+        tutWallJump: 'Colgado de la pared, saltá para impulsarte',
+        tutDash: 'Apretá Shift para hacer un dash',
+        tutOk: '¡Bien!',
+        tutDone: '¡Listo! Ya sabés moverte',
+        tutSkip: 'T = saltar tutorial'
     },
     en: {
         subtitle: 'Clear all {n} levels by hitting each point quota',
@@ -56,7 +64,15 @@ const STRINGS = {
         lang: 'LANGUAGE',
         langTitle: 'Idioma / Language',
         langEs: 'Español',
-        langEn: 'English'
+        langEn: 'English',
+        tutMove: 'Move with A / D  or  ← / →',
+        tutJump: 'Jump with Space / W  or  ↑',
+        tutGrab: 'Stick to a wall: hold the direction toward it',
+        tutWallJump: 'While on the wall, jump to launch yourself',
+        tutDash: 'Press Shift to dash',
+        tutOk: 'Nice!',
+        tutDone: 'Done! You know how to move',
+        tutSkip: 'T = skip tutorial'
     }
 };
 
