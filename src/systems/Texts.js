@@ -48,7 +48,10 @@ const STRINGS = {
         prExit: 'Ahora andá a la salida',
         prRetry: 'Casi, ¡probá de nuevo!',
         prSkip: 'Enter = saltar práctica',
-        prDone: '¡Práctica lista!'
+        prDone: '¡Práctica lista!',
+        coachHazard: 'Tip: los pinchos tiemblan antes de salir. Cruzá cuando se retraen o usá el dash',
+        coachProjectile: 'Tip: el círculo rojo avisa de dónde sale la bola. El dash te hace invulnerable',
+        coachTime: 'Tip: andá por los puntos cercanos primero. Las gemas suman +2 s'
     },
     en: {
         subtitle: 'Clear all {n} levels by hitting each point quota',
@@ -94,7 +97,10 @@ const STRINGS = {
         prExit: 'Now head to the exit',
         prRetry: 'Close, try again!',
         prSkip: 'Enter = skip practice',
-        prDone: 'Practice done!'
+        prDone: 'Practice done!',
+        coachHazard: 'Tip: spikes shake before they pop out. Cross when they retract or use the dash',
+        coachProjectile: 'Tip: the red circle warns where the ball comes from. Dash makes you invulnerable',
+        coachTime: 'Tip: grab the nearby points first. Gems give +2 s'
     }
 };
 

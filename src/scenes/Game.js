@@ -10,7 +10,7 @@ import { ProjectileManager } from '../systems/ProjectileManager';
 import { FloatingText } from '../systems/FloatingText';
 import { GamePace } from '../systems/GamePace';
 import { Audio } from '../systems/Audio';
-import { TutorialManager, Tutorial } from '../systems/TutorialManager';
+import { TutorialManager, Tutorial, Coach } from '../systems/TutorialManager';
 import { PRACTICE, PRACTICE_BY_LEVEL } from '../assets/practice';
 import { Lang } from '../systems/Texts';
 import { LEVELS, WORLD } from '../assets/levels';
@@ -185,6 +185,11 @@ export class Game extends Scene
         }
         if (this.deaths > 0) {
             this.floatingText.showBanner(512, 286, 'Mapa nuevo: más espacio y más tiempo', '#66ff88', 20);
+        }
+
+        const coachHint = this.practice ? null : Coach.take();
+        if (coachHint) {
+            this.floatingText.showBanner(512, 340, Lang.t(coachHint), '#ffdd44', 18, 3500);
         }
 
         this.muteKey = this.input.keyboard.addKey('M');
@@ -510,6 +515,7 @@ export class Game extends Scene
 
         this.levelComplete = true;
         this.gameEnded = true;
+        Coach.reset();
         Audio.play('goalReached');
 
         const bankedScore = this.totalScore;
@@ -551,6 +557,7 @@ export class Game extends Scene
         }
 
         this.gameEnded = true;
+        Coach.record('timeout');
         this.scene.start('GameOver', {
             score: this.completedScore,
             lostScore: this.scoreManager.score,
@@ -598,6 +605,7 @@ export class Game extends Scene
         }
 
         this.gameEnded = true;
+        Coach.record(projectileCircle ? 'projectile' : 'hazard');
         this.pace.hitstop(80);
         this.pace.slowmo(700, 0.35);
         Audio.play('hit');

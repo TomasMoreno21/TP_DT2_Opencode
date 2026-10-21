@@ -42,6 +42,37 @@ export const Tutorial = {
     reset: () => { save(DONE_KEY, []); save(PRACTICE_KEY, []); save(OFF_KEY, false); }
 };
 
+// Coach al fallar: cuenta las derrotas seguidas por causa (vive mientras dure la
+// pestaña, no se guarda) y, al repetirse una dos veces, sugiere qué hacer en el
+// siguiente intento. Se reinicia al superar un nivel.
+const COACH_HINTS = { hazard: 'coachHazard', projectile: 'coachProjectile', timeout: 'coachTime' };
+const coachState = { counts: {}, shownAt: {} };
+
+export const Coach = {
+    record(cause) {
+        coachState.counts[cause] = (coachState.counts[cause] ?? 0) + 1;
+    },
+    reset() {
+        coachState.counts = {};
+        coachState.shownAt = {};
+    },
+    // Devuelve la clave del hint pendiente (una vez por cada 2 derrotas de la misma causa).
+    take() {
+        if (Tutorial.isOff()) {
+            return null;
+        }
+
+        for (const [cause, n] of Object.entries(coachState.counts)) {
+            if (n >= 2 && n % 2 === 0 && coachState.shownAt[cause] !== n) {
+                coachState.shownAt[cause] = n;
+                return COACH_HINTS[cause];
+            }
+        }
+
+        return null;
+    }
+};
+
 // Hints que se ganan: muestran solo el paso actual y desaparecen al usarlo.
 // Se activa en el nivel 1; los pasos ya hechos en partidas anteriores no se repiten.
 export class TutorialManager {
