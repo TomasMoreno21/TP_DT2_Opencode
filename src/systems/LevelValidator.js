@@ -42,11 +42,14 @@ const TRAMPOLINE_PERFECT_HALF = TRAMPOLINE_CONFIG.perfectZoneHalf;
 // pared) y 'away' (se sigue alejando). Sin esto el simulador trepaba paredes
 // pegado a ellas, algo imposible en el juego real.
 // Dash (Shift): 700 px/s en línea recta con la gravedad apagada durante 170 ms.
-// Se puede usar una vez por "tramo" en el aire: se recupera al tocar suelo o
-// trampolín y al hacer wall jump (ver Player.update).
+// Solo se recarga con el tiempo (900 ms): tocar suelo, trampolín o pared no lo
+// resetea (ver Player.update).
 const DASH_FRAMES = Math.ceil(PLAYER_CONFIG.dashDurationMs / 1000 / DT);
 const DASH_SPEED = PLAYER_CONFIG.dashSpeed;
 const DASH_START_STRIDE = 3;
+// El dash solo se recarga con el tiempo (Player: no se resetea al tocar nada):
+// `dashCd` son los frames que faltan; con 0 se puede usar.
+const DASH_COOLDOWN_FRAMES = Math.ceil(PLAYER_CONFIG.dashCooldownMs / 1000 / DT);
 // Un dash con la subida a mitad de camino tira por la borda el impulso del salto:
 // solo se modela cerca del vértice o cayendo.
 const DASH_MIN_VY = -120;
@@ -181,8 +184,8 @@ function moveBody(state, platforms) {
 }
 
 // El dash se recupera al tocar suelo o trampolín (y en el wall jump).
-function withDash(next, used) {
-    next.dashUsed = (next.grounded || next.bounced) ? false : used;
+function withDash(next, cd) {
+    next.dashCd = Math.max(0, cd - 1);
     return next;
 }
 
@@ -206,12 +209,14 @@ const VY_BUCKET = 100;
 // Clave numérica (más barata que un string en el Set del BFS).
 function stateKey(state, tb = 0) {
     const wj = state.wj ? (state.wj.v === 'hug' ? 1 : 2) * 16 + state.wj.s : 0;
-    const dash = (state.dash ? 1 + state.dash.s : 0) * 2 + (state.dashUsed ? 1 : 0);
+    // Recarga en 6 niveles (0 = lista): un estado con menos espera domina a uno con mas.
+    const cdBucket = state.dashCd > 0 ? Math.min(5, 1 + ((state.dashCd - 1) / 11 | 0)) : 0;
+    const dash = (state.dash ? 1 + state.dash.s : 0) * 6 + cdBucket;
     const vyBucket = state.grounded ? 0 : Math.round(state.vy / VY_BUCKET) + 12;
     const vxIndex = state.vx < 0 ? 0 : state.vx > 0 ? 2 : 1;
     const cx = Math.round(state.x / CELL);
     const cy = Math.round(state.y / CELL);
-    return ((((((cx * 256 + cy) * 2 + (state.grounded ? 1 : 0)) * 32 + vyBucket) * 3 + vxIndex) * 48 + wj) * 28 + dash) * 128 + tb;
+    return ((((((cx * 256 + cy) * 2 + (state.grounded ? 1 : 0)) * 32 + vyBucket) * 3 + vxIndex) * 48 + wj) * 80 + dash) * 128 + tb;
 }
 
 export class LevelValidator {
@@ -348,7 +353,7 @@ export class LevelValidator {
             root.grounded = platforms.some((plat) => !plat.tramp &&
                 root.x + HW > plat.x1 && root.x - HW < plat.x2 && Math.abs(root.y + HH - plat.y1) < 1.5);
         }
-        root.dashUsed = !root.grounded && Boolean(opts.start?.dashUsed);
+        root.dashCd = Math.round(opts.start?.dashCd ?? 0);
         push(0, root, null, null);
 
         const seen = new Set();
@@ -405,7 +410,7 @@ export class LevelValidator {
                 // Macro de wall jump en curso: el movimiento horizontal está fijado.
                 if (state.wj) {
                     const { v, s: step, sign } = state.wj;
-                    const next = withDash(moveBody({ x: state.x, y: state.y, vx: sign * WALL_JUMP_PROFILES[v][step] * this.comfort, vy: gravityVy }, local), false);
+                    const next = withDash(moveBody({ x: state.x, y: state.y, vx: sign * WALL_JUMP_PROFILES[v][step] * this.comfort, vy: gravityVy }, local), state.dashCd);
                     next.wj = step + 1 < WALL_JUMP_LOCK_FRAMES ? { v, s: step + 1, sign } : null;
                     // 'hug' mantiene la tecla hacia la pared; 'away' hacia afuera.
                     push(depth + 1, next, node, { dir: v === 'hug' ? -sign : sign, jump: false });
@@ -416,7 +421,7 @@ export class LevelValidator {
                 if (state.dash) {
                     const { dir, s: step } = state.dash;
                     const next = moveBody({ x: state.x, y: state.y, vx: dir * DASH_SPEED * this.comfort, vy: 0 }, local);
-                    next.dashUsed = true;
+                    next.dashCd = Math.max(0, state.dashCd - 1);
                     next.dash = step + 1 < DASH_FRAMES ? { dir, s: step + 1 } : null;
                     push(depth + 1, next, node, { dir, jump: false });
                     continue;
@@ -431,17 +436,17 @@ export class LevelValidator {
                     if (towardWall) {
                         // Wall grab del Player: pulsando hacia la pared se queda
                         // colgado (sin gravedad ni velocidad) hasta saltar o soltar.
-                        push(depth + 1, { x: state.x, y: state.y, vx: 0, vy: 0, grounded: false, dashUsed: state.dashUsed }, node, { dir, jump: false });
+                        push(depth + 1, { x: state.x, y: state.y, vx: 0, vy: 0, grounded: false, dashCd: Math.max(0, state.dashCd - 1) }, node, { dir, jump: false });
                     } else {
-                        push(depth + 1, withDash(moveBody({ x: state.x, y: state.y, vx, vy: gravityVy }, local), state.dashUsed), node, { dir, jump: false });
+                        push(depth + 1, withDash(moveBody({ x: state.x, y: state.y, vx, vy: gravityVy }, local), state.dashCd), node, { dir, jump: false });
                     }
 
                     if (state.grounded) {
-                        push(depth + 1, withDash(moveBody({ x: state.x, y: state.y, vx: vx + (inherit ? inherit.x : 0), vy: -jumpV + (inherit ? inherit.y : 0) }, local), false), node, { dir, jump: true });
+                        push(depth + 1, withDash(moveBody({ x: state.x, y: state.y, vx: vx + (inherit ? inherit.x : 0), vy: -jumpV + (inherit ? inherit.y : 0) }, local), state.dashCd), node, { dir, jump: true });
                     } else if ((wall === 'left' && dir < 0) || (wall === 'right' && dir > 0)) {
                         const sign = wall === 'left' ? 1 : -1;
                         for (const variant of (this.allowHug ? ['hug', 'away'] : ['away'])) {
-                            const next = withDash(moveBody({ x: state.x, y: state.y, vx: sign * wallJumpX, vy: -wallJumpV }, local), false);
+                            const next = withDash(moveBody({ x: state.x, y: state.y, vx: sign * wallJumpX, vy: -wallJumpV }, local), state.dashCd);
                             if (next.grounded) continue;
                             next.wj = { v: variant, s: 1, sign };
                             push(depth + 1, next, node, { dir, jump: true });
@@ -453,10 +458,10 @@ export class LevelValidator {
                 // sería caminar más rápido) y el inicio se muestrea cada 2 frames:
                 // reduce a la mitad el espacio de búsqueda sin cambiar el alcance real
                 // más que unos px.
-                if (!state.dashUsed && !state.grounded && state.vy >= DASH_MIN_VY && depth % DASH_START_STRIDE === 0) {
+                if (state.dashCd === 0 && !state.grounded && state.vy >= DASH_MIN_VY && depth % DASH_START_STRIDE === 0) {
                     for (const dir of [-1, 1]) {
                         const next = moveBody({ x: state.x, y: state.y, vx: dir * DASH_SPEED * this.comfort, vy: 0 }, local);
-                        next.dashUsed = true;
+                        next.dashCd = DASH_COOLDOWN_FRAMES;
                         next.dash = { dir, s: 1 };
                         push(depth + 1, next, node, { dir, jump: false, dash: true });
                     }
@@ -468,7 +473,7 @@ export class LevelValidator {
                         if (Math.abs(state.x - portal.x) < PORTAL_CONFIG.width / 2 + HW &&
                             Math.abs(state.y - portal.y) < PORTAL_CONFIG.height / 2 + HH) {
                             const dest = portal.linked;
-                            const landed = withDash(moveBody({ x: dest.x, y: dest.y - HH, vx: 0, vy: 0 }, stepPlatforms), false);
+                            const landed = withDash(moveBody({ x: dest.x, y: dest.y - HH, vx: 0, vy: 0 }, stepPlatforms), Math.max(0, state.dashCd - PORTAL_CHARGE_FRAMES));
                             push(depth + PORTAL_CHARGE_FRAMES, landed, node, { dir: 0, jump: false, wait: PORTAL_CHARGE_FRAMES });
                         }
                     }

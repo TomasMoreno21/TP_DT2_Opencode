@@ -29,7 +29,11 @@ export class MainMenu extends Scene
 
     init (data)
     {
-        this.campaignSeed = data.campaignSeed ?? (data.seed ?? null);
+        // Playtest: ?seed=N repite una campaña concreta y ?level=N arranca en ese nivel.
+        const params = new URLSearchParams(window.location.search);
+        const urlSeed = params.get('seed');
+        this.campaignSeed = data.campaignSeed ?? (data.seed ?? (urlSeed !== null ? Number(urlSeed) : null));
+        this.startLevel = Math.max(0, Math.min(LEVELS.length - 1, Number(params.get('level') ?? 1) - 1));
     }
 
     create ()
@@ -137,7 +141,7 @@ export class MainMenu extends Scene
 
         this.starting = true;
         const launch = () => this.scene.start('Game', {
-            levelIndex: 0,
+            levelIndex: this.startLevel,
             completedScore: 0,
             campaignSeed: this.campaignSeed,
             campaign: this.campaign

@@ -220,8 +220,6 @@ export class Player {
 
         if (this.onFloor) {
             this.lastOnFloorTime = now;
-            // El dash se resetea al tocar suelo.
-            this.dashCooldownUntil = Math.min(this.dashCooldownUntil, now);
         }
 
         if (!wasOnFloor && this.onFloor) {
@@ -288,7 +286,6 @@ export class Player {
             this.body.setVelocityY(PLAYER_CONFIG.wallJumpYVelocity);
             this.lastWallJumpTime = now;
             this.jumpBufferUntil = 0;
-            this.dashCooldownUntil = now;
             this.squashBounce(1.15, 0.85);
             this.scene.events.emit('player-jump', 'wall');
             this.applyMotionScale();
