@@ -64,9 +64,9 @@ export const LEVELS = [
         quota: 12,
         spawn: { x: 360, y: 660 },
         projectiles: {
-            initialInterval: 1500,
-            minInterval: 800,
-            maxSpeedMultiplier: 1.8,
+            initialInterval: 2000,
+            minInterval: 1200,
+            maxSpeedMultiplier: 1.3,
             wallGapX: 52
         },
         platforms: [
@@ -134,9 +134,9 @@ export const LEVELS = [
         timedMovers: true,
         laneZone: { x1: 190, x2: 834, y1: 0, y2: 460, maxFixed: 3 },
         projectiles: {
-            initialInterval: 1150,
-            minInterval: 680,
-            maxSpeedMultiplier: 2,
+            initialInterval: 1650,
+            minInterval: 1000,
+            maxSpeedMultiplier: 1.5,
             wallGapX: 52
         },
         platforms: [
@@ -205,9 +205,9 @@ export const LEVELS = [
         quota: 14,
         spawn: { x: 110, y: 660 },
         projectiles: {
-            initialInterval: 950,
-            minInterval: 550,
-            maxSpeedMultiplier: 2.25,
+            initialInterval: 1350,
+            minInterval: 820,
+            maxSpeedMultiplier: 1.7,
             wallGapX: 52,
             variant: 'ricochet'
         },
@@ -279,9 +279,9 @@ export const LEVELS = [
         quota: 16,
         spawn: { x: 110, y: 660 },
         projectiles: {
-            initialInterval: 800,
-            minInterval: 450,
-            maxSpeedMultiplier: 2.5,
+            initialInterval: 1100,
+            minInterval: 680,
+            maxSpeedMultiplier: 1.9,
             wallGapX: 52,
             variant: 'rastra'
         },

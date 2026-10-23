@@ -112,9 +112,18 @@ export class TutorialManager {
         this.render();
     }
 
-    holdFor(name, condition, ms) {
-        this.held[name] = condition ? (this.held[name] ?? this.scene.time.now) : null;
-        return this.held[name] !== null && this.scene.time.now - this.held[name] >= ms;
+    // La condición puede parpadear de a un frame (el wall grab alterna on/off al
+    // estar pegado a la pared): se tolera un hueco corto antes de cortar la cuenta.
+    holdFor(name, condition, ms, graceMs = 120) {
+        const now = this.scene.time.now;
+
+        if (condition) {
+            this.held[name] = { since: this.held[name]?.since ?? now, last: now };
+        } else if (this.held[name] && now - this.held[name].last > graceMs) {
+            this.held[name] = null;
+        }
+
+        return Boolean(this.held[name]) && now - this.held[name].since >= ms;
     }
 
     consume(name) {

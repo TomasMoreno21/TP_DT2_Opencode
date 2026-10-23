@@ -133,10 +133,10 @@ Campaña generada por partida a partir de una semilla (se muestra en consola). C
 | Nivel | Nombre | Timer | Quota | Proyectiles (inicio→fin, vel.) | Mecánica que se suma |
 |---|---|---|---|---|---|
 | 1 | Arranque | 60 s | 12 | 1.7 s→1.0 s, x1→x1.5 | ninguna (enseña wall grab / wall jump) |
-| 2 | Rebotes | 55 s | 12 | 1.5 s→0.8 s, x1.2→x1.8 | **Trampolines** |
-| 3 | Movimiento | 52 s | 12 | 1.2 s→0.7 s, x1.4→x2.0 | **Plataformas móviles** (+ trampolines) |
-| 4 | Peligro | 50 s | 14 | 1.0 s→0.6 s, x1.6→x2.2 | **Pinchos / zona de daño** + **power-up escudo** |
-| 5 | Final | 60 s | 16 | 0.8 s→0.45 s, x1.8→x2.5 | **Portales** + combinación de todas |
+| 2 | Rebotes | 50 s | 12 | 2.0 s→1.2 s, hasta x1.3 | **Trampolines** |
+| 3 | Movimiento | 50 s | 12 | 1.65 s→1.0 s, hasta x1.5 | **Plataformas móviles** (+ trampolines) |
+| 4 | Peligro | 43 s | 14 | 1.35 s→0.82 s, hasta x1.7 | **Pinchos / zona de daño** + **power-up escudo** |
+| 5 | Final | 55 s | 16 | 1.1 s→0.68 s, hasta x1.9 | **Portales** + combinación de todas |
 
 Los valores de timer, quota y proyectiles son **de balance inicial** y se ajustan al final.
 
@@ -285,6 +285,7 @@ Queda en firme la regla: cualquier control o mecánica central **fuera** de los 
 
 - **Tutorial (fase 1 de 5, G9 ampliado):** `systems/TutorialManager.js` muestra en el N1 un hint por paso (mover → saltar → wall grab → wall jump → dash) que se completa al usar la mecánica; progreso en `localStorage` (`fastMoveTutorialDone`), `T` lo saltea para siempre (`fastMoveTutorialOff`), textos es/en en `Texts.js`. **Fase 2:** micro-práctica por mecánica nueva (`assets/practice.js`: trampolín antes del N2, pinchos+escudo antes del N4, portal antes del N5). Se juega en la propia escena `Game` con `practice` (sin timer ni proyectiles; un golpe reaparece en vez de terminar), se ofrece una sola vez por mecánica (`fastMoveTutorialPractice`), Enter la saltea y los tres mapas pasan `LevelValidator`. **Fase 3:** coach al fallar (`Coach` en `TutorialManager.js`): cuenta derrotas seguidas por causa (pincho, proyectil, tiempo) y a la 2ª, 4ª… muestra un tip en el siguiente intento; se reinicia al superar un nivel. **Fases 4-5:** insignias de aprendizaje (`systems/Badges.js`: wall jump, dash, rebote perfecto, escudo salvador, portal, gema; aviso al desbloquear) y botón TUTORIAL en el menú con interruptor on/off, reinicio y lista de insignias. Tutorial completo (G9) salvo playtest manual con ventana visible.
 - **Playbot (`tools/playbot.js`):** fix de un deadlock al arrancar una ruta cuyo primer nodo es "sin input" (el nodo más cercano era siempre el actual y el bot no se movía). Con el fix completa los niveles base: N1 en 56,6 s (timer 60) y N2 en 19,8 s (timer 50). En mapas generados (3 semillas): N1 1/3 completa (2 se traban en spots de la fila alta), N2 2/3. Pendiente: decidir si los fallos son límite del bot o dificultad real (ver §8). Las bandas de timer N3/N4 se ajustaron (N3 47–50, N4 42–48) para que `test-levels` verifique la curva.
+- **Proyectiles más amigables (usuario, 22/10/2026):** intervalos iniciales 2000/1650/1350/1100 ms (N2–N5) bajando a 1200/1000/820/680 ms y velocidad máxima x1.3/1.5/1.7/1.9 (antes hasta x2.5), con aviso previo de 400 ms (antes 300). Los rangos del generador no se solapan entre niveles (`test-levels` lo verifica). Tutorial: el paso "pegate a una pared" ya se completa (el `wallGrabbing` parpadea frame a frame; `holdFor` tolera huecos de 120 ms).
 - ~~Bug `ProjectileManager.startTime`~~ — resuelto: se difiere al primer update (ver curva de progresión).
 - Plan desactualizado: parallax (`4123ad5`), viñeta y paneles del HUD, `maxCombo` en GameOver y menú nuevo ya están en código; falta reconciliar E11/E13/E14 con lo hecho.
 - Estadísticas por nivel en `localStorage` (mejor tiempo, mejor combo).

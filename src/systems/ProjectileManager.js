@@ -1,6 +1,9 @@
 import { Math as PhaserMath } from 'phaser';
 import { EntityFactory } from '../patterns/EntityFactory';
 
+// Aviso previo al disparo: 400 ms da tiempo a reaccionar al jugador nuevo.
+const WARN_MS = 400;
+
 export const PROJECTILE_SPAWN_CONFIG = {
     initialInterval: 1700,
     minInterval: 600,
@@ -58,7 +61,7 @@ export class ProjectileManager {
             ? this.config.wallGapX
             : this.scene.scale.width - this.config.wallGapX;
 
-        // Telegrafía: marca pulsante 300ms antes de que salga el proyectil.
+        // Telegrafía: marca pulsante WARN_MS antes de que salga el proyectil.
         const warn = this.scene.add.circle(x, y, 14, 0xff4455, 0.35);
         warn.setStrokeStyle(3, 0xffffff, 0.9);
         this.scene.tweens.add({
@@ -70,7 +73,7 @@ export class ProjectileManager {
             repeat: 1,
             ease: 'Sine.easeInOut'
         });
-        this.scene.time.delayedCall(300, () => {
+        this.scene.time.delayedCall(WARN_MS, () => {
             warn.destroy();
             const projectile = EntityFactory.createProjectile(this.scene, x, y, this.scene.player.rect, this.speedMultiplier, this.config.variant ?? 'standard');
             this.projectiles.push(projectile);
