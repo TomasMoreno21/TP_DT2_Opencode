@@ -39,6 +39,7 @@ La versión jugable tiene **2 niveles**. La entrega final prevé una campaña de
 | Salto de pared | Saltar mientras se toca una pared |
 | Dash | Shift |
 | Reiniciar el nivel | R |
+| Pausa (continuar, otro nivel o menú) | Esc |
 | Silenciar | M |
 | Saltear tutorial | T |
 

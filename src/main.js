@@ -2,6 +2,7 @@ import { Boot } from './scenes/Boot';
 import { Game } from './scenes/Game';
 import { GameOver } from './scenes/GameOver';
 import { MainMenu } from './scenes/MainMenu';
+import { Pause } from './scenes/Pause';
 import { Preloader } from './scenes/Preloader';
 import { AUTO, Game as PhaserGame, Scale } from 'phaser';
 
@@ -27,7 +28,8 @@ const config = {
         Preloader,
         MainMenu,
         Game,
-        GameOver
+        GameOver,
+        Pause
     ]
 };
 

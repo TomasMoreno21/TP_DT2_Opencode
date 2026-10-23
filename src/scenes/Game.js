@@ -17,6 +17,7 @@ import { PRACTICE, PRACTICE_BY_LEVEL } from '../assets/practice';
 import { Lang } from '../systems/Texts';
 import { LEVELS, WORLD } from '../assets/levels';
 import { LevelGenerator } from '../systems/LevelGenerator';
+import { CampaignBuilder } from '../systems/CampaignBuilder';
 
 export class Game extends Scene
 {
@@ -36,6 +37,63 @@ export class Game extends Scene
         // Micro-práctica: mapa mínimo de una mecánica nueva (ver assets/practice.js).
         this.practice = data.practice ?? null;
         this.initData = data;
+
+        // Pausa: la escena pausada no avanza su reloj, pero el del juego sí. Se resta
+        // lo pausado al tiempo que ve la escena para que ningún plazo (combo, dash,
+        // proyectiles, reloj) siga corriendo mientras el menú está abierto.
+        this.pausedMs = 0;
+        this.paused = false;
+        this.pauseStart = 0;
+        this.lastResume = 0;
+
+        if (!this.sys.stepPatched) {
+            const step = this.sys.step.bind(this.sys);
+            this.sys.step = (time, delta) => step(time - this.pausedMs, delta);
+            this.sys.stepPatched = true;
+        }
+    }
+
+    get canRegenerate ()
+    {
+        return !this.practice && Boolean(this.campaign);
+    }
+
+    openPause ()
+    {
+        if (this.paused || this.gameEnded || this.levelComplete || performance.now() - this.lastResume < 250) {
+            return;
+        }
+
+        this.paused = true;
+        this.pauseStart = performance.now();
+        this.scene.pause();
+        this.scene.launch('Pause', { game: this });
+    }
+
+    resumeGame ()
+    {
+        this.pausedMs += performance.now() - this.pauseStart;
+        this.paused = false;
+        this.lastResume = performance.now();
+        this.scene.resume();
+    }
+
+    // Reemplaza este nivel por otro mapa (misma dificultad, sin asistencia extra).
+    regenerateLevel ()
+    {
+        const seed = ((Date.now() * 2654435761) ^ Math.floor(Math.random() * 4294967296)) >>> 0;
+
+        return CampaignBuilder.buildLevel(seed, this.levelIndex, { assist: this.deaths }).then((entry) => {
+            const campaign = this.campaign.slice();
+            campaign[this.levelIndex] = entry;
+            this.scene.start('Game', {
+                levelIndex: this.levelIndex,
+                completedScore: this.completedScore,
+                campaignSeed: this.campaignSeed,
+                campaign,
+                deaths: this.deaths
+            });
+        });
     }
 
     // La campaña generada viaja con la escena (transición de nivel, reintento y
@@ -207,8 +265,10 @@ export class Game extends Scene
         });
 
         this.retryKey = this.input.keyboard.addKey('R');
+        this.input.keyboard.addKey('ESC').on('down', () => this.openPause());
+
         this.retryKey.on('down', () => {
-            if (!this.gameEnded) {
+            if (!this.gameEnded && !this.paused) {
                 this.scene.restart({
                     levelIndex: this.levelIndex,
                     completedScore: this.completedScore,
