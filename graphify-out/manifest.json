@@ -18,15 +18,15 @@
     "semantic_hash": ""
   },
   "src/assets/levelBaselines.js": {
-    "mtime": 1792244341.6448221,
-    "seen": 1792244623.8403351,
-    "ast_hash": "f0dca8c3d328cadc3d583b6d2711be44",
+    "mtime": 1792552308.68007,
+    "seen": 1792552907.7620258,
+    "ast_hash": "f500eaa901541e4f9e8908861cdb49af",
     "semantic_hash": ""
   },
   "src/assets/levels.js": {
-    "mtime": 1792244326.4731796,
-    "seen": 1792244623.8403366,
-    "ast_hash": "98e95a1e6b4a8582e1dd6a46f9d56eae",
+    "mtime": 1792508584.963478,
+    "seen": 1792509170.2302995,
+    "ast_hash": "ce60ba84a05c912424cef74420b41b1e",
     "semantic_hash": ""
   },
   "src/entities/Gem.js": {
@@ -48,15 +48,15 @@
     "semantic_hash": ""
   },
   "src/entities/MovingPlatform.js": {
-    "mtime": 1792016281.3428905,
-    "seen": 1792244623.8403401,
-    "ast_hash": "8f058765cfe5e7ad6660149869ad9c43",
+    "mtime": 1792508381.6374156,
+    "seen": 1792509170.2303073,
+    "ast_hash": "8fffa112e60ab1cae38dd7808681d9f0",
     "semantic_hash": ""
   },
   "src/entities/Player.js": {
-    "mtime": 1792016281.3428905,
-    "seen": 1792244623.840341,
-    "ast_hash": "4682475a02770ee8960aa40eedb1849d",
+    "mtime": 1792552278.4868057,
+    "seen": 1792552907.7620385,
+    "ast_hash": "2f1a9c2bb7586e9256447ba2828fbcd7",
     "semantic_hash": ""
   },
   "src/entities/Point.js": {
@@ -78,20 +78,20 @@
     "semantic_hash": ""
   },
   "src/entities/Projectile.js": {
-    "mtime": 1792016281.3448906,
-    "seen": 1792244623.8403447,
-    "ast_hash": "3461669554599aca7ce770b38c953d06",
+    "mtime": 1792507036.2351713,
+    "seen": 1792509170.2303174,
+    "ast_hash": "8168fdb3e5b3eeb3e6e0fa735beab122",
     "semantic_hash": ""
   },
   "src/entities/Trampoline.js": {
-    "mtime": 1792016281.3458893,
-    "seen": 1792244623.8403454,
-    "ast_hash": "9e415d8be084252029768aaea8521711",
+    "mtime": 1792507036.2366781,
+    "seen": 1792509170.2303188,
+    "ast_hash": "e8f95e59f148127ef2efbcdbebe94cb0",
     "semantic_hash": ""
   },
   "src/main.js": {
-    "mtime": 1792037801.5490775,
-    "seen": 1792244623.840346,
+    "mtime": 1792552332.3583598,
+    "seen": 1792552907.7620466,
     "ast_hash": "8513a5eaa4aeb399d1b4f9e3e6490508",
     "semantic_hash": ""
   },
@@ -108,9 +108,9 @@
     "semantic_hash": ""
   },
   "src/scenes/Game.js": {
-    "mtime": 1792034782.8377278,
-    "seen": 1792244623.8403485,
-    "ast_hash": "42ce86504df51089287c2d9f0aef7f50",
+    "mtime": 1792549117.2181885,
+    "seen": 1792552907.7620506,
+    "ast_hash": "0908d6a87220c44a43761732f04eae80",
     "semantic_hash": ""
   },
   "src/scenes/GameOver.js": {
@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "src/scenes/MainMenu.js": {
-    "mtime": 1792020850.5538576,
-    "seen": 1792244623.8403502,
-    "ast_hash": "2c5324a94eadeb1eda56776ab341d839",
+    "mtime": 1792552169.264321,
+    "seen": 1792552907.762053,
+    "ast_hash": "cbf70fdde6f430c764c4a665e5554477",
     "semantic_hash": ""
   },
   "src/scenes/Preloader.js": {
@@ -138,9 +138,9 @@
     "semantic_hash": ""
   },
   "src/systems/CampaignBuilder.js": {
-    "mtime": 1792034782.8377278,
-    "seen": 1792244623.8403533,
-    "ast_hash": "4cf346affdf668ce76478183b11931ab",
+    "mtime": 1792507036.2376833,
+    "seen": 1792509170.2303352,
+    "ast_hash": "650d31a98371539640cfc125d76f12c8",
     "semantic_hash": ""
   },
   "src/systems/FloatingText.js": {
@@ -180,15 +180,15 @@
     "semantic_hash": ""
   },
   "src/systems/LevelGenerator.js": {
-    "mtime": 1792244241.4583032,
-    "seen": 1792244623.840359,
-    "ast_hash": "516e30f6df0cea53340642890b22e509",
+    "mtime": 1792551961.0398693,
+    "seen": 1792552907.7620678,
+    "ast_hash": "1c6751bc6badec60f3e1b1acce7fe18e",
     "semantic_hash": ""
   },
   "src/systems/LevelValidator.js": {
-    "mtime": 1792026378.4176772,
-    "seen": 1792244623.8403597,
-    "ast_hash": "5f9df3489f9c47f989eb36b54ca4e3c6",
+    "mtime": 1792552301.909159,
+    "seen": 1792552907.7620687,
+    "ast_hash": "c493dc236bacf4ca42c407b3280a3f20",
     "semantic_hash": ""
   },
   "src/systems/PointSpawner.js": {
@@ -198,9 +198,9 @@
     "semantic_hash": ""
   },
   "src/systems/ProjectileManager.js": {
-    "mtime": 1792020076.1213536,
-    "seen": 1792244623.8403614,
-    "ast_hash": "5313fc799e1279d241ab3acbbd91731e",
+    "mtime": 1792507036.2406824,
+    "seen": 1792509170.2303548,
+    "ast_hash": "6503c3dfc89a489507969963ae3972f1",
     "semantic_hash": ""
   },
   "src/systems/ScoreManager.js": {
@@ -210,9 +210,9 @@
     "semantic_hash": ""
   },
   "src/systems/Texts.js": {
-    "mtime": 1792020850.5543606,
-    "seen": 1792244623.840363,
-    "ast_hash": "73946183f1d85e092b594a20ec68f8d3",
+    "mtime": 1792549115.1395402,
+    "seen": 1792552907.7620735,
+    "ast_hash": "50b6faea8cf71fc04cd6cbf61f0ff262",
     "semantic_hash": ""
   },
   "src/workers/campaignWorker.js": {
@@ -234,9 +234,9 @@
     "semantic_hash": ""
   },
   "tools/playbot.js": {
-    "mtime": 1792019907.2759523,
-    "seen": 1792244623.8403664,
-    "ast_hash": "c7c896b45e4a64099baae72448048c3f",
+    "mtime": 1792550617.597176,
+    "seen": 1792552907.7620795,
+    "ast_hash": "43f33101a237001da5caa46cbd31adc9",
     "semantic_hash": ""
   },
   "tools/test-levels.mjs": {
@@ -264,9 +264,9 @@
     "semantic_hash": ""
   },
   "docs/PLAN.md": {
-    "mtime": 1792039807.2930467,
-    "seen": 1792244623.8403711,
-    "ast_hash": "d17397a8a397cd904b46b3ff43e7edac",
+    "mtime": 1792552893.2828722,
+    "seen": 1792552907.762086,
+    "ast_hash": "02c9ff84a7d707fcd4861a5c09d13eb7",
     "semantic_hash": ""
   },
   "index.html": {
@@ -303,6 +303,24 @@
     "mtime": 1792016281.3378892,
     "seen": 1792244623.8403764,
     "ast_hash": "be096318e523d9eb6097cfcab980ac42",
+    "semantic_hash": ""
+  },
+  "src/assets/practice.js": {
+    "mtime": 1792546977.3293016,
+    "seen": 1792552907.7620304,
+    "ast_hash": "80596b60f2a4d1db80b3ca0bb9c26e0b",
+    "semantic_hash": ""
+  },
+  "src/systems/Badges.js": {
+    "mtime": 1792549114.664916,
+    "seen": 1792552907.7620566,
+    "ast_hash": "d373f0b2229f2ef0adc0bfd59803729c",
+    "semantic_hash": ""
+  },
+  "src/systems/TutorialManager.js": {
+    "mtime": 1792548991.9744127,
+    "seen": 1792552907.7620747,
+    "ast_hash": "8189fb0e57370d095e2e657348157425",
     "semantic_hash": ""
   }
 }
