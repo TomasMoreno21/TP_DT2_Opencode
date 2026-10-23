@@ -1,3 +1,6 @@
+import { Lang } from './Texts';
+import { RANK_COLORS, RANK_ORDER, rankFor } from './Rank';
+
 export const HUD_CONFIG = {
     timerX: 512,
     timerY: 22,
@@ -41,6 +44,20 @@ export class Hud {
             fontFamily: 'Arial Black', fontSize: 22, color: '#ffffff',
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(1, 0).setScrollFactor(0);
+
+        // Rango: barra hacia el oro con marcas de bronce y plata, bajo el nivel.
+        this.rankThresholds = null;
+        this.rankText = scene.add.text(1008, 48, '', {
+            fontFamily: 'Arial Black', fontSize: 16, color: '#aaaaaa',
+            stroke: '#000000', strokeThickness: 4
+        }).setOrigin(1, 0).setScrollFactor(0);
+        this.rankBarBg = scene.add.rectangle(838, 72, 170, 8, 0x1a1a2e, 0.9)
+            .setOrigin(0, 0).setScrollFactor(0);
+        this.rankBarBg.setStrokeStyle(1, 0xcccccc, 0.6);
+        this.rankFill = scene.add.rectangle(839, 73, 168, 6, 0x888888, 1)
+            .setOrigin(0, 0).setScrollFactor(0);
+        this.rankFill.setScale(0, 1);
+        this.rankTicks = scene.add.graphics().setScrollFactor(0);
 
         this.comboText = scene.add.text(512, 102, 'x1', {
             fontFamily: 'Arial Black', fontSize: 22, color: '#ffdd44',
@@ -92,6 +109,26 @@ export class Hud {
 
     setScore(value) {
         this.scoreText.setText(`Puntos: ${value}`);
+        this.updateRank(value);
+    }
+
+    setRankThresholds(thresholds) {
+        this.rankThresholds = thresholds;
+        this.rankTicks.clear();
+        for (const rank of RANK_ORDER.slice(0, -1)) {
+            const x = 839 + 168 * (thresholds[rank] / thresholds.gold);
+            this.rankTicks.lineStyle(2, RANK_COLORS[rank], 1).lineBetween(x, 69, x, 83);
+        }
+    }
+
+    updateRank(score) {
+        if (!this.rankThresholds) return;
+        const rank = rankFor(score, this.rankThresholds);
+        const color = rank ? RANK_COLORS[rank] : 0x888888;
+        this.rankText.setText(`${Lang.t('rankLabel')}: ${Lang.t(`rank_${rank ?? 'none'}`)}`);
+        this.rankText.setColor(rank ? `#${color.toString(16).padStart(6, '0')}` : '#aaaaaa');
+        this.rankFill.setScale(Math.min(score / this.rankThresholds.gold, 1), 1);
+        this.rankFill.setFillStyle(color, 1);
     }
 
     setQuota(collected, quota) {

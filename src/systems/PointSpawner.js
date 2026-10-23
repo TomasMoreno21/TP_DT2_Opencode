@@ -6,10 +6,17 @@ export const POINT_SPAWN_CONFIG = {
 };
 
 export class PointSpawner {
-    constructor(scene, spots) {
+    // `deferred`: no activa orbes hasta llamar a begin() (el tutorial los espera).
+    constructor(scene, spots, deferred = false) {
         this.scene = scene;
         this.points = EntityFactory.createPoints(scene, spots);
 
+        if (!deferred) {
+            this.begin();
+        }
+    }
+
+    begin() {
         for (let i = 0; i < POINT_SPAWN_CONFIG.initialActive; i++) {
             this.activateAnother();
         }

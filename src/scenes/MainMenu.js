@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { HighScore } from '../systems/HighScore';
+import { RANK_COLORS, RankStore } from '../systems/Rank';
 import { Audio } from '../systems/Audio';
 import { Lang } from '../systems/Texts';
 import { LEVELS } from '../assets/levels';
@@ -62,11 +63,13 @@ export class MainMenu extends Scene
 
         this.drawControlsPanel();
 
-        const best = this.add.text(512, 330, Lang.t('best', { v: HighScore.get() }), {
+        const best = this.add.text(512, 292, Lang.t('best', { v: HighScore.get() }), {
             fontFamily: 'Arial Black', fontSize: 22, color: COLORS.gold,
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5).setAlpha(0);
         this.tweens.add({ targets: best, alpha: 1, duration: 350, delay: 300 });
+
+        this.createRankMedals();
 
         this.createPlayButton();
 
@@ -332,6 +335,49 @@ export class MainMenu extends Scene
         }
     }
 
+    // Una medalla por nivel con su mejor rango: color de bronce/plata/oro, o una
+    // ranura apagada si todavia no hay rango. Las de oro brillan.
+    createRankMedals () {
+        const label = this.add.text(512, 326, Lang.t('ranksMenu').toUpperCase(), {
+            fontFamily: 'Arial Black', fontSize: 15, color: COLORS.grey
+        }).setOrigin(0.5).setAlpha(0);
+        this.tweens.add({ targets: label, alpha: 0.8, duration: 350, delay: 340 });
+
+        const spacing = 84;
+        const startX = 512 - ((LEVELS.length - 1) * spacing) / 2;
+        LEVELS.forEach((_, i) => {
+            const medal = this.drawMedal(startX + i * spacing, 374, i + 1, RankStore.get(i + 1));
+            medal.setScale(0);
+            this.tweens.add({ targets: medal, scale: 1.5, duration: 380, delay: 380 + i * 90, ease: 'Back.easeOut' });
+        });
+    }
+
+    drawMedal (x, y, levelNumber, rank) {
+        const earned = Boolean(rank);
+        const g = this.add.graphics();
+        // Cintas detras del disco.
+        g.fillStyle(earned ? 0xcc3344 : 0x2a2a4a, 1);
+        g.fillTriangle(-11, 8, -1, 12, -8, 26);
+        g.fillTriangle(11, 8, 1, 12, 8, 26);
+        // Disco con borde y aro interior.
+        g.fillStyle(earned ? RANK_COLORS[rank] : 0x24213f, 1).fillCircle(0, 0, 16);
+        g.lineStyle(3, earned ? 0x000000 : 0x4a4a7a, earned ? 0.35 : 1).strokeCircle(0, 0, 16);
+        g.lineStyle(2, 0xffffff, earned ? 0.4 : 0.12).strokeCircle(0, 0, 11);
+
+        const number = this.add.text(0, 0, String(levelNumber), {
+            fontFamily: 'Arial Black', fontSize: 16, color: earned ? '#2a1a00' : '#5a5a8a'
+        }).setOrigin(0.5);
+        const items = [g, number];
+
+        if (rank === 'gold') {
+            const shine = this.add.ellipse(-6, -7, 7, 4, 0xffffff, 0.8).setAngle(-35);
+            this.tweens.add({ targets: shine, alpha: 0.15, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+            items.push(shine);
+        }
+
+        return this.add.container(x, y, items);
+    }
+
     createPlayButton () {
         if (!this.textures.exists('playButton')) {
             const g = this.add.graphics();
@@ -453,51 +499,61 @@ export class MainMenu extends Scene
         const popup = this.add.container(0, 0).setVisible(false).setDepth(10);
 
         const panel = this.add.graphics();
-        panel.fillStyle(COLORS.panel, 1).fillRoundedRect(262, 232, 500, 330, 18);
-        panel.lineStyle(2, COLORS.panelBorder, 1).strokeRoundedRect(262, 232, 500, 330, 18);
+        panel.fillStyle(COLORS.panel, 1).fillRoundedRect(262, 232, 500, 300, 18);
+        panel.lineStyle(2, COLORS.panelBorder, 1).strokeRoundedRect(262, 232, 500, 300, 18);
 
-        const title = this.add.text(512, 256, Lang.t('tutorialTitle'), {
+        const title = this.add.text(512, 258, Lang.t('tutorialTitle'), {
             fontFamily: 'Arial Black', fontSize: 24, color: COLORS.gold, stroke: '#000000', strokeThickness: 5
         }).setOrigin(0.5);
 
+        // Dos botones iguales (interruptor y reinicio) y debajo la colección de insignias.
         const on = !Tutorial.isOff();
-        const toggle = this.add.text(512, 302, `${on ? '● ' : '○ '}${Lang.t(on ? 'tutorialOn' : 'tutorialOff')}`, {
-            fontFamily: 'Arial Black', fontSize: 20, color: on ? COLORS.teal : COLORS.text
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-        toggle.on('pointerdown', () => {
-            Tutorial.setOff(on);
-            Audio.play('ui');
-            this.scene.restart({ campaignSeed: this.campaignSeed });
-        });
+        const parts = [panel, title];
+        const button = (x, label, active, onClick) => {
+            const bg = this.add.graphics();
+            bg.fillStyle(active ? 0x0c4a45 : 0x1b1b33, 1).fillRoundedRect(x - 105, 290, 210, 40, 10);
+            bg.lineStyle(2, active ? 0x00d1b2 : 0x3a3a5c, 1).strokeRoundedRect(x - 105, 290, 210, 40, 10);
+            const text = this.add.text(x, 310, label, {
+                fontFamily: 'Arial Black', fontSize: 16, color: active ? COLORS.teal : COLORS.text
+            }).setOrigin(0.5).setPadding(24, 12).setInteractive({ useHandCursor: true });
+            text.on('pointerdown', () => {
+                onClick();
+                Audio.play('ui');
+                this.scene.restart({ campaignSeed: this.campaignSeed });
+            });
+            parts.push(bg, text);
+        };
+        button(397, `${on ? '● ' : '○ '}${Lang.t(on ? 'tutorialOn' : 'tutorialOff')}`, on, () => Tutorial.setOff(on));
+        button(627, Lang.t('tutorialReset'), false, () => Tutorial.reset());
 
-        const reset = this.add.text(512, 338, Lang.t('tutorialReset'), {
-            fontFamily: 'Arial', fontSize: 17, color: COLORS.grey
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-        reset.on('pointerdown', () => {
-            Tutorial.reset();
-            Audio.play('ui');
-            this.scene.restart({ campaignSeed: this.campaignSeed });
-        });
-
-        const badgesTitle = this.add.text(512, 382, Lang.t('badgesTitle'), {
+        const owned = BADGES.filter((id) => Badges.has(id)).length;
+        const divider = this.add.graphics();
+        divider.lineStyle(1, 0x3a3a5c, 1).lineBetween(292, 352, 732, 352);
+        const badgesTitle = this.add.text(512, 374, `${Lang.t('badgesTitle')}  ${owned}/${BADGES.length}`, {
             fontFamily: 'Arial Black', fontSize: 18, color: COLORS.teal
         }).setOrigin(0.5);
+        parts.push(divider, badgesTitle);
 
-        const items = BADGES.map((id, i) => {
-            const owned = Badges.has(id);
-            const x = 372 + (i % 2) * 280;
-            const y = 420 + Math.floor(i / 2) * 36;
-
-            return this.add.text(x, y, `${owned ? '★' : '☆'} ${Lang.t('badge_' + id)}`, {
-                fontFamily: 'Arial', fontSize: 18, color: owned ? COLORS.gold : '#6b6b8a'
-            }).setOrigin(0, 0.5);
+        // Fichas en filas de 3, la última fila centrada.
+        BADGES.forEach((id, i) => {
+            const has = Badges.has(id);
+            const inRow = Math.min(3, BADGES.length - Math.floor(i / 3) * 3);
+            const x = 512 + ((i % 3) - (inRow - 1) / 2) * 152;
+            const y = 420 + Math.floor(i / 3) * 46;
+            const chip = this.add.graphics();
+            chip.fillStyle(has ? 0x3a3010 : 0x1b1b33, 1).fillRoundedRect(x - 72, y - 18, 144, 36, 9);
+            chip.lineStyle(2, has ? 0xffdd44 : 0x3a3a5c, 1).strokeRoundedRect(x - 72, y - 18, 144, 36, 9);
+            const label = this.add.text(x, y, `${has ? '★' : '☆'} ${Lang.t('badge_' + id)}`, {
+                fontFamily: 'Arial', fontSize: 15, color: has ? COLORS.gold : '#6b6b8a'
+            }).setOrigin(0.5);
+            parts.push(chip, label);
         });
 
-        const hint = this.add.text(512, 540, Lang.t('popupHint'), {
+        const hint = this.add.text(512, 508, Lang.t('popupHint'), {
             fontFamily: 'Arial', fontSize: 13, color: COLORS.grey
         }).setOrigin(0.5);
 
-        popup.add([panel, title, toggle, reset, badgesTitle, ...items, hint]);
+        popup.add([...parts, hint]);
         this.tutorialPopup = popup;
     }
 

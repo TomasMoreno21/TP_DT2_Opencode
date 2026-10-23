@@ -13,6 +13,9 @@ export class GameTimer {
         this.startTime = null;
         this.pendingBonusMs = 0;
         this.finished = false;
+        // Mientras `paused` el reloj no corre (tutorial): al reanudar se corre startTime lo pausado.
+        this.paused = false;
+        this.pausedAt = null;
     }
 
     get remainingSeconds() {
@@ -20,7 +23,7 @@ export class GameTimer {
             return Math.ceil(this.durationMs / 1000);
         }
 
-        const elapsed = this.scene.time.now - this.startTime;
+        const elapsed = (this.pausedAt ?? this.scene.time.now) - this.startTime;
         const remaining = this.durationMs - elapsed;
         return Math.ceil(Math.max(remaining, 0) / 1000);
     }
@@ -28,6 +31,18 @@ export class GameTimer {
     update() {
         if (this.finished) {
             return;
+        }
+
+        if (this.paused) {
+            this.pausedAt ??= this.scene.time.now;
+            return;
+        }
+
+        if (this.pausedAt !== null) {
+            if (this.startTime !== null) {
+                this.startTime += this.scene.time.now - this.pausedAt;
+            }
+            this.pausedAt = null;
         }
 
         if (this.startTime === null) {

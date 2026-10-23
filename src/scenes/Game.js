@@ -4,6 +4,7 @@ import { Player, PLAYER_CONFIG } from '../entities/Player';
 import { PORTAL_CONFIG } from '../entities/Portal';
 import { PointSpawner } from '../systems/PointSpawner';
 import { ScoreManager } from '../systems/ScoreManager';
+import { RANK_COLORS, RankStore, TIME_BONUS_PER_SECOND, rankFor, rankThresholds } from '../systems/Rank';
 import { GameTimer } from '../systems/GameTimer';
 import { Hud } from '../systems/Hud';
 import { ProjectileManager } from '../systems/ProjectileManager';
@@ -174,6 +175,8 @@ export class Game extends Scene
         this.hud = new Hud(this);
         this.floatingText = new FloatingText(this);
 
+        this.rankThresholds = rankThresholds(this.scoreManager.quota);
+        this.hud.setRankThresholds(this.rankThresholds);
         this.hud.setScore(this.scoreManager.score);
         this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
         this.hud.setLevel(this.levelIndex + 1, LEVELS.length);
@@ -227,7 +230,9 @@ export class Game extends Scene
         // Hints que se ganan: solo en el nivel 1.
         this.tutorial = this.levelIndex === 0 && !this.practice ? new TutorialManager(this, this.player) : null;
 
-        this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots);
+        // Durante el tutorial el reloj está en pausa y no hay orbes: aparecen al terminar.
+        this.pointsPending = Boolean(this.tutorial?.active);
+        this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots, this.pointsPending);
         this.projectileManager = new ProjectileManager(this, this.timer.durationMs, levelConfig.projectiles);
 
         this.physics.add.overlap(this.player.rect, this.pointSpawner.points.map((point) => point.circle), (player, circle) => {
@@ -362,6 +367,14 @@ export class Game extends Scene
 
         this.player.update(delta);
         this.tutorial?.update();
+        const inTutorial = Boolean(this.tutorial?.active);
+        this.timer.paused = inTutorial;
+
+        if (this.pointsPending && !inTutorial) {
+            this.pointsPending = false;
+            this.pointSpawner.begin();
+        }
+
         this.updateTrail(delta);
         this.timer.update();
         this.projectileManager.update(delta);
@@ -535,6 +548,13 @@ export class Game extends Scene
         Coach.reset();
         Audio.play('goalReached');
 
+        // Bono de tiempo: los segundos que sobran se convierten en puntos y fijan el rango.
+        const timeBonus = this.timer.remainingSeconds * TIME_BONUS_PER_SECOND;
+        this.scoreManager.addBonus(timeBonus);
+        this.hud.setScore(this.scoreManager.score);
+        const rank = rankFor(this.scoreManager.score, this.rankThresholds);
+        RankStore.update(this.levelIndex + 1, rank);
+
         const bankedScore = this.totalScore;
 
         // Confetti sobre el jugador.
@@ -544,9 +564,14 @@ export class Game extends Scene
         }
         this.cameras.main.shake(150, 0.006);
 
-        this.floatingText.showBanner(512, 300, `¡Nivel ${this.levelIndex + 1} superado!`, '#00ff88', 32);
+        this.floatingText.showBanner(512, 300, `¡Nivel ${this.levelIndex + 1} superado!`, '#00ff88', 32, 1700);
+        if (timeBonus > 0) {
+            this.floatingText.showBanner(512, 348, Lang.t('timeBonus', { v: timeBonus }), '#66ccff', 22, 1700);
+        }
+        const rankColor = rank ? `#${RANK_COLORS[rank].toString(16).padStart(6, '0')}` : '#aaaaaa';
+        this.floatingText.showBanner(512, 388, `${Lang.t('rankLabel')}: ${Lang.t(`rank_${rank ?? 'none'}`)}`, rankColor, 26, 1700);
 
-        this.time.delayedCall(1200, () => {
+        this.time.delayedCall(2200, () => {
             if (this.levelIndex + 1 < LEVELS.length) {
                 this.scene.start('Game', {
                     levelIndex: this.levelIndex + 1,

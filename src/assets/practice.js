@@ -12,14 +12,6 @@ const frame = [
 const base = { durationSeconds: 600, quota: 1, projectiles: null, spawn: { x: 200, y: 650 }, goal: { x: 920, y: 676 } };
 
 export const PRACTICE = {
-    trampoline: {
-        ...base,
-        id: 'practice-trampoline',
-        spawn: { x: 400, y: 650 },
-        platforms: [...frame, { x: 540, y: 330, w: 320, h: 20, color: COLOR }],
-        trampolines: [{ x: 512, y: 706, w: 80 }],
-        pointSpots: [{ x: 540, y: 306 }]
-    },
     hazard: {
         ...base,
         id: 'practice-hazard',
@@ -38,4 +30,4 @@ export const PRACTICE = {
 };
 
 // Nivel (índice) que estrena cada mecánica.
-export const PRACTICE_BY_LEVEL = { 1: 'trampoline', 3: 'hazard', 4: 'portal' };
+export const PRACTICE_BY_LEVEL = { 3: 'hazard', 4: 'portal' };

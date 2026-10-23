@@ -60,6 +60,11 @@ export class ScoreManager {
         return this.addValue(value, now, false, airborne);
     }
 
+    // Puntos que no pasan por el combo (p. ej. el bono de tiempo al salir).
+    addBonus(points) {
+        this.score += points;
+    }
+
     resetAirStreak() {
         this.airStreak = 0;
     }

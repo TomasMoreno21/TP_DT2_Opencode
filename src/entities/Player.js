@@ -22,6 +22,7 @@ export const PLAYER_CONFIG = {
     invulnerableMs: 500,
     dashSpeed: 700,
     dashDurationMs: 170,
+    dashGraceMs: 200,
     dashCooldownMs: 900,
     dashTrailIntervalMs: 45,
     dashTrailLifeMs: 220
@@ -207,10 +208,10 @@ export class Player {
             this.dashCooldownUntil = now + PLAYER_CONFIG.dashCooldownMs;
             this.dashNextTrailAt = 0;
             // El dash apaga la gravedad y corta la caída: vuelo en línea recta.
-            // Los i-frames duran lo mismo que el impulso: atraviesa proyectiles/pinchos según timing.
+            // Los i-frames cubren todo el impulso más un margen al terminar (dashGraceMs).
             this.body.setAllowGravity(false);
             this.body.setVelocityY(0);
-            this.invulnerableUntil = Math.max(this.invulnerableUntil, this.dashUntil);
+            this.invulnerableUntil = Math.max(this.invulnerableUntil, this.dashUntil + PLAYER_CONFIG.dashGraceMs);
             this.squashBounce(1.25, 0.75);
             this.scene.events.emit('player-dash', dir);
         }
