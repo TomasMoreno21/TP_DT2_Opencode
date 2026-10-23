@@ -4,11 +4,11 @@ export const WORLD = {
     floorTop: 712
 };
 
-export const LEVELS = [
+export const ALL_LEVELS = [
     {
         id: 1,
         name: 'Arranque',
-        durationSeconds: 55,
+        durationSeconds: 60,
         quota: 12,
         spawn: { x: 200, y: 650 },
         // N1 sin proyectiles: nivel de arranque tranqui (reversible).
@@ -50,18 +50,13 @@ export const LEVELS = [
             { x: 300, y: 156 },
             { x: 720, y: 156 }
         ],
-        gems: [
-            // Alcanzable encadenando saltos: piso -> plataforma y=620 -> y=540,
-            // y desde ahi el arco del salto (apex ~117 px) pasa por esta altura.
-            { x: 512, y: 460 }
-        ],
         goal: { x: 920, y: 676 }
     },
     {
         id: 2,
         name: 'Rebotes',
         durationSeconds: 50,
-        quota: 12,
+        quota: 10,
         spawn: { x: 360, y: 660 },
         projectiles: {
             initialInterval: 2000,
@@ -116,9 +111,6 @@ export const LEVELS = [
             { x: 300, y: 220 },
             { x: 724, y: 220 },
             { x: 512, y: 130 }
-        ],
-        gems: [
-            { x: 512, y: 76 }
         ],
         goal: { x: 788, y: 588 }
     },
@@ -192,10 +184,6 @@ export const LEVELS = [
             { x: 470, y: 460 },
             { x: 520, y: 280 }
         ],
-        gems: [
-            // Sobre la ferry alta: hay que saltar desde ella.
-            { x: 520, y: 215 }
-        ],
         goal: { x: 880, y: 224 }
     },
     {
@@ -266,10 +254,6 @@ export const LEVELS = [
             { x: 330, y: 330 },
             { x: 694, y: 330 }
         ],
-        gems: [
-            { x: 330, y: 300 },
-            { x: 694, y: 300 }
-        ],
         goal: { x: 512, y: 222 }
     },
     {
@@ -338,11 +322,10 @@ export const LEVELS = [
             { x: 512, y: 246 },
             { x: 512, y: 146 }
         ],
-        gems: [
-            { x: 340, y: 160 },
-            { x: 684, y: 160 },
-            { x: 512, y: 90 }
-        ],
         goal: { x: 512, y: 230 }
     }
 ];
+
+// Entrega: la campaña se limita a los primeros niveles. Subir el número para reactivar el resto (hay 5).
+export const ACTIVE_LEVELS = 2;
+export const LEVELS = ALL_LEVELS.slice(0, ACTIVE_LEVELS);

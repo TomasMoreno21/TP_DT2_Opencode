@@ -1,4 +1,4 @@
-import { LEVELS, WORLD } from '../src/assets/levels.js';
+import { ALL_LEVELS as LEVELS, WORLD } from '../src/assets/levels.js';
 import { LevelGenerator, DIFFICULTY_BAND, TIMER_RULES, TIMER_BANDS, GENERATION_COMFORT } from '../src/systems/LevelGenerator.js';
 import { LevelValidator } from '../src/systems/LevelValidator.js';
 import { LEVEL_BASELINES } from '../src/assets/levelBaselines.js';

@@ -153,8 +153,12 @@ function moveBody(state, platforms) {
 
     for (const plat of platforms) {
         if (!overlaps(x, y, plat)) continue;
-        if (vx < 0) x = plat.x2 + HW;
-        else if (vx > 0) x = plat.x1 - HW;
+        // Separacion minima (como Arcade): rozar un borde por 1 px no puede mandar
+        // al jugador al otro lado de la plataforma.
+        const pushR = plat.x2 + HW - x;
+        const pushL = x - (plat.x1 - HW);
+        if (vx < 0) x = pushR <= pushL ? plat.x2 + HW : plat.x1 - HW;
+        else if (vx > 0) x = pushL <= pushR ? plat.x1 - HW : plat.x2 + HW;
     }
 
     y += vy * DT;

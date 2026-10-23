@@ -81,7 +81,60 @@ export class MainMenu extends Scene
             this.toggleControls(false);
             this.toggleLang(false);
             this.toggleTutorial(false);
+            if (this.cheatPopup?.visible) {
+                this.cheatPopup.setVisible(false);
+                this.controlsDim.setVisible(false);
+            }
         });
+
+        // Código secreto: tipear "pene" abre el selector de nivel con vida infinita.
+        this.typed = '';
+        this.input.keyboard.on('keydown', (event) => {
+            this.typed = (this.typed + event.key.toLowerCase()).slice(-4);
+            if (this.typed === 'pene') this.openCheatMenu();
+        });
+    }
+
+    // Selector de nivel del código secreto: activa la vida infinita (dura hasta
+    // recargar la página) y arranca en el nivel elegido.
+    openCheatMenu () {
+        this.registry.set('infiniteLife', true);
+        this.toggleControls(false);
+        this.toggleLang(false);
+        this.toggleTutorial(false);
+
+        if (!this.cheatPopup) {
+            const height = 110 + LEVELS.length * 56;
+            const top = 384 - height / 2;
+            const panel = this.add.graphics();
+            panel.fillStyle(COLORS.panel, 1).fillRoundedRect(332, top, 360, height, 18);
+            panel.lineStyle(2, COLORS.panelBorder, 1).strokeRoundedRect(332, top, 360, height, 18);
+
+            const title = this.add.text(512, top + 26, 'ELEGIR NIVEL', {
+                fontFamily: 'Arial Black', fontSize: 22, color: COLORS.gold, stroke: '#000000', strokeThickness: 5
+            }).setOrigin(0.5);
+            const note = this.add.text(512, top + 56, 'Vida infinita activada', {
+                fontFamily: 'Arial', fontSize: 16, color: COLORS.teal
+            }).setOrigin(0.5);
+
+            const options = LEVELS.map((level, i) => {
+                const opt = this.add.text(512, top + 100 + i * 56, `Nivel ${i + 1} - ${level.name}`, {
+                    fontFamily: 'Arial Black', fontSize: 20, color: COLORS.text
+                }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+                opt.on('pointerdown', () => {
+                    Audio.play('ui');
+                    this.startLevel = i;
+                    this.startGame(opt);
+                });
+                return opt;
+            });
+
+            this.cheatPopup = this.add.container(0, 0, [panel, title, note, ...options]).setDepth(10);
+        }
+
+        this.cheatPopup.setVisible(true);
+        this.controlsDim.setVisible(true);
+        Audio.play('ui');
     }
 
     // Botón superior para sortear una semilla nueva (otros niveles) y la semilla
@@ -206,6 +259,10 @@ export class MainMenu extends Scene
             this.toggleControls(false);
             this.toggleLang(false);
             this.toggleTutorial(false);
+            if (this.cheatPopup?.visible) {
+                this.cheatPopup.setVisible(false);
+                this.controlsDim.setVisible(false);
+            }
         });
 
         const popup = this.add.container(0, 0).setVisible(false).setDepth(10);

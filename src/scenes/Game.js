@@ -185,6 +185,9 @@ export class Game extends Scene
         } else {
             this.floatingText.showBanner(512, 240, `Nivel ${this.levelIndex + 1} - ${levelConfig.name}`, '#00d1b2', 34);
         }
+        if (this.registry.get('infiniteLife')) {
+            this.floatingText.showBanner(512, 200, 'VIDA INFINITA', '#ff66aa', 18);
+        }
         if (this.deaths > 0) {
             this.floatingText.showBanner(512, 286, 'Mapa nuevo: más espacio y más tiempo', '#66ff88', 20);
         }
@@ -570,6 +573,13 @@ export class Game extends Scene
             return;
         }
 
+        // Vida infinita (código secreto): el reloj vuelve a empezar.
+        if (this.registry.get('infiniteLife')) {
+            this.timer.startTime = this.time.now;
+            this.timer.finished = false;
+            return;
+        }
+
         this.gameEnded = true;
         Coach.record('timeout');
         this.scene.start('GameOver', {
@@ -601,6 +611,17 @@ export class Game extends Scene
             this.player.invulnerableUntil = this.time.now + 800;
             Audio.play('hit');
             this.floatingText.show(spawn.x, spawn.y - 50, Lang.t('prRetry'), '#ffdd44', 20);
+            return;
+        }
+
+        // Vida infinita (código secreto): el golpe no mata.
+        if (this.registry.get('infiniteLife') && !this.player.hasShield) {
+            if (projectileCircle) {
+                this.projectileManager.absorbCircle(projectileCircle);
+            }
+            this.player.invulnerableUntil = this.time.now + 800;
+            Audio.play('hit');
+            this.cameras.main.flash(150, 255, 40, 40);
             return;
         }
 

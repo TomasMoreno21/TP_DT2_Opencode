@@ -34,42 +34,67 @@ npm run build
 
 ## Gameplay
 
-Cada partida dura 60 segundos. En el escenario aparecen puntos en spots fijos: al recolectar uno se activa otro al azar. El jugador debe moverse, saltar y hacer wall grab / wall jump para recolectarlos antes de que el tiempo termine, encadenando recolecciones para subir el multiplicador de combo (hasta x5). Al mismo tiempo, proyectiles que nacen en las paredes de los bordes homing ~0,5s y luego viajan en línea recta acelerada: recibir un impacto termina la partida.
+Plataformas 2D *time-attack* de pantalla única. En cada nivel hay que recolectar una **meta de puntos** antes de que se acabe el tiempo; al cumplirla se abre la **salida**, y pisarla pasa al siguiente nivel. La campaña de esta versión tiene **2 niveles**: al completar el segundo se gana.
+
+Documento de diseño completo: [`docs/GDD.md`](docs/GDD.md).
 
 ### Objetivo
 
-Conseguir la mayor cantidad de puntos en un minuto y batir el mejor puntaje.
+Completar los niveles y conseguir el mayor puntaje total. El mejor puntaje se guarda en el navegador.
+
+### Niveles
+
+| # | Nombre | Tiempo | Meta | Novedad |
+|---|---|---|---|---|
+| 1 | Arranque | 55 s | 12 puntos | Sin peligros: movimiento, wall jump y combo |
+| 2 | Rebotes | 50 s | 12 puntos | Trampolines y proyectiles |
 
 ### Mecánicas principales
 
-- Recolección de puntos (spots fijos, al recoger se activa otro al azar) con combo y multiplicador hasta x5.
-- Movimiento, salto, wall grab y wall jump (agarrarse e impulsarse en las paredes).
-- Esquiva de proyectiles que nacen en las paredes de los bordes (homing y luego línea recta acelerada).
-- Récord personal persistente (localStorage).
+- **Movimiento:** correr, salto variable, wall grab, wall jump y dash invulnerable.
+- **Puntos y combo:** cada punto vale 10; encadenar recolecciones (menos de 3 s entre una y otra) sube el multiplicador hasta x5.
+- **Cadena aérea:** recolectar sin tocar el piso suma un bono creciente.
+- **Trampolines:** rebote alto, con una zona perfecta en el centro.
+- **Proyectiles:** nacen en las paredes, persiguen medio segundo y luego aceleran en línea recta.
+
+### Cómo se pierde
+
+- Se acaba el tiempo antes de pisar la salida.
+- Un proyectil impacta al jugador.
+
+Los puntos de un nivel perdido no cuentan; se conserva lo ya acumulado.
 
 ## Controles
 
 | Acción | Control |
 |---|---|
-| Mover | A / D o Flechas Izquierda / Derecha |
-| Saltar | Espacio o Flecha Arriba / W |
-| Agarrarse a pared (wall grab) | Mantener la dirección contra la pared |
-| Wall jump | Saltar mientras se toca una pared (impulsa al lado opuesto) |
+| Mover | A / D o flechas izquierda / derecha |
+| Saltar | Espacio, W o flecha arriba (mantener = más alto) |
+| Agarrarse a la pared | Mantener la dirección contra la pared |
+| Wall jump | Saltar mientras se toca una pared |
+| Dash | Shift |
+| Reiniciar nivel | R |
+| Silenciar | M |
+| Saltear tutorial | T |
 
 ## Arquitectura
 
 El código se organiza en `src/` con responsabilidades separadas:
 
-- `src/scenes/` — escenas de Phaser (Boot, Preloader, MainMenu, Game, GameOver).
-- `src/entities/` — entidades del juego (Player, Point, etc.).
-- `src/systems/` — sistemas (ScoreManager, PointSpawner, ProjectileManager, etc.).
-- `src/patterns/` — patrones de diseño (EntityFactory: patrón Factory para crear Point y Projectile, desacopla spawners de las clases concretas).
-- `src/assets/` — recursos del juego.
+- `src/scenes/`: escenas de Phaser (Boot, Preloader, MainMenu, Game, GameOver).
+- `src/entities/`: entidades (Player, Point, Trampoline, Projectile, Goal, etc.).
+- `src/systems/`: sistemas (ScoreManager, GameTimer, ProjectileManager, TutorialManager, LevelValidator, etc.).
+- `src/patterns/`: EntityFactory (patrón Factory que desacopla los spawners de las clases concretas).
+- `src/assets/`: datos de niveles (`levels.js`), prácticas y recursos.
+- `tools/`: validación de niveles y bot de prueba.
+
+Los niveles son datos en `src/assets/levels.js`. `ACTIVE_LEVELS` define cuántos se juegan: está en 2 para esta entrega, y los niveles 3 a 5 (plataformas móviles, pinchos con escudo y portales) ya existen pero están desactivados.
 
 ```
 GameScene
  ├── Player
- ├── PointSpawner ──► EntityFactory ──► Point
+ ├── Level ──► EntityFactory ──► Point, Trampoline, Goal...
+ ├── PointSpawner
  ├── ProjectileManager ──► EntityFactory ──► Projectile
  ├── ScoreManager
  ├── GameTimer

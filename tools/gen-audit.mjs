@@ -1,4 +1,4 @@
-import { LEVELS } from '../src/assets/levels.js';
+import { ALL_LEVELS as LEVELS } from '../src/assets/levels.js';
 import { LevelValidator } from '../src/systems/LevelValidator.js';
 
 // Audita los niveles base con el validador actual.
