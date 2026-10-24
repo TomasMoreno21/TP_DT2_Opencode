@@ -1,3 +1,6 @@
+import { FEEL } from '../assets/feel.js';
+import { PlayerFx } from './PlayerFx.js';
+
 export const PLAYER_CONFIG = {
     width: 32,
     height: 48,
@@ -39,6 +42,8 @@ const MULTIPLIER_COLORS = {
 export class Player {
     constructor(scene, x, y) {
         this.scene = scene;
+        // Todo lo cosmético vive en PlayerFx; la sombra se crea antes que el cuerpo.
+        this.fx = new PlayerFx(scene, this, PLAYER_CONFIG);
         this.rect = scene.add.rectangle(x, y, PLAYER_CONFIG.width, PLAYER_CONFIG.height, PLAYER_CONFIG.color);
         this.rect.setStrokeStyle(2, 0xffffff);
 
@@ -65,28 +70,13 @@ export class Player {
         this.shieldRing.setStrokeStyle(3, PLAYER_CONFIG.shieldColor, 0.9);
         this.shieldRing.setVisible(false);
 
-        // Glow neón detrás del cuerpo + ojos que miran según dirección.
-        this.glow = scene.add.rectangle(x, y, PLAYER_CONFIG.width + 14, PLAYER_CONFIG.height + 14, PLAYER_CONFIG.color, 0.16);
-        this.glow.setStrokeStyle(2, PLAYER_CONFIG.color, 0.35);
-        this.glow.setDepth(-1);
-        this.eyeL = scene.add.circle(x - 7, y - 8, 6, 0xffffff).setDepth(1);
-        this.eyeR = scene.add.circle(x + 7, y - 8, 6, 0xffffff).setDepth(1);
-        this.pupilL = scene.add.circle(x - 7, y - 8, 2.8, 0x111122).setDepth(2);
-        this.pupilR = scene.add.circle(x + 7, y - 8, 2.8, 0x111122).setDepth(2);
-        // Carita de daño >_<: texto que reemplaza a los ojos durante el flinch.
-        this.hurtFace = scene.add.text(x, y - 8, '>_<', {
-            fontFamily: 'Arial Black', fontSize: 24, color: '#111122'
-        }).setOrigin(0.5).setDepth(3).setVisible(false);
-        // Mirada suavizada + impulsos de squash (reemplazan al tween).
-        this.lookX = 0;
-        this.lookY = 0;
+        // Impulsos de squash (se combinan con el estiramiento por velocidad).
         this.impX = 1;
         this.impY = 1;
-        // Parpadeo cada 2-4.5s, cierra 120ms.
-        this.nextBlink = 2000;
-        this.blinkUntil = 0;
         this.prevVy = 0;
         this.flinchUntil = 0;
+        this.turning = false;
+        this.dashBufferUntil = 0;
 
         this.cursors = scene.input.keyboard.createCursorKeys();
         this.keys = scene.input.keyboard.addKeys('W,A,D,SPACE');
@@ -98,6 +88,8 @@ export class Player {
         this.dashDir = 1;
         this.dashNextTrailAt = 0;
         this.facing = 1;
+
+        this.fx.attach();
     }
 
     get hasShield() {
@@ -143,36 +135,9 @@ export class Player {
         this.shieldRing.setPosition(this.rect.x, this.rect.y);
         this.shieldRing.setVisible(this.hasShield);
 
-        // El glow sigue al cuerpo y copia su color (combo / wall grab).
-        // Se estira hacia adelante con la velocidad para vender la inercia.
-        const speedK = Math.min(Math.abs(this.body.velocity.x) / PLAYER_CONFIG.speed, 1);
-        this.glow.setPosition(this.rect.x + this.facing * speedK * 6, this.rect.y);
-        this.glow.setScale(this.rect.scaleX * (1 + speedK * 0.3), this.rect.scaleY);
-        if (this.rect.fillColor !== undefined) {
-            this.glow.setFillStyle(this.rect.fillColor, this.isDashing ? 0.24 : 0.14);
-            this.glow.setStrokeStyle(2, this.rect.fillColor, 0.3);
-        }
-
-        // Ojos: la cara entera se adelanta con el avance (no se queda atrás).
-        const targetX = Math.max(-1, Math.min(1, this.body.velocity.x / PLAYER_CONFIG.speed)) * 2 + this.facing * 1.5;
-        const targetY = Math.max(-1, Math.min(1, this.body.velocity.y / 460)) * 1.5;
-        this.lookX += (targetX - this.lookX) * 0.18;
-        this.lookY += (targetY - this.lookY) * 0.18;
-        const lookX = this.lookX, lookY = this.lookY;
-        const nowMs = this.scene.time.now;
-        if (nowMs >= this.nextBlink) {
-            this.blinkUntil = nowMs + 140;
-            this.nextBlink = nowMs + 1200 + Math.random() * 1500;
-        }
-        const hurting = nowMs < this.flinchUntil;
-        const eyeOpen = hurting ? 0.15 : (nowMs < this.blinkUntil ? 0.08 : 1);
-        const faceFwd = this.facing * speedK * 6;
-        const ex = this.rect.x + faceFwd, ey = this.rect.y - 8 * this.rect.scaleY;
-        this.eyeL.setPosition(ex - 7 + lookX * 0.5, ey + lookY * 0.5).setScale(1, eyeOpen).setVisible(!hurting);
-        this.eyeR.setPosition(ex + 7 + lookX * 0.5, ey + lookY * 0.5).setScale(1, eyeOpen).setVisible(!hurting);
-        this.pupilL.setPosition(ex - 7 + lookX, ey + lookY).setScale(1, eyeOpen).setVisible(!hurting);
-        this.pupilR.setPosition(ex + 7 + lookX, ey + lookY).setScale(1, eyeOpen).setVisible(!hurting);
-        this.hurtFace.setPosition(ex, ey).setVisible(hurting);
+        // El derrape lo marca la física más abajo; el fx lo lee al inicio del próximo frame.
+        this.fx.update(deltaMs);
+        this.turning = false;
 
         if (this.isInvulnerable) {
             // Parpadeo suave y lento (antes vibraba).
@@ -200,7 +165,13 @@ export class Player {
         const justPressedDash = dashHeld && !this.dashPressed;
         this.dashPressed = dashHeld;
 
-        if (justPressedDash && now >= this.dashCooldownUntil) {
+        // Buffer: un Shift apretado un instante antes de estar listo se ejecuta al liberarse.
+        if (justPressedDash) {
+            this.dashBufferUntil = now + FEEL.dash.bufferMs;
+        }
+
+        if (now <= this.dashBufferUntil && now >= this.dashCooldownUntil) {
+            this.dashBufferUntil = 0;
             const dir = left ? -1 : right ? 1 : this.facing;
             this.dashDir = dir;
             this.facing = dir;
@@ -225,7 +196,10 @@ export class Player {
 
         if (!wasOnFloor && this.onFloor) {
             // Aterrizaje con un toque de punch + impacto para el shake.
-            this.squashBounce(1.18, 0.82);
+            if (this.prevVy > FEEL.player.landMinVy) {
+                const k = Math.min(this.prevVy / 700, 1);
+                this.squashBounce(1.05 + 0.2 * k, 0.95 - 0.2 * k);
+            }
             this.scene.events.emit('player-land', this.prevVy);
         }
 
@@ -319,10 +293,12 @@ export class Player {
 
             if (left && !right) {
                 this.facing = -1;
+                this.turning = this.onFloor && vx > max * FEEL.player.skidMinK;
                 const rate = vx > 0 ? PLAYER_CONFIG.turnAccel : (this.onFloor ? PLAYER_CONFIG.accel : PLAYER_CONFIG.airAccel);
                 this.body.setVelocityX(approach(vx, -max, rate));
             } else if (right && !left) {
                 this.facing = 1;
+                this.turning = this.onFloor && vx < -max * FEEL.player.skidMinK;
                 const rate = vx < 0 ? PLAYER_CONFIG.turnAccel : (this.onFloor ? PLAYER_CONFIG.accel : PLAYER_CONFIG.airAccel);
                 this.body.setVelocityX(approach(vx, max, rate));
             } else {

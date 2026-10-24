@@ -69,6 +69,30 @@ export class Fx {
         }).explode(count, x, y);
     }
 
+    // Polvo que sale hacia un costado (aterrizajes, derrapes). dir: 1 derecha, -1 izquierda.
+    dustSide(x, y, dir, count = 4, color = 0xcfd2ff) {
+        const base = dir > 0 ? 0 : 180;
+
+        this.emitterFor('dustSide' + dir, color, {
+            speed: { min: 40, max: 130 },
+            angle: { min: base - 25, max: base + 5 },
+            scale: { start: 0.8, end: 0 },
+            alpha: { start: 0.55, end: 0 },
+            lifespan: 280
+        }).explode(count, x, y);
+    }
+
+    // Brasas que suben despacio (aura del combo alto).
+    ember(x, y, color = 0xffdd44) {
+        this.emitterFor('ember', color, {
+            speed: { min: 20, max: 55 },
+            angle: { min: -110, max: -70 },
+            scale: { start: 0.8, end: 0 },
+            alpha: { start: 0.9, end: 0 },
+            lifespan: 520
+        }).explode(1, x, y);
+    }
+
     // Anillo que se expande y se desvanece.
     ring(x, y, color = 0xffffff, radius = FEEL.fx.ringRadius, ms = FEEL.fx.ringMs) {
         if (this.pools.ring.inUse >= FEEL.fx.maxRings) {

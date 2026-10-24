@@ -310,6 +310,7 @@ export class Game extends Scene
             const airborne = !this.player.body.blocked.down;
             const { gained, airBonus } = this.scoreManager.scorePoint(point.value, this.time.now, { airborne });
             this.metrics.collect(this.time.now, this.scoreManager.multiplier);
+            this.events.emit('point-collected');
             this.hud.setScore(this.scoreManager.score);
             this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
             this.hud.setMultiplier(this.scoreManager.multiplier);
@@ -344,6 +345,7 @@ export class Game extends Scene
                 const airborne = !this.player.body.blocked.down;
                 const { gained, airBonus } = this.scoreManager.scoreGem(gem.value, this.time.now, { airborne });
                 this.metrics.collect(this.time.now, this.scoreManager.multiplier);
+                this.events.emit('point-collected');
                 this.timer.addSeconds(gem.bonusSeconds);
                 this.hud.setScore(this.scoreManager.score);
                 this.hud.setMultiplier(this.scoreManager.multiplier);

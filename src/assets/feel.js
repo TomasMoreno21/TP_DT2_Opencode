@@ -20,6 +20,23 @@ export const FEEL = {
     // Zoom por combo.
     zoom: { comboHigh: 1.03, comboMultiplier: 4, ms: 300, punch: 1.018, punchMs: 80 },
 
+    // Dash: ventana de buffer (ms) para no perder un Shift apretado un instante antes de tiempo.
+    dash: { bufferMs: 120 },
+
+    // Feedback del jugador (docs/PLAN_FEEL.md §5).
+    player: {
+        runDustEveryMs: 110,
+        runDustMinK: 0.55,
+        speedGhostEveryMs: 80,
+        speedGhostAlpha: 0.14,
+        skidEveryMs: 60,
+        skidMinK: 0.4,
+        landMinVy: 120,
+        alertDistance: 160,
+        happyMs: 400,
+        panicSeconds: 5
+    },
+
     // Efectos de partículas.
     fx: { burstCount: 10, burstLifespan: 400, ringRadius: 56, ringMs: 220, maxGhosts: 24, maxRings: 16, maxStreaks: 24 },
 
