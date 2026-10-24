@@ -23,6 +23,7 @@ import { Fx } from '../systems/Fx';
 import { CameraFx } from '../systems/CameraFx';
 import { Metrics } from '../systems/Metrics';
 import { Music } from '../systems/Music';
+import { CollectFx } from '../systems/CollectFx';
 import { TensionDirector } from '../systems/TensionDirector';
 
 export class Game extends Scene
@@ -180,6 +181,7 @@ export class Game extends Scene
         this.fx = new Fx(this);
         this.camFx = new CameraFx(this);
         this.tension = new TensionDirector(this);
+        this.collectFx = new CollectFx(this);
         this.zoomLevel = 1;
 
         this.level = new Level(this, levelConfig);
@@ -298,6 +300,12 @@ export class Game extends Scene
         this.listen('player-skid', () => Audio.play('skid'));
         this.listen('combo-up', (level) => Audio.play('comboUp', { level }));
         this.listen('combo-lost', () => Audio.play('comboLost'));
+        // El combo se apaga: chispas grises que se disipan sobre el jugador.
+        this.listen('combo-lost', () => this.fx.spark(this.player.rect.x, this.player.rect.y, 0x8888aa, 8));
+        this.listen('frenzy-start', () => {
+            this.floatingText.showBanner(512, 230, Lang.t('streakFrenzy'), '#ff4455', 40, 600);
+            this.camFx.punch();
+        });
         this.listen('frenzy-start', () => Audio.play('frenzy'));
         this.listen('frenzy-start', () => { Music.setFrenzy(true); this.hud.setFrenzy(true); });
         this.listen('frenzy-end', () => { Music.setFrenzy(false); this.hud.setFrenzy(false); });
@@ -346,18 +354,21 @@ export class Game extends Scene
             this.hud.setMultiplier(this.scoreManager.multiplier);
             this.hud.setAirStreak(this.scoreManager.airStreak);
             this.player.setMultiplier(this.scoreManager.multiplier);
-            this.pace.hitstop(FEEL.hitstop.point);
             this.applyComboZoom();
             Audio.play('point', { chain: this.scoreManager.combo, combo: this.scoreManager.multiplier, x: point.circle.x });
             this.burstAt(point.circle.x, point.circle.y, point.color);
-            this.floatingText.show(point.circle.x, point.circle.y - 20, `+${gained}`, this.scoreManager.multiplier > 1 ? '#ff6622' : '#ffdd44');
 
             if (airBonus > 0) {
                 this.floatingText.show(point.circle.x, point.circle.y - 44, `VOLEANDO +${airBonus}`, '#66ff88', 14);
             }
 
             point.deactivate();
-            this.pointSpawner.activateAnother();
+            const next = this.pointSpawner.activateAnother();
+
+            this.collectFx.point({
+                x: point.circle.x, y: point.circle.y, color: point.color, gained,
+                multiplier: this.scoreManager.multiplier, chain: this.scoreManager.combo, next
+            });
 
             if (this.scoreManager.quotaMet) {
                 this.onQuotaMet();
@@ -381,12 +392,11 @@ export class Game extends Scene
                 this.hud.setMultiplier(this.scoreManager.multiplier);
                 this.hud.setAirStreak(this.scoreManager.airStreak);
                 this.player.setMultiplier(this.scoreManager.multiplier);
-                this.pace.hitstop(FEEL.hitstop.gem);
                 this.applyComboZoom();
                 Audio.play('gem', { x: gem.x });
                 this.unlockBadge('gem');
                 this.burstAt(gem.x, gem.y, gem.color);
-                this.floatingText.show(gem.x, gem.y - 24, `+${gained}`, '#66ff88', 20);
+                this.collectFx.gem({ x: gem.x, y: gem.y, color: gem.color, gained });
 
                 if (airBonus > 0) {
                     this.floatingText.show(gem.x, gem.y - 44, `VOLANDO +${airBonus}`, '#66ff88', 14);
@@ -424,6 +434,21 @@ export class Game extends Scene
     {
         this.events.on(event, handler);
         this.events.once('shutdown', () => this.events.off(event, handler));
+    }
+
+    // Cada frame: ruta luminosa, aviso de combo por vencer y urgencia de los puntos.
+    updateCollect ()
+    {
+        const sm = this.scoreManager;
+        const remaining = sm.comboRemaining(this.time.now);
+
+        this.collectFx.update(remaining, sm.multiplier);
+
+        const urgent = remaining > 0 && remaining < 0.35;
+
+        for (const point of this.pointSpawner.points) {
+            point.setUrgent(urgent && point.circle.active);
+        }
     }
 
     // Detecta los cambios del multiplicador efectivo (el que sigue vigente en la ventana
@@ -528,6 +553,7 @@ export class Game extends Scene
         this.hud.setComboTimer(this.scoreManager.comboRemaining(this.time.now));
         this.trackCombo();
         this.tension.update(delta);
+        this.updateCollect();
 
         if (!this.gameEnded && this.scoreManager.multiplier > this.maxMult) {
             this.maxMult = this.scoreManager.multiplier;

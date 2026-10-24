@@ -34,7 +34,8 @@ export class Fx {
         this.pools = {
             ghost: new Pool(() => scene.add.rectangle(0, 0, 1, 1, 0xffffff)),
             ring: new Pool(() => scene.add.circle(0, 0, 20).setFillStyle(0xffffff, 0)),
-            streak: new Pool(() => scene.add.graphics())
+            streak: new Pool(() => scene.add.graphics()),
+            orb: new Pool(() => scene.add.circle(0, 0, 7, 0xffffff).setStrokeStyle(2, 0xffffff, 0.8).setScrollFactor(0).setDepth(45))
         };
     }
 
@@ -129,6 +130,39 @@ export class Fx {
         });
     }
 
+    // Orbe que viaja en curva hasta un punto de la pantalla (el puntaje, el reloj) y se
+    // achica al llegar. Las coordenadas son de pantalla (el HUD no se mueve con la cámara).
+    orb(x0, y0, x1, y1, color = 0xffdd44, { ms = 230, onArrive } = {}) {
+        if (this.pools.orb.inUse >= FEEL.fx.maxOrbs) {
+            onArrive?.();
+            return;
+        }
+
+        const orb = this.pools.orb.get();
+        const cx = (x0 + x1) / 2;
+        const cy = Math.min(y0, y1) - 70;
+        const t = { p: 0 };
+
+        orb.setPosition(x0, y0).setFillStyle(color, 1).setScale(1).setAlpha(0.95);
+        this.scene.tweens.add({
+            targets: t,
+            p: 1,
+            duration: ms,
+            ease: 'Quad.easeIn',
+            onUpdate: () => {
+                const p = t.p;
+                const q = 1 - p;
+
+                orb.setPosition(q * q * x0 + 2 * q * p * cx + p * p * x1, q * q * y0 + 2 * q * p * cy + p * p * y1);
+                orb.setScale(1 - 0.5 * p);
+            },
+            onComplete: () => {
+                this.pools.orb.release(orb);
+                onArrive?.();
+            }
+        });
+    }
+
     // Copia del objeto que se desvanece (estela del dash y de la velocidad).
     ghost(source, { alpha = 0.5, ms = 220, stroke = 0.4 } = {}) {
         if (this.pools.ghost.inUse >= FEEL.fx.maxGhosts) {
@@ -172,8 +206,8 @@ export class Fx {
     }
 
     get stats() {
-        const { ghost, ring, streak } = this.pools;
+        const { ghost, ring, streak, orb } = this.pools;
 
-        return `emisores ${this.emitterCount} · fantasmas ${ghost.inUse} · anillos ${ring.inUse} · líneas ${streak.inUse}`;
+        return `emisores ${this.emitterCount} · fantasmas ${ghost.inUse} · anillos ${ring.inUse} · líneas ${streak.inUse} · orbes ${orb.inUse}`;
     }
 }

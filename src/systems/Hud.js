@@ -191,6 +191,15 @@ export class Hud {
         drawArc(g, x, y, r, 7, fraction, color);
     }
 
+    // Hacia dónde vuelan los orbes al recoger: el puntaje y el reloj (coordenadas de pantalla).
+    get scoreAnchor() {
+        return { x: this.scoreText.x + 32, y: this.scoreText.y };
+    }
+
+    get timerAnchor() {
+        return { x: HUD_CONFIG.timerX, y: HUD_CONFIG.timerY };
+    }
+
     // Destello de borde (uno por segundo como máximo; respeta "reducir destellos").
     pulseEdge (color = 0xff2233) {
         if (this.scene.camFx.reduceFlash) {
@@ -313,6 +322,10 @@ export class Hud {
 
         const color = COMBO_COLORS[this.lastMult] ?? 0xffdd44;
         drawBar(this.comboBar, 462, 135, 100, 6, fraction, fraction < 0.25 ? 0xff4455 : color);
+
+        // Por vencer: el chip parpadea despacio (≈1,5 Hz, lejos del umbral de fotosensibilidad).
+        const blink = fraction < 0.25 && Math.floor(this.scene.time.now / 330) % 2 === 0;
+        this.comboBg.setAlpha(blink ? 0.35 : 1);
     }
 
     // Detiene el tween de escala anterior: si no, se acumulan sobre el mismo

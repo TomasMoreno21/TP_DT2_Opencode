@@ -17,6 +17,11 @@ export class Point {
         // Halo que pulsa: solo visual, el cuerpo físico no se escala.
         this.halo = scene.add.circle(x, y, POINT_CONFIG.radius + 7, POINT_CONFIG.color, 0.22);
 
+        // Brillo en cruz que gira: el punto "está vivo" y pide ser tomado.
+        this.shine = scene.add.star(x + 3, y - 3, 4, 1.5, 7, 0xffffff, 0.9);
+        this.shineTween = null;
+        this.urgent = false;
+
         scene.physics.add.existing(this.circle, true);
 
         this.deactivate();
@@ -28,6 +33,8 @@ export class Point {
         this.circle.body.enable = true;
         // Pop al aparecer + pulso continuo del halo.
         this.stopTweens();
+        this.shine.setVisible(true).setAngle(0);
+        this.shineTween = this.scene.tweens.add({ targets: this.shine, angle: 360, duration: 2400, repeat: -1 });
         this.circle.setScale(0.3);
         this.halo.setScale(0.5).setAlpha(0.35);
         this.popTween = this.scene.tweens.add({
@@ -58,6 +65,22 @@ export class Point {
 
         this.popTween = null;
         this.pulseTween = null;
+
+        if (this.shineTween) {
+            this.shineTween.stop();
+            this.shineTween.remove();
+            this.shineTween = null;
+        }
+    }
+
+    // Cerca de perder el combo el halo late más rápido: urgencia visible.
+    setUrgent(urgent) {
+        if (this.urgent === urgent || !this.pulseTween) {
+            return;
+        }
+
+        this.urgent = urgent;
+        this.pulseTween.timeScale = urgent ? 2.4 : 1;
     }
 
     deactivate() {
@@ -66,5 +89,7 @@ export class Point {
         this.circle.setScale(1);
         this.circle.body.enable = false;
         this.halo.setVisible(false);
+        this.shine.setVisible(false);
+        this.urgent = false;
     }
 }

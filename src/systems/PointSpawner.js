@@ -26,11 +26,13 @@ export class PointSpawner {
         const inactive = this.points.filter((point) => !point.circle.active);
 
         if (inactive.length === 0) {
-            return;
+            return null;
         }
 
         const next = inactive[PhaserMath.Between(0, inactive.length - 1)];
         next.activate();
+
+        return next;
     }
 
     getPointByCircle(circle) {

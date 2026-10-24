@@ -97,6 +97,8 @@ const EVENTS = {
         noise({ duration: 0.3, volume: 0.12, priority: 3, filter: { type: 'highpass', freq: 800, endFreq: 6000 } });
         tone({ freq: 1568, type: 'sine', duration: 0.4, volume: 0.1, delay: 0.08, wet: 0.5, priority: 3 });
     },
+    // Aviso de que al combo le queda poco: tic agudo y suave.
+    comboWarn: () => tone({ freq: 880, type: 'sine', duration: 0.05, volume: 0.06, priority: 0 }),
     // Reloj: tic-tac de los últimos segundos y latido de los últimos 5 (los usa J5).
     tick: () => tone({ freq: 1400, type: 'square', duration: 0.03, volume: 0.09, priority: 2 }),
     tickUrgent: () => tone({ freq: 2000, type: 'square', duration: 0.04, volume: 0.12, priority: 2 }),
