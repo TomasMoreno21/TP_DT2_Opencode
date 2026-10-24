@@ -39,6 +39,12 @@ const StartGame = (parent) => {
 
     const game = new PhaserGame({ ...config, parent });
 
+    // Solo en desarrollo: acceso desde la consola y el overlay de debug (Vite lo quita del build).
+    if (import.meta.env.DEV) {
+        window.__game = game;
+        import('./systems/DebugOverlay').then(({ installDebugOverlay }) => installDebugOverlay(game));
+    }
+
     return game;
 
 };

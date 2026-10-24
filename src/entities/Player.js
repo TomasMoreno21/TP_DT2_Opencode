@@ -395,28 +395,4 @@ export class Player {
             onComplete: () => ghost.destroy()
         });
     }
-
-    // Estela del dash: copia del jugador que se desvanece tras el impulso.
-    // Da lectura visual de la velocidad y de la ventana de i-frames.
-    spawnDashTrail() {
-        const ghost = this.scene.add.rectangle(
-            this.rect.x,
-            this.rect.y,
-            PLAYER_CONFIG.width,
-            PLAYER_CONFIG.height,
-            this.rect.fillColor ?? PLAYER_CONFIG.color,
-            0.5
-        );
-
-        ghost.setScale(this.rect.scaleX, this.rect.scaleY);
-        ghost.setStrokeStyle(2, 0xffffff, 0.4);
-        ghost.setDepth(this.rect.depth - 1);
-
-        this.scene.tweens.add({
-            targets: ghost,
-            alpha: 0,
-            duration: PLAYER_CONFIG.dashTrailLifeMs,
-            onComplete: () => ghost.destroy()
-        });
-    }
 }

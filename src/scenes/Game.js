@@ -18,6 +18,9 @@ import { Lang } from '../systems/Texts';
 import { LEVELS, WORLD } from '../assets/levels';
 import { LevelGenerator } from '../systems/LevelGenerator';
 import { CampaignBuilder } from '../systems/CampaignBuilder';
+import { FEEL } from '../assets/feel';
+import { Fx } from '../systems/Fx';
+import { Metrics } from '../systems/Metrics';
 
 export class Game extends Scene
 {
@@ -232,6 +235,8 @@ export class Game extends Scene
         this.timer = new GameTimer(this, () => this.onTimeUp(), levelConfig.durationSeconds);
         this.hud = new Hud(this);
         this.floatingText = new FloatingText(this);
+        this.fx = new Fx(this);
+        this.metrics = new Metrics(this.levelIndex + 1);
 
         this.rankThresholds = rankThresholds(this.scoreManager.quota);
         this.hud.setRankThresholds(this.rankThresholds);
@@ -279,13 +284,11 @@ export class Game extends Scene
             }
         });
 
-        this.events.on('player-dash', () => Audio.play('dash'));
-        this.events.on('player-dash', () => this.spawnDashGhosts());
-        this.events.on('player-dash', () => this.cameras.main.shake(90, 0.0035));
-        this.events.on('player-jump', (kind) => Audio.play('jump', { kind }));
-        this.events.on('player-jump', (kind) => kind === 'wall' && this.unlockBadge('wallJump'));
-        this.events.on('player-dash', () => this.unlockBadge('dash'));
-        this.trailAcc = 0;
+        this.listen('player-dash', () => Audio.play('dash'));
+        this.listen('player-dash', () => this.cameras.main.shake(...FEEL.shake.dash));
+        this.listen('player-jump', (kind) => Audio.play('jump', { kind }));
+        this.listen('player-jump', (kind) => kind === 'wall' && this.unlockBadge('wallJump'));
+        this.listen('player-dash', () => this.unlockBadge('dash'));
 
         // Hints que se ganan: solo en el nivel 1.
         this.tutorial = this.levelIndex === 0 && !this.practice ? new TutorialManager(this, this.player) : null;
@@ -304,12 +307,13 @@ export class Game extends Scene
 
             const airborne = !this.player.body.blocked.down;
             const { gained, airBonus } = this.scoreManager.scorePoint(point.value, this.time.now, { airborne });
+            this.metrics.collect(this.time.now, this.scoreManager.multiplier);
             this.hud.setScore(this.scoreManager.score);
             this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
             this.hud.setMultiplier(this.scoreManager.multiplier);
             this.hud.setAirStreak(this.scoreManager.airStreak);
             this.player.setMultiplier(this.scoreManager.multiplier);
-            this.pace.hitstop(30);
+            this.pace.hitstop(FEEL.hitstop.point);
             this.applyComboZoom();
             Audio.play('point', { combo: this.scoreManager.multiplier });
             this.burstAt(point.circle.x, point.circle.y, point.color);
@@ -337,12 +341,13 @@ export class Game extends Scene
 
                 const airborne = !this.player.body.blocked.down;
                 const { gained, airBonus } = this.scoreManager.scoreGem(gem.value, this.time.now, { airborne });
+                this.metrics.collect(this.time.now, this.scoreManager.multiplier);
                 this.timer.addSeconds(gem.bonusSeconds);
                 this.hud.setScore(this.scoreManager.score);
                 this.hud.setMultiplier(this.scoreManager.multiplier);
                 this.hud.setAirStreak(this.scoreManager.airStreak);
                 this.player.setMultiplier(this.scoreManager.multiplier);
-                this.pace.hitstop(30);
+                this.pace.hitstop(FEEL.hitstop.gem);
                 this.applyComboZoom();
                 Audio.play('gem');
                 this.unlockBadge('gem');
@@ -377,6 +382,14 @@ export class Game extends Scene
         // ritmo normal: si se apaga durante un hitstop, el mundo queda pausado.
         this.events.once('shutdown', () => this.pace.restore());
         this.events.once('shutdown', () => this.level.destroy());
+    }
+
+    // Registra un listener de eventos de la escena y lo quita al apagarse. Sin esto,
+    // cada reinicio de nivel sumaba otra copia (el dash sonaba y sacudía N veces).
+    listen (event, handler)
+    {
+        this.events.on(event, handler);
+        this.events.once('shutdown', () => this.events.off(event, handler));
     }
 
     // Insignia de aprendizaje: aviso corto la primera vez que se usa una mecánica.
@@ -435,7 +448,6 @@ export class Game extends Scene
             this.pointSpawner.begin();
         }
 
-        this.updateTrail(delta);
         this.timer.update();
         this.projectileManager.update(delta);
         this.updateMovingPlatforms(delta);
@@ -607,6 +619,7 @@ export class Game extends Scene
 
         this.levelComplete = true;
         this.gameEnded = true;
+        this.metrics.finish(this.time.now, 'nivel superado');
         Coach.reset();
         Audio.play('goalReached');
 
@@ -624,7 +637,7 @@ export class Game extends Scene
         for (const [dx, color] of [[-30, 0x00ff88], [30, 0xffdd44], [0, 0x2dd4ff], [-15, 0xff66aa], [15, 0xffffff]]) {
             this.burstAt(px + dx, py - 10, color);
         }
-        this.cameras.main.shake(150, 0.006);
+        this.cameras.main.shake(...FEEL.shake.goal);
 
         this.floatingText.showBanner(512, 300, `¡Nivel ${this.levelIndex + 1} superado!`, '#00ff88', 32, 1700);
         if (timeBonus > 0) {
@@ -669,6 +682,7 @@ export class Game extends Scene
 
         this.gameEnded = true;
         Coach.record('timeout');
+        this.metrics.finish(this.time.now, 'tiempo');
         this.scene.start('GameOver', {
             score: this.completedScore,
             lostScore: this.scoreManager.score,
@@ -720,7 +734,7 @@ export class Game extends Scene
             this.player.absorbHit();
             this.unlockBadge('shield');
             Audio.play('hit');
-            this.cameras.main.shake(160, 0.008);
+            this.cameras.main.shake(...FEEL.shake.shield);
             this.cameras.main.flash(150, 90, 220, 255);
             this.burstAt(this.player.rect.x, this.player.rect.y, 0x2dd4ff);
             this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡ESCUDO!', '#2dd4ff', 20);
@@ -729,13 +743,14 @@ export class Game extends Scene
 
         this.gameEnded = true;
         Coach.record(projectileCircle ? 'projectile' : 'hazard');
-        this.pace.hitstop(80);
-        this.pace.slowmo(700, 0.35);
+        this.metrics.finish(this.time.now, projectileCircle ? 'muerte: proyectil' : 'muerte: pincho');
+        this.pace.hitstop(FEEL.hitstop.death);
+        this.pace.slowmo(FEEL.slowmo.death.ms, FEEL.slowmo.death.factor);
         Audio.play('hit');
         this.player.flinch();
         this.player.rect.setFillStyle(0xff4455);
 
-        this.cameras.main.shake(400, 0.02);
+        this.cameras.main.shake(...FEEL.shake.death);
         this.cameras.main.flash(300, 255, 40, 40);
 
         this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡Impacto!', '#ff4455', 26);
@@ -754,58 +769,19 @@ export class Game extends Scene
         });
     }
 
-    // Estela mínima: solo durante el dash, un toque más visible.
-    updateTrail(delta) {
-        if (this.gameEnded || !this.player) {
-            return;
-        }
-
-        this.trailAcc += delta;
-
-        if (this.player.isDashing && this.trailAcc > 70) {
-            this.trailAcc = 0;
-            this.spawnGhost(0.22, 170);
-        }
-    }
-
-    spawnDashGhosts() {
-        for (let i = 0; i < 3; i++) {
-            this.time.delayedCall(i * 50, () => this.spawnGhost(0.3, 210));
-        }
-    }
-
-    spawnGhost(alpha, lifeMs) {
-        const color = this.player.rect.fillColor ?? 0x00d1b2;
-        const g = this.add.rectangle(
-            this.player.rect.x, this.player.rect.y,
-            this.player.rect.width * this.player.rect.scaleX,
-            this.player.rect.height * this.player.rect.scaleY,
-            color, alpha
-        ).setDepth(-1);
-        this.tweens.add({ targets: g, alpha: 0, duration: lifeMs, onComplete: () => g.destroy() });
-    }
-
-    burstAt(x, y, color) {        const hexColor = typeof color === 'number' ? color : 0xffdd44;
-
-        this.add.particles(x, y, 'particle', {
-            speed: { min: 60, max: 220 },
-            angle: { min: 0, max: 360 },
-            scale: { start: 1, end: 0 },
-            lifespan: 400,
-            quantity: 10,
-            emitting: false,
-            tint: hexColor
-        }).explode(10, x, y);
+    // Ráfaga de partículas con emisores en pool (ver systems/Fx.js).
+    burstAt(x, y, color) {
+        this.fx.burst(x, y, typeof color === 'number' ? color : 0xffdd44);
     }
 
     applyComboZoom() {
-        const target = this.scoreManager.multiplier >= 4 ? 1.03 : 1;
+        const target = this.scoreManager.multiplier >= FEEL.zoom.comboMultiplier ? FEEL.zoom.comboHigh : 1;
 
         if (target === this.zoomLevel) {
             return;
         }
 
         this.zoomLevel = target;
-        this.cameras.main.zoomTo(target, 300, 'Sine.easeInOut');
+        this.cameras.main.zoomTo(target, FEEL.zoom.ms, 'Sine.easeInOut');
     }
 }
