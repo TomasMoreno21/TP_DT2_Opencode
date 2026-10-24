@@ -311,6 +311,7 @@ export class PlayerFx {
         // Derrape al invertir la dirección corriendo.
         if (player.turning && now >= this.nextSkid) {
             this.nextSkid = now + FEEL.player.skidEveryMs;
+            this.scene.events.emit('player-skid');
             fx.spark(rect.x, feetY, 0xffffff, 2, { min: -150, max: -30 });
             fx.dustSide(rect.x, feetY, Math.sign(vx), 2);
         }

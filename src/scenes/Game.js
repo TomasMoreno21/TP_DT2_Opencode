@@ -291,6 +291,12 @@ export class Game extends Scene
         this.listen('player-jump', (kind) => Audio.play('jump', { kind }));
         this.listen('player-jump', (kind) => kind === 'wall' && this.unlockBadge('wallJump'));
         this.listen('player-dash', () => this.unlockBadge('dash'));
+        this.listen('player-land', (vy) => vy > FEEL.player.landMinVy && Audio.play('land', { vy }));
+        this.listen('player-skid', () => Audio.play('skid'));
+        this.listen('combo-up', (level) => Audio.play('comboUp', { level }));
+        this.listen('combo-lost', () => Audio.play('comboLost'));
+        this.listen('frenzy-start', () => Audio.play('frenzy'));
+        this.seenMult = 1;
 
         // Hints que se ganan: solo en el nivel 1.
         this.tutorial = this.levelIndex === 0 && !this.practice ? new TutorialManager(this, this.player) : null;
@@ -318,7 +324,7 @@ export class Game extends Scene
             this.player.setMultiplier(this.scoreManager.multiplier);
             this.pace.hitstop(FEEL.hitstop.point);
             this.applyComboZoom();
-            Audio.play('point', { combo: this.scoreManager.multiplier });
+            Audio.play('point', { chain: this.scoreManager.combo, combo: this.scoreManager.multiplier, x: point.circle.x });
             this.burstAt(point.circle.x, point.circle.y, point.color);
             this.floatingText.show(point.circle.x, point.circle.y - 20, `+${gained}`, this.scoreManager.multiplier > 1 ? '#ff6622' : '#ffdd44');
 
@@ -353,7 +359,7 @@ export class Game extends Scene
                 this.player.setMultiplier(this.scoreManager.multiplier);
                 this.pace.hitstop(FEEL.hitstop.gem);
                 this.applyComboZoom();
-                Audio.play('gem');
+                Audio.play('gem', { x: gem.x });
                 this.unlockBadge('gem');
                 this.burstAt(gem.x, gem.y, gem.color);
                 this.floatingText.show(gem.x, gem.y - 24, `+${gained}`, '#66ff88', 20);
@@ -394,6 +400,30 @@ export class Game extends Scene
     {
         this.events.on(event, handler);
         this.events.once('shutdown', () => this.events.off(event, handler));
+    }
+
+    // Detecta los cambios del multiplicador efectivo (el que sigue vigente en la ventana
+    // del combo) y los anuncia como eventos: combo-up, combo-lost, frenzy-start/end.
+    trackCombo ()
+    {
+        const sm = this.scoreManager;
+        const mult = sm.multiplier > 1 && sm.comboRemaining(this.time.now) > 0 ? sm.multiplier : 1;
+
+        if (mult === this.seenMult || this.gameEnded) {
+            this.seenMult = mult;
+            return;
+        }
+
+        if (mult > this.seenMult) {
+            this.events.emit('combo-up', mult);
+        } else {
+            this.events.emit('combo-lost');
+        }
+
+        if (mult === 5) this.events.emit('frenzy-start');
+        if (this.seenMult === 5) this.events.emit('frenzy-end');
+
+        this.seenMult = mult;
     }
 
     // Insignia de aprendizaje: aviso corto la primera vez que se usa una mecánica.
@@ -471,6 +501,7 @@ export class Game extends Scene
         this.hud.setShield(this.player.shieldUntil - this.time.now, this.shieldTotalMs);
         this.hud.setDashCooldown(this.player.dashRemaining, PLAYER_CONFIG.dashCooldownMs);
         this.hud.setComboTimer(this.scoreManager.comboRemaining(this.time.now));
+        this.trackCombo();
 
         if (!this.gameEnded && this.scoreManager.multiplier > this.maxMult) {
             this.maxMult = this.scoreManager.multiplier;
