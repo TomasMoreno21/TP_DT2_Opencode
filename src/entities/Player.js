@@ -6,11 +6,16 @@ export const PLAYER_CONFIG = {
     height: 48,
     color: 0x00d1b2,
     wallGrabColor: 0x00ff88,
-    speed: 340,
-    accel: 1600,
-    airAccel: 1200,
-    decel: 1200,
-    airDecel: 550,
+    speed: 400,
+    accel: 2200,
+    airAccel: 1600,
+    decel: 1500,
+    airDecel: 800,
+    fallGravityMult: 1.35,
+    maxFallSpeed: 1000,
+    cornerForgiveness: 10,
+    ledgeForgiveness: 10,
+    dashRefundMs: 450,
     turnAccel: 3600,
     jumpVelocity: -500,
     jumpCutVelocity: -150,
@@ -51,6 +56,7 @@ export class Player {
         this.body = this.rect.body;
         this.body.setCollideWorldBounds(true);
         this.body.setBounce(0);
+        this.body.setMaxVelocityY(PLAYER_CONFIG.maxFallSpeed);
 
         this.jumpPressed = false;
         this.platformVelocity = null;
@@ -89,7 +95,11 @@ export class Player {
         this.dashNextTrailAt = 0;
         this.facing = 1;
 
+        this.prevVx = 0;
+
         this.fx.attach();
+        // Cada punto recogido devuelve parte de la recarga del dash.
+        scene.listen('point-collected', () => this.refundDash());
     }
 
     get hasShield() {
@@ -106,6 +116,13 @@ export class Player {
 
     get dashRemaining() {
         return Math.max(this.dashCooldownUntil - this.scene.time.now, 0);
+    }
+
+    // Recoger un punto acorta lo que falta para volver a dashear.
+    refundDash() {
+        const now = this.scene.time.now;
+
+        this.dashCooldownUntil = Math.max(now, this.dashCooldownUntil - PLAYER_CONFIG.dashRefundMs);
     }
 
     activateShield(durationMs = PLAYER_CONFIG.shieldDurationMs) {
@@ -155,6 +172,15 @@ export class Player {
         this.jumpPressed = jumpNow;
 
         const now = this.scene.time.now;
+        const dtSec = Math.min(deltaMs, 50) / 1000;
+
+        // Caída más pesada que la subida: el salto se siente más rápido y firme.
+        const falling = !this.onFloor && this.body.velocity.y > 0 && !this.isDashing && !this.wallGrabbing;
+        this.body.setGravityY(falling ? this.scene.physics.world.gravity.y * (PLAYER_CONFIG.fallGravityMult - 1) : 0);
+
+        if (!this.isDashing && !this.wallGrabbing) {
+            this.forgive(left, right, dtSec);
+        }
 
         if (justPressedJump) {
             this.jumpBufferUntil = now + PLAYER_CONFIG.jumpBufferTime;
@@ -325,6 +351,66 @@ export class Player {
         this.applyMotionScale();
 
         this.prevVy = this.body.velocity.y;
+        this.prevVx = this.body.velocity.x;
+    }
+
+    // Perdón de esquinas: si la cabeza roza el borde de una plataforma al subir, se corre al
+    // jugador al costado; si los pies quedan a pocos píxeles de un borde al avanzar, sube el escalón.
+    forgive(left, right, dt) {
+        const platforms = this.scene.level?.platforms?.getChildren();
+
+        if (!platforms) return;
+
+        const b = this.body;
+        const halfW = b.width / 2;
+        const halfH = b.height / 2;
+        const cx = b.x + halfW;
+        const top = b.y;
+        const bottom = b.y + b.height;
+        const vy = b.velocity.y;
+
+        for (const p of platforms) {
+            const pw = p.displayWidth;
+            const ph = p.displayHeight;
+
+            if (ph > pw * 2) continue; // paredes: se mantienen sólidas
+
+            const pl = p.x - pw / 2;
+            const pr = p.x + pw / 2;
+            const pTop = p.y - ph / 2;
+            const pBottom = p.y + ph / 2;
+
+            // Esquina: va a cruzar el borde inferior y solo roza por un lado.
+            if (vy < 0 && top >= pBottom - 1 && top + vy * dt <= pBottom) {
+                const overL = cx + halfW - pl;
+                const overR = pr - (cx - halfW);
+
+                if (overL > 0 && overR > 0) {
+                    const shift = overL < overR ? -(overL + 1) : overR + 1;
+
+                    if (Math.abs(shift) <= PLAYER_CONFIG.cornerForgiveness + 1) {
+                        b.position.x += shift;
+                        b.prev.x += shift;
+                        return;
+                    }
+                }
+            }
+
+            // Escalón: choca de costado con los pies apenas debajo del borde superior.
+            const dir = right && !left ? 1 : (left && !right ? -1 : 0);
+            const blocked = (dir > 0 && b.blocked.right) || (dir < 0 && b.blocked.left);
+            const step = bottom - pTop;
+
+            if (blocked && !this.onFloor && step > 0 && step <= PLAYER_CONFIG.ledgeForgiveness && vy >= -50 &&
+                top < pTop && cx + halfW > pl - 2 && cx - halfW < pr + 2 &&
+                (dir > 0 ? Math.abs(cx + halfW - pl) < 4 : Math.abs(cx - halfW - pr) < 4)) {
+                b.position.y -= step + 0.5;
+                b.prev.y -= step + 0.5;
+                b.setVelocityY(0);
+                b.setVelocityX(Math.max(Math.abs(this.prevVx), PLAYER_CONFIG.speed * 0.6) * dir);
+                return;
+            }
+        }
     }
 
     applyMotionScale() {

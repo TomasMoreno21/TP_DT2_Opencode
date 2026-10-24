@@ -4,6 +4,7 @@ import { GameOver } from './scenes/GameOver';
 import { MainMenu } from './scenes/MainMenu';
 import { Pause } from './scenes/Pause';
 import { Ranking } from './scenes/Ranking';
+import { installPlaytest } from './systems/Playtest';
 import { Preloader } from './scenes/Preloader';
 import { AUTO, Game as PhaserGame, Scale } from 'phaser';
 
@@ -52,6 +53,7 @@ const StartGame = (parent) => {
 document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('startup-message')?.remove();
+    installPlaytest();
     StartGame('game-container');
 
 });

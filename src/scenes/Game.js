@@ -546,6 +546,7 @@ export class Game extends Scene
             return;
         }
 
+        this.metrics.sample(this.game.loop.actualFps, time);
         this.player.update(delta);
         this.tutorial?.update();
         const inTutorial = Boolean(this.tutorial?.active);

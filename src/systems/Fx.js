@@ -116,14 +116,14 @@ export class Fx {
     }
 
     // Línea que se desvanece (ruta entre puntos, líneas de velocidad).
-    streak(x1, y1, x2, y2, color = 0xffffff, ms = 160, width = 3) {
+    streak(x1, y1, x2, y2, color = 0xffffff, ms = 160, width = 3, alpha = 1) {
         if (this.pools.streak.inUse >= FEEL.fx.maxStreaks) {
             return;
         }
 
         const line = this.pools.streak.get();
 
-        line.clear().lineStyle(width, color, 1).lineBetween(x1, y1, x2, y2).setAlpha(1);
+        line.clear().lineStyle(width, color, 1).lineBetween(x1, y1, x2, y2).setAlpha(alpha);
         this.scene.tweens.add({
             targets: line,
             alpha: 0,

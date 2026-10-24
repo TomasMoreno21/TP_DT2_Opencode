@@ -49,8 +49,8 @@ export class CollectFx {
 
         // El punto siguiente "nace" con un trazo desde el que se acaba de tomar.
         if (next) {
-            fx.streak(x, y, next.circle.x, next.circle.y, color, 170, 3);
-            fx.ring(next.circle.x, next.circle.y, 0xffffff, 26, 220);
+            fx.streak(x, y, next.circle.x, next.circle.y, color, 110, 1.5, 0.3);
+            fx.ring(next.circle.x, next.circle.y, 0xffffff, 22, 200);
         }
 
         // Ruta luminosa: arranca de cero cuando la cadena se reinicia.

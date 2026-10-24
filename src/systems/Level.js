@@ -38,6 +38,10 @@ export class Level {
     destroy() {
         this.goal.destroy();
 
+        for (const trampoline of this.trampolineList) {
+            trampoline.destroy();
+        }
+
         for (const gem of this.gemList) {
             gem.destroy();
         }

@@ -32,7 +32,6 @@ export class PlayerFx {
         this.nextWallSpark = 0;
         this.nextLine = 0;
         this.nextEmber = 0;
-        this.phase = 0;
         this.antPulse = 1;
         this.ant = { x: 0, y: -13, vx: 0, vy: 0 };
         this.scarf = null;
@@ -57,6 +56,7 @@ export class PlayerFx {
         this.pupilL = scene.add.circle(x - 7, y - 8, 2.8, 0x111122).setDepth(2);
         this.pupilR = scene.add.circle(x + 7, y - 8, 2.8, 0x111122).setDepth(2);
         // Cara de texto: >_< al dañarse, ^_^ al recoger, °o° en pánico. Reemplaza a los ojos.
+        this.mood = scene.add.graphics().setDepth(3);
         this.face = scene.add.text(x, y - 8, '', {
             fontFamily: 'Arial Black', fontSize: 24, color: '#111122'
         }).setOrigin(0.5).setDepth(3).setVisible(false);
@@ -74,7 +74,7 @@ export class PlayerFx {
         this.hidden = true;
         this.scene.fx.shatter(rect.x, rect.y, rect.fillColor ?? this.cfg.color, 16);
 
-        for (const o of [rect, this.glow, this.acc, this.eyeL, this.eyeR, this.pupilL, this.pupilR, this.face, this.shadow]) {
+        for (const o of [rect, this.glow, this.acc, this.eyeL, this.eyeR, this.pupilL, this.pupilR, this.face, this.mood, this.shadow]) {
             o.setVisible(false);
         }
     }
@@ -180,18 +180,40 @@ export class PlayerFx {
         const jitter = panic ? (Math.random() - 0.5) * 1.6 : 0;
 
         // Texto que reemplaza a los ojos: daño y alegría tienen prioridad.
-        const text = hurting ? '>_<' : (happy ? '^_^' : '');
+        const text = hurting ? '>_<' : '';
         this.face.setText(text).setPosition(ex, ey).setVisible(Boolean(text));
 
         // Ojos: grandes en alerta y pánico, entornados al dashear, cerrados al parpadear.
         const wide = (threat || panic) ? 1.25 : 1;
         const openY = (now < this.blinkUntil ? 0.08 : (dashing ? 0.5 : 1)) * wide;
-        const showEyes = !text;
+        const showEyes = !text && !happy;
+
+        this.drawHappy(happy, now, ex, ey);
 
         this.eyeL.setPosition(ex - 7 + this.lookX * 0.5 + jitter, ey + this.lookY * 0.5).setScale(wide, openY).setVisible(showEyes);
         this.eyeR.setPosition(ex + 7 + this.lookX * 0.5 + jitter, ey + this.lookY * 0.5).setScale(wide, openY).setVisible(showEyes);
         this.pupilL.setPosition(ex - 7 + this.lookX + jitter, ey + this.lookY).setScale(1, openY).setVisible(showEyes);
         this.pupilR.setPosition(ex + 7 + this.lookX + jitter, ey + this.lookY).setScale(1, openY).setVisible(showEyes);
+    }
+
+    // Cara de alegría al recoger: ojos en arco, sonrisa y mejillas, con un saltito al empezar.
+    drawHappy(happy, now, ex, ey) {
+        const g = this.mood.clear();
+
+        if (!happy) return;
+
+        const k = Math.min(1, (this.happyUntil - now) / FEEL.player.happyMs);
+        const pop = Math.max(0, k - 0.6) / 0.4;
+        const y = ey - pop * 2;
+        const arc = (cx, cy, r, from, to) => g.beginPath().arc(cx, cy, r, from, to).strokePath();
+
+        g.fillStyle(0xff8fb8, 0.9 * Math.min(1, k * 2));
+        g.fillEllipse(ex - 13, y + 6, 6, 4).fillEllipse(ex + 13, y + 6, 6, 4);
+
+        g.lineStyle(2.6, 0x111122, 1);
+        arc(ex - 7, y + 3, 4.5, Math.PI * 1.1, Math.PI * 1.9);
+        arc(ex + 7, y + 3, 4.5, Math.PI * 1.1, Math.PI * 1.9);
+        arc(ex, y + 4, 5.5 + pop, Math.PI * 0.15, Math.PI * 0.85);
     }
 
     // --- Sombra ---------------------------------------------------------------
@@ -233,7 +255,7 @@ export class PlayerFx {
         g.fillStyle(0x000000, 0.38 * k).fillEllipse(rect.x, ground + 1, 30 * k + 4, 6 * k + 2);
     }
 
-    // --- Antena, bufanda y piecitos ------------------------------------------
+    // --- Antena y bufanda ------------------------------------------
 
     updateAccessories(dt, now, speedK) {
         const { player } = this;
@@ -245,22 +267,6 @@ export class PlayerFx {
         const fill = rect.fillColor ?? this.cfg.color;
         const g = this.acc.clear();
         const top = rect.y - (this.cfg.height * sy) / 2;
-        const bottom = rect.y + (this.cfg.height * sy) / 2;
-
-        // Piecitos: alternan al correr, se separan y suben en el aire.
-        const grounded = player.body.blocked.down;
-        this.phase += Math.abs(vx) * dt * 0.05;
-        const running = grounded && Math.abs(vx) > 20;
-        const liftL = grounded ? (running ? Math.max(0, Math.sin(this.phase)) * 5 : 0) : 4;
-        const liftR = grounded ? (running ? Math.max(0, Math.sin(this.phase + Math.PI)) * 5 : 0) : 4;
-        const spread = (grounded ? 8 : 10) * sx;
-        const dark = ((fill >> 16 & 0xff) * 0.55 << 16) | ((fill >> 8 & 0xff) * 0.55 << 8) | ((fill & 0xff) * 0.55);
-
-        g.fillStyle(dark, 1).lineStyle(1.5, 0xffffff, 0.8);
-        for (const [dx, lift] of [[-spread, liftL], [spread, liftR]]) {
-            g.fillRoundedRect(rect.x + dx - 5, bottom - 3 - lift, 10, 6, 3);
-            g.strokeRoundedRect(rect.x + dx - 5, bottom - 3 - lift, 10, 6, 3);
-        }
 
         // Antena con resorte: se queda atrás al correr, sube al caer y se dobla al subir.
         const bx = rect.x + player.facing * 2;
@@ -356,6 +362,14 @@ export class PlayerFx {
                     const x = rect.x - dir * (24 + Math.random() * 12);
                     fx.streak(x, y, x - dir * (40 + Math.random() * 40), y, 0xffffff, 150, 2);
                 }
+            } else if (speedK > 0.92 && !player.turning) {
+                // A tope de velocidad: líneas finas hacia atrás.
+                this.nextLine = now + 70;
+                const dir = Math.sign(vx);
+                const y = rect.y + (Math.random() - 0.5) * 40;
+                const x = rect.x - dir * (22 + Math.random() * 10);
+
+                fx.streak(x, y, x - dir * (28 + Math.random() * 28), y, 0xffffff, 120, 1.5, 0.45);
             } else if (vy > 600) {
                 this.nextLine = now + 60;
                 const x = rect.x + (Math.random() - 0.5) * 36;

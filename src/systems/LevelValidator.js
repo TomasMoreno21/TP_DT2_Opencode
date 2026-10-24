@@ -15,6 +15,7 @@ const JUMP_V = Math.abs(PLAYER_CONFIG.jumpVelocity);
 const WALL_JUMP_V = Math.abs(PLAYER_CONFIG.wallJumpYVelocity);
 const WALL_JUMP_X = PLAYER_CONFIG.wallJumpXVelocity;
 const GRAVITY = 900;
+const FALL_MULT = PLAYER_CONFIG.fallGravityMult ?? 1;
 const MAX_FRAMES = 720;
 const MOVER_SAMPLES = 5;
 // Modo con tiempo: frames que se agrupan al deduplicar estados cerca de una movil.
@@ -409,7 +410,7 @@ export class LevelValidator {
                 const stepPlatforms = platformsAt(f0 + depth + 1);
                 const local = stepPlatforms.filter((p) => p.x2 > state.x - HW - 14 && p.x1 < state.x + HW + 14 &&
                     p.y2 > state.y - HH - 26 && p.y1 < state.y + HH + 26);
-                const gravityVy = state.grounded ? 0 : state.vy + GRAVITY * DT;
+                const gravityVy = state.grounded ? 0 : state.vy + GRAVITY * (state.vy > 0 ? FALL_MULT : 1) * DT;
 
                 // Macro de wall jump en curso: el movimiento horizontal está fijado.
                 if (state.wj) {
