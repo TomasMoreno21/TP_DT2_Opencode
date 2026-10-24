@@ -22,6 +22,8 @@ import { FEEL } from '../assets/feel';
 import { Fx } from '../systems/Fx';
 import { CameraFx } from '../systems/CameraFx';
 import { Metrics } from '../systems/Metrics';
+import { Music } from '../systems/Music';
+import { TensionDirector } from '../systems/TensionDirector';
 
 export class Game extends Scene
 {
@@ -177,6 +179,7 @@ export class Game extends Scene
         this.pace = new GamePace(this);
         this.fx = new Fx(this);
         this.camFx = new CameraFx(this);
+        this.tension = new TensionDirector(this);
         this.zoomLevel = 1;
 
         this.level = new Level(this, levelConfig);
@@ -296,7 +299,28 @@ export class Game extends Scene
         this.listen('combo-up', (level) => Audio.play('comboUp', { level }));
         this.listen('combo-lost', () => Audio.play('comboLost'));
         this.listen('frenzy-start', () => Audio.play('frenzy'));
+        this.listen('frenzy-start', () => { Music.setFrenzy(true); this.hud.setFrenzy(true); });
+        this.listen('frenzy-end', () => { Music.setFrenzy(false); this.hud.setFrenzy(false); });
+        this.listen('combo-up', (level) => Music.setCombo(level));
+        this.listen('combo-lost', () => Music.setCombo(1));
+        this.listen('tension', (value) => Music.setTension(value));
+        // Últimos 10 s: tic-tac; últimos 5 s: latido y borde que late cada segundo.
+        this.listen('time-tick', (seconds) => {
+            Music.setPressure(seconds <= 10);
+
+            if (seconds > 10 || seconds <= 0) return;
+            Audio.play(seconds <= 5 ? 'tickUrgent' : 'tick');
+
+            if (seconds <= 5) {
+                Audio.play('heartbeat');
+                this.hud.pulseEdge();
+            }
+        });
         this.seenMult = 1;
+
+        // Música del nivel (cada nivel tiene su tonalidad); en la práctica, la del menú.
+        Music.play(this.practice ? 'menu' : `level${this.levelIndex % 2}`);
+        Music.reset();
 
         // Hints que se ganan: solo en el nivel 1.
         this.tutorial = this.levelIndex === 0 && !this.practice ? new TutorialManager(this, this.player) : null;
@@ -491,6 +515,7 @@ export class Game extends Scene
         if (seconds !== this.lastSecond) {
             this.lastSecond = seconds;
             this.hud.setTime(seconds);
+            this.events.emit('time-tick', seconds);
 
             if (seconds === 5 && !this.warned5s && !this.gameEnded) {
                 this.warned5s = true;
@@ -502,6 +527,7 @@ export class Game extends Scene
         this.hud.setDashCooldown(this.player.dashRemaining, PLAYER_CONFIG.dashCooldownMs);
         this.hud.setComboTimer(this.scoreManager.comboRemaining(this.time.now));
         this.trackCombo();
+        this.tension.update(delta);
 
         if (!this.gameEnded && this.scoreManager.multiplier > this.maxMult) {
             this.maxMult = this.scoreManager.multiplier;
@@ -716,6 +742,7 @@ export class Game extends Scene
         }
 
         this.gameEnded = true;
+        Music.die();
         Coach.record('timeout');
         this.metrics.finish(this.time.now, 'tiempo');
         this.scene.start('GameOver', {
@@ -778,6 +805,7 @@ export class Game extends Scene
 
         this.gameEnded = true;
         Coach.record(projectileCircle ? 'projectile' : 'hazard');
+        Music.die();
         this.metrics.finish(this.time.now, projectileCircle ? 'muerte: proyectil' : 'muerte: pincho');
         this.pace.hitstop(FEEL.hitstop.death);
         this.pace.slowmo(FEEL.slowmo.death.ms, FEEL.slowmo.death.factor);

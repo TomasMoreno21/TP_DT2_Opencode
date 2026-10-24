@@ -68,6 +68,13 @@ export class Hud {
         this.buildAbilities();
 
         this.vignette = this.fix(scene.add.graphics()).setVisible(false);
+
+        // Borde rojo que late una vez por segundo en los últimos 5 s.
+        this.edgePulseGfx = this.fix(scene.add.graphics()).setAlpha(0);
+        // Borde dorado que respira mientras dura el frenesí (x5).
+        this.frenzyGfx = this.fix(scene.add.graphics()).setVisible(false);
+        this.frenzyGfx.lineStyle(14, 0xffdd44, 0.5).strokeRect(0, 0, 1024, 768);
+        this.frenzyTween = null;
     }
 
     // Todo el HUD queda fijo en pantalla y por encima del juego.
@@ -182,6 +189,32 @@ export class Hud {
         const g = this.timerRing.clear();
         g.lineStyle(7, 0x0e0c1f, 1).strokeCircle(x, y, r);
         drawArc(g, x, y, r, 7, fraction, color);
+    }
+
+    // Destello de borde (uno por segundo como máximo; respeta "reducir destellos").
+    pulseEdge (color = 0xff2233) {
+        if (this.scene.camFx.reduceFlash) {
+            return;
+        }
+
+        this.edgePulseGfx.clear().lineStyle(18, color, 0.55).strokeRect(0, 0, 1024, 768);
+        this.scene.tweens.killTweensOf(this.edgePulseGfx);
+        this.edgePulseGfx.setAlpha(1);
+        this.scene.tweens.add({ targets: this.edgePulseGfx, alpha: 0, duration: 420, ease: 'Quad.easeOut' });
+    }
+
+    // Frenesí: borde dorado respirando.
+    setFrenzy (on) {
+        this.frenzyTween?.stop();
+        this.frenzyTween = null;
+        this.frenzyGfx.setVisible(on);
+
+        if (on) {
+            this.frenzyGfx.setAlpha(0.35);
+            this.frenzyTween = this.scene.tweens.add({
+                targets: this.frenzyGfx, alpha: 1, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+            });
+        }
     }
 
     setTimerTotal (totalSeconds) {

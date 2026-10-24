@@ -8,6 +8,7 @@ import { CampaignBuilder } from '../systems/CampaignBuilder';
 import { Tutorial } from '../systems/TutorialManager';
 import { Badges, BADGES } from '../systems/Badges';
 import { MenuButton } from '../systems/MenuButton';
+import { Music } from '../systems/Music';
 
 const COLORS = {
     bgTop: 0x232045,
@@ -45,6 +46,7 @@ export class MainMenu extends Scene
         // JUGAR: así la pausa de generación (~1 s) queda fuera de la partida.
         this.generateCampaign();
         this.cameras.main.setBackgroundColor(0x16132a);
+        Music.play('menu');
         this.drawBackground();
 
         const title = this.add.text(512, 135, 'FAST MOVE', {

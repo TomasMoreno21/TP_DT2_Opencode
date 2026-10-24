@@ -37,6 +37,12 @@ export const FEEL = {
         panicSeconds: 5
     },
 
+    // Tensión 0..1 (docs/PLAN_FEEL.md §7.1): pesos de reloj, combo, proyectiles y meta.
+    tension: { wTime: 0.45, wCombo: 0.25, wProj: 0.2, wQuota: 0.1, smooth: 0.08 },
+
+    // Música procedural: volumen moderado (0..1) y fundidos (ms).
+    music: { volume: 0.6, fadeInMs: 600, fadeOutMs: 400, dieMs: 700 },
+
     // Efectos de partículas.
     fx: { burstCount: 10, burstLifespan: 400, ringRadius: 56, ringMs: 220, maxGhosts: 24, maxRings: 16, maxStreaks: 24 },
 

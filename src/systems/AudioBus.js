@@ -14,6 +14,7 @@ let context = null;
 let master = null;
 let compressor = null;
 let musicBus = null;
+let musicFilter = null;
 let reverb = null;
 let reverbSend = null;
 let noiseBuffer = null;
@@ -84,8 +85,12 @@ export function ensureContext() {
         compressor.attack.value = 0.003;
         compressor.release.value = 0.2;
 
+        // Música: musicBus (ducking) → musicFilter (barrido al morir) → master.
         musicBus = context.createGain();
         musicBus.gain.value = 1;
+        musicFilter = context.createBiquadFilter();
+        musicFilter.type = 'lowpass';
+        musicFilter.frequency.value = 20000;
 
         reverb = context.createConvolver();
         reverb.buffer = makeImpulse(context);
@@ -94,11 +99,18 @@ export function ensureContext() {
 
         master.connect(compressor);
         compressor.connect(context.destination);
-        musicBus.connect(master);
+        musicBus.connect(musicFilter);
+        musicFilter.connect(master);
         reverbSend.connect(reverb);
         reverb.connect(master);
 
         noiseBuffer = makeNoise(context);
+
+        // El navegador exige un gesto antes de reproducir: se reanuda en el primero.
+        const resume = () => context.state === 'suspended' && context.resume();
+
+        window.addEventListener('pointerdown', resume);
+        window.addEventListener('keydown', resume);
     }
 
     if (context.state === 'suspended') {
@@ -121,7 +133,7 @@ function claim(priority) {
 }
 
 // Cadena común: gain con envolvente → [filtro] → [pan] → master (y envío a reverb).
-function chain(ctx, source, { start, duration, volume, attack = 0.008, filter = null, pan = 0, wet = 0, priority = 1 }) {
+function chain(ctx, source, { start, duration, volume, attack = 0.008, filter = null, pan = 0, wet = 0, dest = null }) {
     const gain = ctx.createGain();
 
     gain.gain.setValueAtTime(0, start);
@@ -156,7 +168,7 @@ function chain(ctx, source, { start, duration, volume, attack = 0.008, filter = 
         out = panner;
     }
 
-    out.connect(master);
+    out.connect(dest ?? master);
 
     if (wet > 0) {
         const send = ctx.createGain();
@@ -166,20 +178,21 @@ function chain(ctx, source, { start, duration, volume, attack = 0.008, filter = 
         send.connect(reverbSend);
     }
 
+    // Las voces de música (dest) no cuentan para el límite de las de efectos.
     source.onended = () => {
-        voices -= 1;
+        if (!dest) voices -= 1;
     };
 }
 
 // Tono con envolvente. freq→endFreq por rampa exponencial. `filter`: { type, freq, endFreq, q }.
-export function tone({ freq = 440, endFreq = null, type = 'square', duration = 0.12, volume = 0.25, delay = 0, attack, filter, pan, wet, priority = 1 }) {
+export function tone({ freq = 440, endFreq = null, type = 'square', duration = 0.12, volume = 0.25, delay = 0, attack, filter, pan, wet, dest = null, priority = 1 }) {
     if (muted) {
         return;
     }
 
     const ctx = ensureContext();
 
-    if (!ctx || !claim(priority)) {
+    if (!ctx || (!dest && !claim(priority))) {
         return;
     }
 
@@ -193,20 +206,20 @@ export function tone({ freq = 440, endFreq = null, type = 'square', duration = 0
         osc.frequency.exponentialRampToValueAtTime(Math.max(endFreq, 1), start + duration);
     }
 
-    chain(ctx, osc, { start, duration, volume, attack, filter, pan, wet, priority });
+    chain(ctx, osc, { start, duration, volume, attack, filter, pan, wet, dest });
     osc.start(start);
     osc.stop(start + duration + 0.02);
 }
 
 // Ráfaga de ruido blanco con filtro (whoosh, polvo, impacto, fricción).
-export function noise({ duration = 0.12, volume = 0.2, delay = 0, attack, filter, pan, wet, priority = 1 }) {
+export function noise({ duration = 0.12, volume = 0.2, delay = 0, attack, filter, pan, wet, dest = null, priority = 1 }) {
     if (muted) {
         return;
     }
 
     const ctx = ensureContext();
 
-    if (!ctx || !claim(priority)) {
+    if (!ctx || (!dest && !claim(priority))) {
         return;
     }
 
@@ -216,7 +229,7 @@ export function noise({ duration = 0.12, volume = 0.2, delay = 0, attack, filter
     src.buffer = noiseBuffer;
     src.loop = true;
 
-    chain(ctx, src, { start, duration, volume, attack, filter, pan, wet, priority });
+    chain(ctx, src, { start, duration, volume, attack, filter, pan, wet, dest });
     src.start(start, Math.random() * 1.5);
     src.stop(start + duration + 0.02);
 }
@@ -233,6 +246,26 @@ export function duck(amount = 0.45, ms = 160) {
     musicBus.gain.setValueAtTime(musicBus.gain.value, now);
     musicBus.gain.linearRampToValueAtTime(amount, now + 0.02);
     musicBus.gain.linearRampToValueAtTime(1, now + ms / 1000 + 0.02);
+}
+
+// Barre el filtro de la música (baja a `freq` en `ms`): el golpe de muerte "apaga" el mundo.
+export function sweepMusicFilter(freq, ms) {
+    if (!context || !musicFilter) {
+        return;
+    }
+
+    const now = context.currentTime;
+
+    musicFilter.frequency.cancelScheduledValues(now);
+    musicFilter.frequency.setValueAtTime(musicFilter.frequency.value, now);
+    musicFilter.frequency.exponentialRampToValueAtTime(Math.max(freq, 30), now + ms / 1000);
+}
+
+export function resetMusicFilter() {
+    if (musicFilter && context) {
+        musicFilter.frequency.cancelScheduledValues(context.currentTime);
+        musicFilter.frequency.setValueAtTime(20000, context.currentTime);
+    }
 }
 
 export function toggleMute() {

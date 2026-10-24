@@ -8,6 +8,7 @@ import { NameEntry } from '../systems/NameEntry';
 import { createRankingTable } from '../systems/RankingTable';
 import { MenuButton } from '../systems/MenuButton';
 import { Lang } from '../systems/Texts';
+import { Music } from '../systems/Music';
 
 const ENDING_CONFIG = {
     hit: { title: '¡Perdiste!', color: '#ff4455', tint: 0xff4455, bg: 0x2a0f16, face: '>_<', faceColor: '#ff8899' },
@@ -51,6 +52,13 @@ export class GameOver extends Scene
     {
         const config = ENDING_CONFIG[this.reason] ?? ENDING_CONFIG.hit;
         const isVictory = this.reason === 'victory';
+
+        // Tras ganar suena la música tranquila; tras perder, silencio (la muerte ya la apagó).
+        if (isVictory) {
+            Music.play('menu');
+        } else {
+            Music.stop();
+        }
 
         this.cameras.main.setBackgroundColor(config.bg);
         this.drawSparkles(config.tint);
