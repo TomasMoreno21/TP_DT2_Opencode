@@ -9,6 +9,7 @@ import { createRankingTable } from '../systems/RankingTable';
 import { MenuButton } from '../systems/MenuButton';
 import { Lang } from '../systems/Texts';
 import { Music } from '../systems/Music';
+import { Wipe } from '../systems/Wipe';
 
 const ENDING_CONFIG = {
     hit: { title: '¡Perdiste!', color: '#ff4455', tint: 0xff4455, bg: 0x2a0f16, face: '>_<', faceColor: '#ff8899' },
@@ -32,6 +33,8 @@ export class GameOver extends Scene
         this.levelIndex = data.levelIndex ?? 0;
         this.maxCombo = data.maxCombo ?? 1;
         this.survived = data.survived ?? 0;
+        this.quota = data.quota ?? 0;
+        this.collected = data.collected ?? 0;
         // La campaña se conserva (los demás niveles no cambian). Al perder, "Reintentar"
         // reemplaza ESE nivel por uno nuevo generado con otra semilla; en victoria
         // se descarta: empieza una partida nueva.
@@ -52,6 +55,14 @@ export class GameOver extends Scene
     {
         const config = ENDING_CONFIG[this.reason] ?? ENDING_CONFIG.hit;
         const isVictory = this.reason === 'victory';
+
+        // Si venimos de un wipe (victoria), se destapa la pantalla.
+        const wipeColor = this.registry.get('wipeIn');
+
+        if (wipeColor !== undefined) {
+            this.registry.remove('wipeIn');
+            Wipe.reveal(this, wipeColor, 360);
+        }
 
         // Tras ganar suena la música tranquila; tras perder, silencio (la muerte ya la apagó).
         if (isVictory) {
@@ -113,6 +124,7 @@ export class GameOver extends Scene
         }
 
         this.drawStatsPanel();
+        this.drawLossInfo();
 
         if (this.isNewRecord) {
             const record = this.add.text(512, 532, '¡Nuevo récord!', {
@@ -293,6 +305,28 @@ export class GameOver extends Scene
 
         const level = LEVELS[this.levelIndex] ?? LEVELS[0];
         return `Nivel ${this.levelIndex + 1}/${LEVELS.length} - ${level.name}`;
+    }
+
+    // Derrota: cuánto faltaba para la meta y un consejo según la causa.
+    drawLossInfo ()
+    {
+        if (this.reason === 'victory') {
+            return;
+        }
+
+        const missing = this.quota - this.collected;
+        const lines = [];
+
+        if (missing > 0) lines.push([Lang.t('overMissing', { n: missing }), 18, '#ffcc66']);
+        lines.push([Lang.t(this.reason === 'timeout' ? 'overTipTime' : 'overTipHit'), 14, '#9a94c8']);
+
+        lines.forEach(([text, size, color], i) => {
+            const label = this.add.text(512, 486 + i * 24, text, {
+                fontFamily: 'Arial', fontSize: size, color
+            }).setOrigin(0.5).setAlpha(0);
+
+            this.tweens.add({ targets: label, alpha: 1, duration: 300, delay: 350 + i * 150 });
+        });
     }
 
     drawStatsPanel ()

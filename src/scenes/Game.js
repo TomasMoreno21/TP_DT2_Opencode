@@ -27,6 +27,8 @@ import { CollectFx } from '../systems/CollectFx';
 import { Backdrop } from '../systems/Backdrop';
 import { PlatformGlow } from '../systems/PlatformGlow';
 import { themeFor } from '../assets/themes';
+import { LevelIntro } from '../systems/LevelIntro';
+import { Wipe } from '../systems/Wipe';
 import { TensionDirector } from '../systems/TensionDirector';
 
 export class Game extends Scene
@@ -143,6 +145,8 @@ export class Game extends Scene
         this.lastSecond = null;
         this.warned5s = false;
         this.maxMult = 1;
+        this.intro = null;
+        this.restarting = false;
 
         if (!this.textures.exists('particle')) {
             this.make.graphics({ x: 0, y: 0, add: false })
@@ -264,13 +268,7 @@ export class Game extends Scene
 
         this.retryKey.on('down', () => {
             if (!this.gameEnded && !this.paused) {
-                this.scene.restart({
-                    levelIndex: this.levelIndex,
-                    completedScore: this.completedScore,
-                    campaignSeed: this.campaignSeed,
-                    campaign: this.campaign,
-                    deaths: this.deaths
-                });
+                this.restartLevel();
             }
         });
 
@@ -409,6 +407,45 @@ export class Game extends Scene
         // ritmo normal: si se apaga durante un hitstop, el mundo queda pausado.
         this.events.once('shutdown', () => this.pace.restore());
         this.events.once('shutdown', () => this.level.destroy());
+
+        // Si venimos de un wipe (nivel nuevo o reinicio con R), se destapa la pantalla.
+        const wipeColor = this.registry.get('wipeIn');
+
+        if (wipeColor !== undefined) {
+            this.registry.remove('wipeIn');
+            Wipe.reveal(this, wipeColor, 360);
+        }
+
+        // Intro del nivel: tarjeta y cuenta 3-2-1 (solo "¡YA!" al reintentar el mismo nivel).
+        // El juego queda congelado y el reloj sin correr hasta el "¡YA!".
+        if (!this.practice) {
+            const short = this.registry.get('lastIntro') === this.levelIndex;
+
+            this.registry.set('lastIntro', this.levelIndex);
+            this.physics.world.pause();
+            this.intro = new LevelIntro(this, { name: LEVELS[this.levelIndex]?.name, theme: this.theme, short });
+            this.intro.start(() => this.physics.world.resume());
+        }
+    }
+
+    // Reinicia el nivel con un wipe corto (R). La pantalla se destapa en la escena nueva.
+    restartLevel ()
+    {
+        if (this.restarting) {
+            return;
+        }
+
+        this.restarting = true;
+        this.registry.set('wipeIn', this.theme.bgBottom);
+        Wipe.cover(this, this.theme.bgBottom, 200, () => {
+            this.scene.restart({
+                levelIndex: this.levelIndex,
+                completedScore: this.completedScore,
+                campaignSeed: this.campaignSeed,
+                campaign: this.campaign,
+                deaths: this.deaths
+            });
+        });
     }
 
     // Registra un listener de eventos de la escena y lo quita al apagarse. Sin esto,
@@ -504,6 +541,10 @@ export class Game extends Scene
         this.backdrop.update(time, this.player.rect.x, pulse);
         this.platformGlow.update(this.seenMult === 5 ? pulse : 0);
         this.level.goal.update(time);
+
+        if (this.intro?.active) {
+            return;
+        }
 
         this.player.update(delta);
         this.tutorial?.update();
@@ -653,7 +694,9 @@ export class Game extends Scene
     {
         return {
             maxCombo: this.maxMult,
-            survived: Math.max(Math.floor((this.time.now - this.timer.startTime) / 1000), 0)
+            survived: Math.max(Math.floor((this.time.now - this.timer.startTime) / 1000), 0),
+            quota: this.scoreManager.quota,
+            collected: this.scoreManager.collected
         };
     }
 
@@ -695,46 +738,83 @@ export class Game extends Scene
         Audio.play('goalReached');
 
         // Bono de tiempo: los segundos que sobran se convierten en puntos y fijan el rango.
-        const timeBonus = this.timer.remainingSeconds * TIME_BONUS_PER_SECOND;
+        // El puntaje final se calcula ya; en pantalla la cuenta sube de a un segundo.
+        const seconds = this.timer.remainingSeconds;
+        const timeBonus = seconds * TIME_BONUS_PER_SECOND;
+        const baseScore = this.scoreManager.score;
+
         this.scoreManager.addBonus(timeBonus);
-        this.hud.setScore(this.scoreManager.score);
         const rank = rankFor(this.scoreManager.score, this.rankThresholds);
         RankStore.update(this.levelIndex + 1, rank);
 
         const bankedScore = this.totalScore;
 
-        // Confetti sobre el jugador.
+        // Un instante de cámara lenta y punch al pisar la salida; confeti sobre el jugador.
+        this.pace.slowmo(250, 0.5);
+        this.camFx.punch();
         const px = this.player.rect.x, py = this.player.rect.y;
         for (const [dx, color] of [[-30, 0x00ff88], [30, 0xffdd44], [0, 0x2dd4ff], [-15, 0xff66aa], [15, 0xffffff]]) {
             this.burstAt(px + dx, py - 10, color);
         }
         this.camFx.shake('goal');
 
-        this.floatingText.showBanner(512, 300, `¡Nivel ${this.levelIndex + 1} superado!`, '#00ff88', 32, 1700);
-        if (timeBonus > 0) {
-            this.floatingText.showBanner(512, 348, Lang.t('timeBonus', { v: timeBonus }), '#66ccff', 22, 1700);
-        }
-        const rankColor = rank ? `#${RANK_COLORS[rank].toString(16).padStart(6, '0')}` : '#aaaaaa';
-        this.floatingText.showBanner(512, 388, `${Lang.t('rankLabel')}: ${Lang.t(`rank_${rank ?? 'none'}`)}`, rankColor, 26, 1700);
+        this.floatingText.showBanner(512, 300, `¡Nivel ${this.levelIndex + 1} superado!`, '#00ff88', 32, 2200);
 
-        this.time.delayedCall(2200, () => {
-            if (this.levelIndex + 1 < LEVELS.length) {
-                this.scene.start('Game', {
-                    levelIndex: this.levelIndex + 1,
-                    completedScore: bankedScore,
-                    campaignSeed: this.campaignSeed,
-                    campaign: this.campaign
-                });
-            } else {
-                this.scene.start('GameOver', {
-                    score: bankedScore,
-                    reason: 'victory',
-                    levelIndex: this.levelIndex,
-                    campaignSeed: this.campaignSeed,
-                    campaign: this.campaign,
-                    ...this.endingStats()
-                });
+        // Cuenta en vivo: un tic ascendente por cada segundo que sobraba.
+        const tallyStart = 280;
+        const tallyMs = Math.min(seconds * 90, 1300);
+
+        for (let k = 1; k <= seconds; k++) {
+            this.time.delayedCall(tallyStart + (k * tallyMs) / seconds, () => {
+                this.hud.setScore(baseScore + k * TIME_BONUS_PER_SECOND);
+                Audio.play('tally', { k, n: seconds });
+            });
+        }
+
+        const doneAt = tallyStart + tallyMs;
+
+        this.time.delayedCall(doneAt, () => {
+            this.hud.setScore(this.scoreManager.score);
+
+            if (timeBonus > 0) {
+                this.floatingText.showBanner(512, 348, Lang.t('timeBonus', { v: timeBonus }), '#66ccff', 22, 1400);
             }
+        });
+
+        // La medalla cae con rebote.
+        const rankColor = rank ? `#${RANK_COLORS[rank].toString(16).padStart(6, '0')}` : '#aaaaaa';
+
+        this.time.delayedCall(doneAt + 320, () => {
+            const medal = this.add.text(512, 330, `${Lang.t('rankLabel')}: ${Lang.t(`rank_${rank ?? 'none'}`)}`, {
+                fontFamily: 'Arial Black', fontSize: 26, color: rankColor, stroke: '#000000', strokeThickness: 6
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(60).setScale(1.5).setAlpha(0);
+
+            this.tweens.add({ targets: medal, y: 388, alpha: 1, scale: 1, duration: 480, ease: 'Bounce.easeOut' });
+            this.camFx.punch();
+        });
+
+        // Cortina diagonal hacia el nivel siguiente (o hacia la pantalla final).
+        this.time.delayedCall(doneAt + 320 + 1000, () => {
+            this.registry.set('wipeIn', this.theme.bgBottom);
+            Wipe.cover(this, this.theme.bgBottom, 360, () => {
+                if (this.levelIndex + 1 < LEVELS.length) {
+                    this.scene.start('Game', {
+                        levelIndex: this.levelIndex + 1,
+                        completedScore: bankedScore,
+                        campaignSeed: this.campaignSeed,
+                        campaign: this.campaign
+                    });
+                } else {
+                    this.scene.start('GameOver', {
+                        score: bankedScore,
+                        reason: 'victory',
+                        levelIndex: this.levelIndex,
+                        campaignSeed: this.campaignSeed,
+                        campaign: this.campaign,
+                        ...this.endingStats()
+                    });
+                }
+            });
         });
     }
 
@@ -820,8 +900,8 @@ export class Game extends Scene
         this.pace.hitstop(FEEL.hitstop.death);
         this.pace.slowmo(FEEL.slowmo.death.ms, FEEL.slowmo.death.factor);
         Audio.play('hit');
-        this.player.flinch();
-        this.player.rect.setFillStyle(0xff4455);
+        this.player.fx.shatter();
+        this.camFx.desaturate(600);
 
         this.camFx.shake('death');
         this.camFx.flash(300, 255, 40, 40);

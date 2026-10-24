@@ -97,6 +97,17 @@ const EVENTS = {
         noise({ duration: 0.3, volume: 0.12, priority: 3, filter: { type: 'highpass', freq: 800, endFreq: 6000 } });
         tone({ freq: 1568, type: 'sine', duration: 0.4, volume: 0.1, delay: 0.08, wet: 0.5, priority: 3 });
     },
+    // Disparo en camino: tic agudo ascendente del lado de donde sale.
+    warn: ({ x } = {}) => tone({ freq: 1300, endFreq: 1900, type: 'triangle', duration: 0.1, volume: 0.1, pan: panFor(x), priority: 1 }),
+    // Intro del nivel: cuenta 3-2-1 ascendente y arranque.
+    count: ({ n = 3 } = {}) => tone({ freq: 440 + (3 - n) * 110, type: 'square', duration: 0.11, volume: 0.15, wet: 0.15, priority: 2 }),
+    go: () => {
+        tone({ freq: 880, type: 'triangle', duration: 0.3, volume: 0.2, wet: 0.3, priority: 2 });
+        tone({ freq: 1320, type: 'square', duration: 0.24, volume: 0.1, delay: 0.03, wet: 0.3, priority: 2 });
+        noise({ duration: 0.25, volume: 0.1, filter: { type: 'highpass', freq: 600, endFreq: 5000 }, priority: 2 });
+    },
+    // Cuenta del bono de tiempo: tic que sube de tono con cada segundo sumado.
+    tally: ({ k = 0, n = 1 } = {}) => tone({ freq: 600 + (k / Math.max(n, 1)) * 900, type: 'square', duration: 0.04, volume: 0.07, priority: 1 }),
     // Aviso de que al combo le queda poco: tic agudo y suave.
     comboWarn: () => tone({ freq: 880, type: 'sine', duration: 0.05, volume: 0.06, priority: 0 }),
     // Reloj: tic-tac de los últimos segundos y latido de los últimos 5 (los usa J5).

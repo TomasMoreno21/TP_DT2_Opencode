@@ -67,7 +67,23 @@ export class PlayerFx {
         scene.listen('point-collected', () => this.onCollect());
     }
 
+    // Muerte: el cuerpo y todos sus adornos desaparecen y estallan en fragmentos.
+    shatter() {
+        const rect = this.player.rect;
+
+        this.hidden = true;
+        this.scene.fx.shatter(rect.x, rect.y, rect.fillColor ?? this.cfg.color, 16);
+
+        for (const o of [rect, this.glow, this.acc, this.eyeL, this.eyeR, this.pupilL, this.pupilR, this.face, this.shadow]) {
+            o.setVisible(false);
+        }
+    }
+
     update(deltaMs) {
+        if (this.hidden) {
+            return;
+        }
+
         const dt = Math.min(deltaMs, 50) / 1000;
         const now = this.scene.time.now;
         const speedK = Math.min(Math.abs(this.player.body.velocity.x) / this.cfg.speed, 1);

@@ -218,7 +218,10 @@ export class Hud {
         this.frenzyTween = null;
         this.frenzyGfx.setVisible(on);
 
-        if (on) {
+        if (on && this.scene.camFx.reduceFlash) {
+            // Sin destellos: el borde queda fijo, sin respirar.
+            this.frenzyGfx.setAlpha(0.5);
+        } else if (on) {
             this.frenzyGfx.setAlpha(0.35);
             this.frenzyTween = this.scene.tweens.add({
                 targets: this.frenzyGfx, alpha: 1, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'

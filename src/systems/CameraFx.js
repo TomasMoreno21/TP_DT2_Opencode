@@ -1,5 +1,6 @@
 import { Actions } from 'phaser';
 import { FEEL } from '../assets/feel';
+import { Settings } from './Settings';
 
 // Efectos de la cámara principal: sacudidas con nombre, destellos, punch de zoom y
 // bloom (filtro de Phaser 4). Un solo lugar para respetar, más adelante, las opciones
@@ -8,9 +9,11 @@ export class CameraFx {
     constructor(scene) {
         this.scene = scene;
         this.camera = scene.cameras.main;
-        this.reduceMotion = false;
-        this.reduceFlash = false;
+        // Opciones de accesibilidad (menú OPCIONES): se leen al crear la escena.
+        this.reduceMotion = Settings.reduceMotion;
+        this.reduceFlash = Settings.reduceFlash;
         this.bloom = null;
+        this.gray = null;
     }
 
     // Sacudida por nombre: ver FEEL.shake.
@@ -44,6 +47,22 @@ export class CameraFx {
             duration: ms,
             yoyo: true,
             ease: 'Quad.easeOut'
+        });
+    }
+
+    // Quita el color de la pantalla poco a poco (la muerte "apaga" el mundo).
+    desaturate(ms = 600) {
+        if (this.reduceFlash) {
+            return;
+        }
+
+        this.gray ??= this.camera.filters.external.addColorMatrix();
+
+        const t = { v: 0 };
+
+        this.scene.tweens.add({
+            targets: t, v: 1, duration: ms,
+            onUpdate: () => this.gray.colorMatrix.saturate(-t.v)
         });
     }
 

@@ -35,6 +35,8 @@ export class Fx {
             ghost: new Pool(() => scene.add.rectangle(0, 0, 1, 1, 0xffffff)),
             ring: new Pool(() => scene.add.circle(0, 0, 20).setFillStyle(0xffffff, 0)),
             streak: new Pool(() => scene.add.graphics()),
+            frag: new Pool(() => scene.add.rectangle(0, 0, 8, 8, 0xffffff).setDepth(46)),
+            arrow: new Pool(() => scene.add.triangle(0, 0, 0, 0, 22, 11, 0, 22, 0xff4455).setScrollFactor(0).setDepth(45)),
             orb: new Pool(() => scene.add.circle(0, 0, 7, 0xffffff).setStrokeStyle(2, 0xffffff, 0.8).setScrollFactor(0).setDepth(45))
         };
     }
@@ -163,6 +165,55 @@ export class Fx {
         });
     }
 
+    // Flecha en el borde de la pantalla que avisa de un disparo (dir: 1 mira a la derecha,
+    // -1 a la izquierda). Parpadea y avanza un poco hacia adentro mientras dura el aviso.
+    arrow(x, y, dir, color = 0xff4455, ms = 400) {
+        if (this.pools.arrow.inUse >= FEEL.fx.maxArrows) {
+            return;
+        }
+
+        const arrow = this.pools.arrow.get();
+
+        arrow.setPosition(x, y).setScale(dir, 1).setFillStyle(color, 1).setAlpha(1);
+        this.scene.tweens.add({ targets: arrow, x: x + dir * 14, duration: ms, ease: 'Quad.easeOut' });
+        this.scene.tweens.add({
+            targets: arrow, alpha: 0.25, duration: ms / 4, yoyo: true, repeat: 1,
+            onComplete: () => this.pools.arrow.release(arrow)
+        });
+    }
+
+    // Fragmentos que saltan y caen (el jugador al morir).
+    shatter(x, y, color = 0xffffff, count = 14) {
+        for (let i = 0; i < count; i++) {
+            if (this.pools.frag.inUse >= FEEL.fx.maxFrags) {
+                return;
+            }
+
+            const frag = this.pools.frag.get();
+            const vx = (Math.random() - 0.5) * 380;
+            const vy = -80 - Math.random() * 260;
+            const spin = (Math.random() - 0.5) * 8;
+            const t = { v: 0 };
+
+            frag.setPosition(x, y).setFillStyle(color, 1).setAlpha(1).setRotation(0);
+            frag.setSize(5 + Math.random() * 8, 5 + Math.random() * 8);
+            this.scene.tweens.add({
+                targets: t,
+                v: 1,
+                duration: 750,
+                ease: 'Linear',
+                onUpdate: () => {
+                    const s = t.v * 0.75;
+
+                    frag.setPosition(x + vx * s, y + vy * s + 0.5 * 900 * s * s);
+                    frag.setRotation(spin * s);
+                    frag.setAlpha(t.v < 0.6 ? 1 : 1 - (t.v - 0.6) / 0.4);
+                },
+                onComplete: () => this.pools.frag.release(frag)
+            });
+        }
+    }
+
     // Copia del objeto que se desvanece (estela del dash y de la velocidad).
     ghost(source, { alpha = 0.5, ms = 220, stroke = 0.4 } = {}) {
         if (this.pools.ghost.inUse >= FEEL.fx.maxGhosts) {
@@ -206,8 +257,8 @@ export class Fx {
     }
 
     get stats() {
-        const { ghost, ring, streak, orb } = this.pools;
+        const { ghost, ring, streak, orb, frag, arrow } = this.pools;
 
-        return `emisores ${this.emitterCount} · fantasmas ${ghost.inUse} · anillos ${ring.inUse} · líneas ${streak.inUse} · orbes ${orb.inUse}`;
+        return `emisores ${this.emitterCount} · fantasmas ${ghost.inUse} · anillos ${ring.inUse} · líneas ${streak.inUse} · orbes ${orb.inUse} · frag ${frag.inUse} · flechas ${arrow.inUse}`;
     }
 }

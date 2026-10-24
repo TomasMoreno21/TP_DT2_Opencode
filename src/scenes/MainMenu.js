@@ -9,6 +9,7 @@ import { Tutorial } from '../systems/TutorialManager';
 import { Badges, BADGES } from '../systems/Badges';
 import { MenuButton } from '../systems/MenuButton';
 import { Music } from '../systems/Music';
+import { Settings } from '../systems/Settings';
 
 const COLORS = {
     bgTop: 0x232045,
@@ -70,6 +71,7 @@ export class MainMenu extends Scene
         this.createButtons();
         this.buildLangPopup();
         this.buildTutorialPopup();
+        this.buildOptionsPopup();
         this.createSeedInfo();
         this.createKeyboardNav();
 
@@ -99,7 +101,7 @@ export class MainMenu extends Scene
     isModalOpen ()
     {
         return Boolean(this.controlsPopup.visible || this.langPopup.visible
-            || this.tutorialPopup.visible || this.cheatPopup?.visible);
+            || this.tutorialPopup.visible || this.optionsPopup.visible || this.cheatPopup?.visible);
     }
 
     closeModals ()
@@ -107,6 +109,7 @@ export class MainMenu extends Scene
         this.toggleControls(false);
         this.toggleLang(false);
         this.toggleTutorial(false);
+        this.toggleOptions(false);
 
         if (this.cheatPopup?.visible) {
             this.cheatPopup.setVisible(false);
@@ -141,6 +144,13 @@ export class MainMenu extends Scene
                 onClick, onHover: () => this.focusButton(index)
             }));
         });
+
+        const optionsIndex = this.buttons.length;
+        this.buttons.push(new MenuButton(this, {
+            x: 664, y: 738, w: 170, h: 34, label: Lang.t('optionsBtn'), style: 'ghost', delay: 780,
+            onClick: () => this.toggleOptions(),
+            onHover: () => this.focusButton(optionsIndex)
+        }));
 
         const newLevelsIndex = this.buttons.length;
         this.buttons.push(new MenuButton(this, {
@@ -299,6 +309,7 @@ export class MainMenu extends Scene
         this.starting = true;
         // Partida nueva: el ranking vuelve a pedir iniciales (ver GameOver.maybeEnterRanking).
         this.registry.remove('runEntry');
+        this.registry.remove('lastIntro');
         const launch = () => this.scene.start('Game', {
             levelIndex: this.startLevel,
             completedScore: 0,
@@ -425,6 +436,7 @@ export class MainMenu extends Scene
 
         this.toggleLang(false);
         this.toggleTutorial(false);
+        this.toggleOptions(false);
         this.controlsPopup.setVisible(visible);
         this.controlsDim.setVisible(visible);
         Audio.play('ui');
@@ -512,6 +524,74 @@ export class MainMenu extends Scene
         this.langPopup = popup;
     }
 
+    // Opciones de accesibilidad: reducir destellos y reducir movimiento (ver systems/Settings.js).
+    buildOptionsPopup () {
+        const popup = this.add.container(0, 0).setVisible(false).setDepth(10);
+
+        const panel = this.add.graphics();
+        panel.fillStyle(COLORS.panel, 1).fillRoundedRect(302, 262, 420, 250, 18);
+        panel.lineStyle(2, COLORS.panelBorder, 1).strokeRoundedRect(302, 262, 420, 250, 18);
+
+        const title = this.add.text(512, 290, Lang.t('optionsTitle'), {
+            fontFamily: 'Arial Black', fontSize: 22, color: COLORS.gold, stroke: '#000000', strokeThickness: 5
+        }).setOrigin(0.5);
+
+        const rows = [['reduceFlash', 'optReduceFlash'], ['reduceMotion', 'optReduceMotion']].map(([name, key], i) => {
+            const label = this.add.text(512, 350 + i * 60, '', {
+                fontFamily: 'Arial Black', fontSize: 20
+            }).setOrigin(0.5).setPadding(20, 10).setInteractive({ useHandCursor: true });
+
+            const paint = () => {
+                const on = Settings[name];
+
+                label.setText(`${on ? '● ' : '○ '}${Lang.t(key)}`).setColor(on ? COLORS.teal : COLORS.text);
+            };
+
+            label.on('pointerdown', () => {
+                Settings.set(name, !Settings[name]);
+                paint();
+                Audio.play('ui');
+            });
+            paint();
+
+            return label;
+        });
+
+        const hint = this.add.text(512, 478, Lang.t('optHint'), {
+            fontFamily: 'Arial', fontSize: 13, color: COLORS.grey
+        }).setOrigin(0.5);
+
+        popup.add([panel, title, ...rows, hint]);
+        this.optionsPopup = popup;
+    }
+
+    toggleOptions (show = null) {
+        if (!this.optionsPopup) {
+            return;
+        }
+
+        const visible = show ?? !this.optionsPopup.visible;
+
+        if (this.optionsPopup.visible === visible) {
+            return;
+        }
+
+        if (visible) {
+            this.toggleControls(false);
+            this.toggleLang(false);
+            this.toggleTutorial(false);
+        }
+
+        this.optionsPopup.setVisible(visible);
+        this.controlsDim.setVisible(visible);
+        Audio.play('ui');
+
+        if (visible) {
+            this.optionsPopup.setAlpha(0);
+            this.tweens.add({ targets: this.optionsPopup, alpha: 1, duration: 160 });
+        }
+    }
+
     toggleLang (show = null) {
         const visible = show ?? !this.langPopup.visible;
 
@@ -521,6 +601,7 @@ export class MainMenu extends Scene
 
         this.toggleControls(false);
         this.toggleTutorial(false);
+        this.toggleOptions(false);
         this.langPopup.setVisible(visible);
         this.controlsDim.setVisible(visible);
         Audio.play('ui');
@@ -603,6 +684,7 @@ export class MainMenu extends Scene
 
         this.toggleControls(false);
         this.toggleLang(false);
+        this.toggleOptions(false);
         this.tutorialPopup.setVisible(visible);
         this.controlsDim.setVisible(visible);
         Audio.play('ui');

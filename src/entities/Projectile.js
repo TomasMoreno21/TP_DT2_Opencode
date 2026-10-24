@@ -1,3 +1,5 @@
+import { BlendModes } from 'phaser';
+
 export const PROJECTILE_CONFIG = {
     radius: 8,
     color: 0xff4455,
@@ -110,6 +112,9 @@ export class Projectile {
         this.circle.setStrokeStyle(2, 0xffc0c0);
         // Halo que pulsa mientras hace homing: solo visual.
         this.halo = scene.add.circle(x, y, PROJECTILE_CONFIG.radius + 6, PROJECTILE_CONFIG.homingColor, 0.28);
+        // Resplandor aditivo suave: se lee mejor sobre el fondo con tema.
+        this.glow = scene.add.circle(x, y, PROJECTILE_CONFIG.radius + 15, PROJECTILE_CONFIG.homingColor, 0.2)
+            .setBlendMode(BlendModes.ADD);
         this.homingFx = true;
         this.haloPulse = scene.tweens.add({
             targets: this.halo,
@@ -147,9 +152,11 @@ export class Projectile {
 
         // El halo sigue al cuerpo; al salir del homing se tiñe y se calma.
         this.halo.setPosition(this.circle.x, this.circle.y);
+        this.glow.setPosition(this.circle.x, this.circle.y);
         if (this.homingFx && this.behavior.phase !== 'homing') {
             this.homingFx = false;
             this.halo.setFillStyle(this.circle.fillColor ?? PROJECTILE_CONFIG.color, 0.2);
+            this.glow.setFillStyle(this.circle.fillColor ?? PROJECTILE_CONFIG.homingColor, 0.2);
             this.haloPulse.timeScale = 2.2;
         }
 
@@ -186,6 +193,9 @@ export class Projectile {
             this.halo.destroy();
             this.halo = null;
         }
+
+        this.glow?.destroy();
+        this.glow = null;
 
         for (const ember of this.trail) {
             ember.destroy();

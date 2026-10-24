@@ -1,5 +1,6 @@
 import { Math as PhaserMath } from 'phaser';
 import { EntityFactory } from '../patterns/EntityFactory';
+import { Audio } from './Audio';
 
 // Aviso previo al disparo: 400 ms da tiempo a reaccionar al jugador nuevo.
 const WARN_MS = 400;
@@ -73,6 +74,9 @@ export class ProjectileManager {
             repeat: 1,
             ease: 'Sine.easeInOut'
         });
+        // Flecha en el borde de la pantalla y tic de aviso, para quien mira otra cosa.
+        this.scene.fx.arrow(side === 'left' ? 12 : this.scene.scale.width - 34, y - 11, side === 'left' ? 1 : -1);
+        Audio.play('warn', { x });
         this.scene.time.delayedCall(WARN_MS, () => {
             warn.destroy();
             const projectile = EntityFactory.createProjectile(this.scene, x, y, this.scene.player.rect, this.speedMultiplier, this.config.variant ?? 'standard');
@@ -98,6 +102,14 @@ export class ProjectileManager {
             projectile.update(deltaMs);
 
             if (projectile.isOutOfBounds() || projectile.isAbsorbed) {
+                // Chispa al salir de la pantalla (no si lo absorbió el escudo).
+                if (!projectile.isAbsorbed && projectile.variant !== 'ricochet') {
+                    const { x, y } = projectile.circle;
+                    const { width, height } = this.scene.scale;
+
+                    this.scene.fx.spark(Math.min(Math.max(x, 8), width - 8), Math.min(Math.max(y, 8), height - 8), 0xff4455, 4);
+                }
+
                 projectile.destroy();
                 this.projectiles.splice(i, 1);
             }

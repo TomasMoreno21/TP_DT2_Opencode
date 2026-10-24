@@ -46,7 +46,7 @@ export const FEEL = {
     music: { volume: 0.6, fadeInMs: 600, fadeOutMs: 400, dieMs: 700 },
 
     // Efectos de partículas.
-    fx: { burstCount: 10, burstLifespan: 400, ringRadius: 56, ringMs: 220, maxGhosts: 24, maxRings: 16, maxStreaks: 24, maxOrbs: 12 },
+    fx: { burstCount: 10, burstLifespan: 400, ringRadius: 56, ringMs: 220, maxGhosts: 24, maxRings: 16, maxStreaks: 24, maxOrbs: 12, maxFrags: 24, maxArrows: 4 },
 
     // Bloom de pantalla completa (filtro de Phaser 4): sutil, solo realza lo brillante.
     bloom: { threshold: 0.6, blurRadius: 2, blurSteps: 3, blurQuality: 0, blendAmount: 0.7 }
