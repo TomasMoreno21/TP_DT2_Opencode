@@ -1,0 +1,45 @@
+{
+  "metrics": {
+    "seeds": 60,
+    "mutatedPct": 100,
+    "distinctSignatures": 60,
+    "coarseSignatures": 59,
+    "meanNovelty": 16.6,
+    "trampolineBins": {
+      "0": 53,
+      "1": 2,
+      "3": 2,
+      "4": 4,
+      "5": 57,
+      "6": 3,
+      "7": 1,
+      "8": 4,
+      "9": 54
+    },
+    "trampolineBinCount": 9,
+    "topBinShare": 91,
+    "distinctTrampolineSets": 16,
+    "shapes": {}
+  },
+  "thresholds": {
+    "min": {
+      "coarseSignatures": 44,
+      "distinctTrampolineSets": 45,
+      "trampolineBinCount": 10,
+      "shapesUsed": 5
+    },
+    "max": {
+      "topBinShare": 62
+    }
+  },
+  "after": {
+    "seeds": 60,
+    "mutatedPct": 100,
+    "coarseSignatures": 50,
+    "meanNovelty": 28.9,
+    "topBinShare": 50,
+    "distinctTrampolineSets": 59,
+    "trampolineBinCount": 10,
+    "shapesUsed": 5
+  }
+}

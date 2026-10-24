@@ -4,6 +4,7 @@ import { LEVEL_BASELINES } from '../assets/levelBaselines.js';
 import { PLAYER_CONFIG } from '../entities/Player.js';
 import { TRAMPOLINE_CONFIG } from '../entities/Trampoline.js';
 import { MOVING_PLATFORM_CONFIG } from '../entities/MovingPlatform.js';
+import { buildShape, CHANNEL_MIN, CHANNEL_MAX } from './MacroShapes.js';
 
 const RNG_A = 1664525;
 const RNG_C = 1013904223;
@@ -130,7 +131,18 @@ export const DIFFICULTY_BAND = { min: 0.7, max: 1.4 };
 // salida baja y banda más indulgente. N3 exige más variedad y más esfuerzo.
 export const LEVEL_TUNING = {
     1: { maxIntensity: 0.55, minNovelty: 3, difficulty: { min: 0.6, max: 1.15 }, goalYTolerance: 90 },
-    2: { maxIntensity: 0.75, minNovelty: 5, difficulty: { min: 0.7, max: 1.25 }, goalYTolerance: 130 },
+    2: {
+        maxIntensity: 0.95,
+        minNovelty: 8,
+        difficulty: { min: 0.7, max: 1.25 },
+        goalYTolerance: 130,
+        // N2 es el nivel de los rebotes: la cantidad de trampolines varía (y pueden
+        // ir sobre plataformas), y la estructura central puede tomar distintas
+        // formas (ver MacroShapes.js). Lista vacía = solo el diseño base.
+        trampolines: { min: 2, max: 4 },
+        candidatePool: 2,
+        shapes: ['escalera-doble', 'terrazas', 'pozo', 'escalera-torre', 'torres-gemelas']
+    },
     3: {
         maxIntensity: 0.95,
         minNovelty: 7,
@@ -345,6 +357,16 @@ export class LevelGenerator {
         this.movingPlatformMaxRise = tuning.movingPlatformMaxRise ?? 260;
         this.maxStaticPlatforms = tuning.maxStaticPlatforms ?? Infinity;
         this.minMovingPlatforms = tuning.minMovingPlatforms ?? 0;
+        this.trampolineRange = tuning.trampolines ?? null;
+        // Candidatos que se juntan por ronda antes de validar (BFS): las formas con wall
+        // jump validan en ~1,5 s cada una y casi todos los candidatos pasan, así que se
+        // juntan menos para entrar en el timeout del worker.
+        const poolSize = tuning.candidatePool ?? CANDIDATE_POOL;
+        this.shapes = tuning.shapes ?? [];
+        // La forma se sortea una vez por semilla (no por candidato): así cada forma
+        // aparece en la misma proporción entre semillas y no gana siempre la que más
+        // candidatos aprueba. Sin formas no se consume el rng (los demás niveles no cambian).
+        this.shapeForSeed = this.shapes.length > 0 ? rng.pick(this.shapes) : null;
 
         const band = tuning.difficulty;
         this.ctx = {
@@ -356,7 +378,7 @@ export class LevelGenerator {
             baseCount: variedBase.platforms.length,
             assist
         };
-        const stats = { layout: 0, structure: 0, unreachable: 0, shortcut: 0, lanes: 0, difficulty: 0, tame: 0, dense: 0, crowded: 0, isolated: 0, trampolines: 0, uneven: 0, placement: 0, statics: 0, movers: 0, gems: 0 };
+        const stats = { layout: 0, structure: 0, unreachable: 0, shortcut: 0, lanes: 0, difficulty: 0, tame: 0, dense: 0, crowded: 0, isolated: 0, trampolines: 0, channels: 0, uneven: 0, placement: 0, statics: 0, movers: 0, gems: 0 };
         let tried = 0;
         let validations = 0;
         let heavy = 0;
@@ -364,7 +386,7 @@ export class LevelGenerator {
         while (tried < attempts) {
             // 1) Ronda de candidatos baratos: mutación + filtros sin BFS.
             const pool = [];
-            for (let k = 0; k < CANDIDATE_POOL * 3 && pool.length < CANDIDATE_POOL && tried < attempts; k++) {
+            for (let k = 0; k < poolSize * 3 && pool.length < poolSize && tried < attempts; k++) {
                 const i = tried++;
                 // Las primeras tentativas son agresivas; si fallan, se vuelven más
                 // suaves hasta converger a cambios mínimos. El tope de intensidad
@@ -466,6 +488,8 @@ export class LevelGenerator {
         if (this.validator.checkLayout(candidate).length > 0) return 'layout';
         if (!this.structureNoWorse(candidate.platforms, base.structure)) return 'structure';
         if (!this._laneZoneOk(candidate)) return 'lanes';
+        // Los pozos/canales de las formas macro deben medir lo que el wall jump pide.
+        if (!this._channelsOk(candidate)) return 'channels';
         // Novedad mínima y menos densidad que el base: se exigen durante la mayor
         // parte de los intentos; los últimos aceptan cambios chicos. El tope de
         // novedad depende del nivel (N1 pide menos cambios).
@@ -476,7 +500,7 @@ export class LevelGenerator {
         // o el suelo: si no, el nivel tiene un objeto inalcanzable y frustra.
         if (!this._allGemsReachable(candidate)) return 'gems';
         // Los trampolines necesitan aire libre y plataformas altas a las que subir.
-        if (!this._trampolinesUsable(candidate)) return 'trampolines';
+        if (!this._trampolineCountOk(candidate) || !this._trampolinesUsable(candidate)) return 'trampolines';
         // Elementos bien colocados: spots separados y repartidos, salida lejos.
         if (!this._placementOk(candidate, base.placement)) return 'placement';
         // Con menos plataformas, que queden repartidas por todo el escenario.
@@ -656,19 +680,33 @@ export class LevelGenerator {
             log.push('espejo');
         }
 
+        // 1b) Forma macro (N2): reconstruye la estructura central con una de las
+        //     formas de MacroShapes (la lista vacía deja el diseño base).
+        this._lastChannels = [];
+        this._macroActive = false;
+        if (this.shapes.length > 0) this._reshapeMacro(rng, cfg, log);
+
         // Carriles (solo niveles con timedMovers): posicion, largo, fase y velocidad.
         if (cfg.timedMovers) apply('carriles', 1.0, () => this._mutateLanes(rng, cfg, intensity));
 
         // 2) Estructura: se pueden quitar y agregar plataformas libres (la
         //    cantidad no es fija: lo que importa es que todo siga alcanzable).
-        apply('quitar', 1.0, () => this._removePlatforms(rng, cfg, intensity));
-        apply('agregar', 0.35, () => this._addPlatforms(rng, cfg, intensity));
+        //    Con una forma macro la estructura ya viene decidida (y ajustada a los
+        //    filtros de reparto): no se quitan ni se agregan plataformas aparte.
+        if (!this._macroActive) {
+            apply('quitar', 1.0, () => this._removePlatforms(rng, cfg, intensity));
+            apply('agregar', 0.35, () => this._addPlatforms(rng, cfg, intensity));
+        }
 
-        // 3) Geometría de las plataformas libres que quedan.
-        apply('columna', 0.7, () => this._shiftColumn(rng, cfg, intensity));
-        apply('desplazar', 1.0, () => this._shiftPlatforms(rng, cfg, intensity));
-        apply('alturas', 0.8, () => this._jitterHeights(rng, cfg, intensity));
-        apply('anchos', 0.8, () => this._resizePlatforms(rng, cfg));
+        // 3) Geometría de las plataformas libres que quedan (con una forma macro los
+        //    parámetros ya salieron del sorteo de la forma: no se vuelven a mover,
+        //    porque correrlas rompe el reparto por franjas y alturas que traen).
+        if (!this._macroActive) {
+            apply('columna', 0.7, () => this._shiftColumn(rng, cfg, intensity));
+            apply('desplazar', 1.0, () => this._shiftPlatforms(rng, cfg, intensity));
+            apply('alturas', 0.8, () => this._jitterHeights(rng, cfg, intensity));
+            apply('anchos', 0.8, () => this._resizePlatforms(rng, cfg));
+        }
 
         // Lo que haya quedado encimado o pegado se separa (o se quita).
         this._separate(rng, cfg);
@@ -676,7 +714,12 @@ export class LevelGenerator {
 
         // 4) Entidades móviles del suelo.
         apply('pinchos', 0.9, () => this._jitterHazards(rng, cfg));
-        apply('trampolines', 0.8, () => this._jitterTrampolines(rng, cfg));
+        //    (con una forma macro los trampolines son parte de su diseño; solo se
+        //    completa la cantidad mínima en `_enforce`).
+        if (!this._macroActive) {
+            apply('trampolines', 0.8, () => this._jitterTrampolines(rng, cfg));
+            apply('trampolines-forma', 0.9, () => this._rearrangeTrampolines(rng, cfg));
+        }
 
         // 4b) Plataformas móviles (N3): ajusta distancia/velocidad y, si falta,
         //     agrega una en un lugar útil para cruzar huecos o llegar a puntos.
@@ -687,7 +730,7 @@ export class LevelGenerator {
 
         // 5) Puntos, gemas y salida sobre la estructura final.
         apply('salida', 0.6, () => this._relocateGoal(rng, cfg));
-        apply('spots', 1.0, () => this._relocateSpots(rng, cfg, intensity));
+        if (!this._macroActive) apply('spots', 1.0, () => this._relocateSpots(rng, cfg, intensity));   // con una forma, ya se repartieron por cupos
         apply('gemas', 0.5, () => this._relocateGems(rng, cfg));
 
         this._repairSpots(rng, cfg);
@@ -870,6 +913,8 @@ export class LevelGenerator {
     // Desplaza en bloque el "núcleo" central de los niveles con una columna alta
     // (N2, N5): la columna, lo que se apoya arriba y todo lo que la rodea.
     _shiftColumn(rng, cfg, intensity) {
+        // Las columnas de una forma macro son parte de su diseño: no se mueven aparte.
+        if (this._macroActive) return false;
         const column = (cfg.platforms || []).find((p) => p.h >= 300 && p.w <= 80 && p.x > 250 && p.x < 770);
         if (!column) return false;
 
@@ -960,6 +1005,253 @@ export class LevelGenerator {
         ordered.forEach((h, k) => {
             h.offsetMs = Math.round(((k * cycle) / ordered.length + shift + rng.int(0, 6) * 25) % cycle / 25) * 25;
         });
+        return true;
+    }
+
+    // ------------------------------------------------------------------
+    // Trampolines variables y formas macro (N2)
+    // ------------------------------------------------------------------
+
+    // ¿La cantidad de trampolines está dentro del rango del nivel? (sin rango, la
+    // cantidad del base no cambia y no hay nada que revisar).
+    _trampolineCountOk(cfg) {
+        const range = this.trampolineRange;
+        if (!range) return true;
+        const n = (cfg.trampolines || []).length;
+        return n >= range.min && n <= range.max;
+    }
+
+    // Lleva la cantidad de trampolines a `target` (quita al azar los que no están
+    // atados a un portal; agrega clonando el ancho de uno existente, en el piso o
+    // sobre una plataforma). Devuelve cuántos cambió.
+    _setTrampolineCount(rng, cfg, target) {
+        const list = cfg.trampolines || (cfg.trampolines = []);
+        let changed = 0;
+        for (let guard = 0; list.length > target && guard < 6; guard++) {
+            const removable = list.filter((t) => !this._isPortalBound(cfg, t));
+            if (removable.length === 0) break;
+            list.splice(list.indexOf(rng.pick(removable)), 1);
+            changed++;
+        }
+        for (let guard = 0; list.length < target && guard < 6; guard++) {
+            const w = list.length > 0 ? rng.pick(list).w : 80;
+            const t = { x: Math.round(WORLD.width / 2), y: FLOOR_TOP - TRAMPOLINE_HALF_HEIGHT, w };
+            list.push(t);
+            const placed = rng.chance(0.5)
+                ? this._placeTrampolineOnPlatform(rng, cfg, t) || this._placeTrampoline(rng, cfg, t)
+                : this._placeTrampoline(rng, cfg, t) || this._placeTrampolineOnPlatform(rng, cfg, t);
+            if (!placed) { list.pop(); continue; }
+            changed++;
+        }
+        return changed;
+    }
+
+    // Último repaso: si la cantidad quedó fuera del rango, se la acerca al rango.
+    _fitTrampolineCount(rng, cfg) {
+        const range = this.trampolineRange;
+        if (!range || this._trampolineCountOk(cfg)) return;
+        const n = (cfg.trampolines || []).length;
+        this._setTrampolineCount(rng, cfg, Math.max(range.min, Math.min(range.max, n)));
+    }
+
+    // Mutación de N2: cantidad, ancho y lugar de los trampolines (piso o sobre una
+    // plataforma). Cada cambio se prueba con las reglas de siempre (zona libre,
+    // algo a lo que subir) y se deshace si no sirve.
+    _rearrangeTrampolines(rng, cfg) {
+        const range = this.trampolineRange;
+        if (!range) return false;
+        let changed = this._setTrampolineCount(rng, cfg, rng.int(range.min, range.max)) > 0;
+
+        for (const t of cfg.trampolines || []) {
+            if (this._isPortalBound(cfg, t)) continue;
+            const plats = () => (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
+
+            if (rng.chance(0.5)) {
+                const old = t.w;
+                t.w = 60 + 10 * rng.int(0, 4);
+                if (t.w !== old && this._trampolineWorks(t, plats()) && !this._entityNearTrampoline(cfg, t, true)) changed = true;
+                else t.w = old;
+            }
+            if (rng.chance(0.4) && this._placeTrampolineOnPlatform(rng, cfg, t)) changed = true;
+        }
+        return changed;
+    }
+
+    // Pone el trampolín `t` sobre una plataforma libre de juego (con su zona libre
+    // y algo a lo que subir). Si ningún intento sirve, `t` queda donde estaba.
+    _placeTrampolineOnPlatform(rng, cfg, t) {
+        if (this._isPortalBound(cfg, t)) return false;
+        const surfaces = this._surfaces(cfg).filter((s) => this._isPlayPlatform(s) && s.y < FLOOR_TOP - 40 && s.w >= t.w + 40);
+        if (surfaces.length === 0) return false;
+
+        const old = { x: t.x, y: t.y };
+        for (let tries = 0; tries < 12; tries++) {
+            const surface = rng.pick(surfaces);
+            const margin = t.w / 2 + 10;
+            t.x = Math.round(rng.range(left(surface) + margin, right(surface) - margin));
+            t.y = Math.round(top(surface) - TRAMPOLINE_HALF_HEIGHT);
+            const plats = (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
+            if (this._trampolineWorks(t, plats) && !this._entityNearTrampoline(cfg, t, true) &&
+                (cfg.portals || []).every((pt) => Math.abs(pt.x - t.x) >= t.w / 2 + 90)) {
+                this._clearAroundTrampolines(rng, cfg);
+                return true;
+            }
+        }
+        t.x = old.x;
+        t.y = old.y;
+        return false;
+    }
+
+    // Forma macro del N2: se elige una de `this.shapes`, se quitan las plataformas
+    // flotantes del base y se ponen las de la forma (con sus trampolines); spots,
+    // gemas y salida se reubican sobre la nueva estructura. Si la forma no se
+    // puede armar, el nivel queda como estaba. Registra `forma:<nombre>`.
+    _reshapeMacro(rng, cfg, log) {
+        const name = this.shapeForSeed ?? rng.pick(this.shapes);
+        if (name === 'escalera-doble') {          // el diseño base tal cual
+            log.push(`forma:${name}`);
+            return false;
+        }
+        // Las formas arman su escalera del lado izquierdo (el del spawn base): si el
+        // spawn está a la derecha (nivel espejado) se arma contra el spawn espejado
+        // y luego se da vuelta.
+        const flip = cfg.spawn.x > WORLD.width / 2;
+        const shape = buildShape(name, rng, flip ? WORLD.width - cfg.spawn.x : cfg.spawn.x);
+        if (!shape) return false;
+        if (flip) {
+            for (const e of [...shape.platforms, ...shape.trampolines, ...shape.channels]) e.x = WORLD.width - e.x;
+        }
+
+        const clone = (list) => list.map((e) => ({ ...e }));
+        const keep = (cfg.platforms || []).filter((p) => !(this._isPlayPlatform(p) && p.y < FLOOR_TOP - 20 && !p.fixed));
+        cfg.platforms = [...keep, ...clone(shape.platforms)];
+        cfg.trampolines = [...(cfg.trampolines || []).filter((t) => this._isPortalBound(cfg, t)), ...clone(shape.trampolines)];
+        this._lastChannels = shape.channels;
+        this._macroActive = true;
+
+        // Lo que había queda dentro de la estructura nueva: primero la salida (se
+        // reintenta) y las gemas, y después los spots, que se vuelven a poner de a uno.
+        const goal = { ...cfg.goal };
+        cfg.goal = { x: -999, y: -999 };
+        let placed = false;
+        for (let k = 0; k < 4 && !placed; k++) placed = this._relocateGoal(rng, cfg);
+        if (!placed) cfg.goal = goal;
+        (cfg.pointSpots || []).forEach((sp) => { sp.x = -999; sp.y = -999; });
+        this._relocateGems(rng, cfg);
+        this._resettleSpots(rng, cfg);
+        log.push(`forma:${name}`);
+        return false;
+    }
+
+    // Saca todos los spots del mapa y los vuelve a poner de a uno (los que no
+    // encuentran lugar quedan fuera y el candidato se descarta).
+    // Los lugares candidatos son "casilleros" separados SPOT_MIN_NN + 1 px a lo largo de
+    // cada superficie (con un corrimiento al azar): así el reparto aprovecha todo el
+    // espacio y entran los 12 spots aun con las separaciones mínimas.
+    _resettleSpots(rng, cfg) {
+        const spots = cfg.pointSpots || [];
+        spots.forEach((sp) => { sp.x = -999; sp.y = -999; });
+        const step = SPOT_MIN_NN + 1;
+        const slots = [];
+        for (const surface of this._surfaces(cfg)) {
+            const y = top(surface) - SPOT_HEIGHT_ABOVE_TOP;
+            const x0 = Math.max(left(surface) + 24, 90);
+            const x1 = Math.min(right(surface) - 24, WORLD.width - 90);
+            if (x1 < x0) continue;
+            const n = Math.floor((x1 - x0) / step) + 1;
+            const offset = rng.range(0, (x1 - x0) - (n - 1) * step);
+            for (let k = 0; k < n; k++) slots.push({ x: Math.round(x0 + offset + k * step), y });
+        }
+        // Cupos por altura: primero las alturas con menos lugares (las más escasas),
+        // y los spots que no entran en su altura se acomodan donde haya lugar.
+        const ys = (FLOOR_TOP - 90) / DIST_ROWS;
+        const rowOf = (y) => Math.max(0, Math.min(DIST_ROWS - 1, Math.floor((y - 90) / ys)));
+        const target = this._ctx().basePlacement?.rows;
+        const order = [];
+        if (target) {
+            const room = new Array(DIST_ROWS).fill(0);
+            for (const c of slots) room[rowOf(c.y)]++;
+            const rows = [...target.keys()].sort((a, b) => room[a] / Math.max(1, target[a]) - room[b] / Math.max(1, target[b]));
+            for (const r of rows) for (let k = 0; k < target[r]; k++) order.push(r);
+        }
+        // El primer spot va al alcance del spawn (queda en la altura más baja): se
+        // le asigna un cupo de esa altura.
+        const lowest = DIST_ROWS - 1;
+        const at = order.indexOf(lowest);
+        if (at > 0) [order[0], order[at]] = [order[at], order[0]];
+        const pending = [];
+        spots.forEach((_, i) => {
+            const row = order[i];
+            if (i === 0 && this._placeSpotSweep(rng, cfg, 0, slots, null, true)) return;
+            if (row === undefined || !this._placeSpotSweep(rng, cfg, i, slots, row)) pending.push(i);
+        });
+        for (const i of pending) this._placeSpotSweep(rng, cfg, i, slots);
+    }
+
+    // Como `_placeSpot`, pero barre todas las superficies en una grilla de 15 px y
+    // elige entre TODOS los lugares libres: con una estructura nueva y pocas
+    // plataformas el sorteo por superficie dejaba spots sin lugar aunque sobrara
+    // piso. Devuelve false si no queda ningún lugar.
+    _placeSpotSweep(rng, cfg, index, slots = null, onlyRow = null, nearSpawn = false) {
+        const free = [];
+        if (slots) {
+            for (const c of slots) if (this._spotIsFree(cfg, c.x, c.y, index)) free.push(c);
+        } else {
+            for (const surface of this._surfaces(cfg)) {
+                const y = top(surface) - SPOT_HEIGHT_ABOVE_TOP;
+                for (let x = Math.max(left(surface) + 30, 90); x <= Math.min(right(surface) - 30, WORLD.width - 90); x += 15) {
+                    if (this._spotIsFree(cfg, x, y, index)) free.push({ x, y });
+                }
+            }
+        }
+        const others = (cfg.pointSpots || []).filter((sp, i) => i !== index && sp.x > 0);
+        // Separación mínima entre spots (la que exige el filtro `placement`) y, si el
+        // base reparte los spots por alturas, se prefieren las alturas que todavía
+        // no completaron su cupo.
+        const spaced = free.filter((c) => others.every((sp) => Math.hypot(sp.x - c.x, sp.y - c.y) >= SPOT_MIN_NN) &&
+            Math.hypot(cfg.goal.x - c.x, cfg.goal.y - c.y) >= GOAL_MIN_FROM_SPOT);
+        const ys = (FLOOR_TOP - 90) / DIST_ROWS;
+        const rowOf = (y) => Math.max(0, Math.min(DIST_ROWS - 1, Math.floor((y - 90) / ys)));
+        const target = this._ctx().basePlacement?.rows;
+        let pool = spaced.length > 0 ? spaced : free;
+        if (nearSpawn) {
+            // Momento didáctico (ver _ensureFirstSpotNearSpawn): al alcance del spawn.
+            pool = pool.filter((c) => Math.abs(c.x - cfg.spawn.x) <= 215 && c.y >= FLOOR_TOP - 24 - 117.6 - 20);
+        } else if (onlyRow !== null) {
+            pool = pool.filter((c) => rowOf(c.y) === onlyRow);
+        } else if (target) {
+            const have = new Array(DIST_ROWS).fill(0);
+            for (const sp of others) have[rowOf(sp.y)]++;
+            const wanted = pool.filter((c) => have[rowOf(c.y)] < target[rowOf(c.y)]);
+            if (wanted.length > 0) pool = wanted;
+        }
+        if (pool.length === 0) return false;
+        // Se elige el lugar más alejado de los demás spots (con algo de azar) para
+        // que el reparto aproveche el espacio y entren todos.
+        const spread = (c) => Math.min(150, ...others.map((sp) => Math.hypot(sp.x - c.x, sp.y - c.y)));
+        let best = null;
+        let bestScore = -Infinity;
+        for (const c of pool) {
+            const score = spread(c) + rng.range(0, 25);
+            if (score > bestScore) { bestScore = score; best = c; }
+        }
+        cfg.pointSpots[index] = best;
+        return true;
+    }
+
+    // Los canales de wall jump de la forma (hueco entre dos paredes) deben seguir
+    // midiendo entre CHANNEL_MIN y CHANNEL_MAX tras las demás mutaciones: se mide
+    // el hueco real a media altura entre lo que lo flanquea.
+    _channelsOk(cfg) {
+        for (const c of this._lastChannels ?? []) {
+            const y = (c.y1 + c.y2) / 2;
+            const solids = (cfg.platforms || []).filter((p) => top(p) <= y && bottom(p) >= y);
+            const lefts = solids.filter((p) => right(p) <= c.x + 1).map(right);
+            const rights = solids.filter((p) => left(p) >= c.x - 1).map(left);
+            if (lefts.length === 0 || rights.length === 0) return false;
+            const gap = Math.min(...rights) - Math.max(...lefts);
+            if (gap < CHANNEL_MIN || gap > CHANNEL_MAX) return false;
+        }
         return true;
     }
 
@@ -1067,6 +1359,9 @@ export class LevelGenerator {
             return true;
         }
 
+        // Con una forma macro la estructura no se toca para hacer lugar.
+        if (this._macroActive) return false;
+
         // 2) Hacer lugar: se prueban los x con menos plataformas en la zona y cada
         //    una se quita (si está libre y solo lleva spots) o se corre hacia afuera
         //    con lo que lleva. Si al final la zona no queda libre, se deshace todo.
@@ -1158,6 +1453,16 @@ export class LevelGenerator {
     // Mueve el spot `index` a un punto libre sobre alguna plataforma.
     // En N3 (requireMovingPlatform) también propone puntos sobre móviles.
     _placeSpot(rng, cfg, index) {
+        // Con una forma macro los spots ya están repartidos por alturas (los cupos del
+        // base): al moverlos se conserva su altura si hay lugar.
+        const old = cfg.pointSpots[index];
+        if (this._macroActive && old && old.x > 0) {
+            const ys = (FLOOR_TOP - 90) / DIST_ROWS;
+            const row = Math.max(0, Math.min(DIST_ROWS - 1, Math.floor((old.y - 90) / ys)));
+            const keep = { x: old.x, y: old.y };
+            if (this._placeSpotSweep(rng, cfg, index, null, row)) return true;
+            cfg.pointSpots[index] = keep;
+        }
         // Con pocas plataformas los lugares libres escasean: se insiste un poco
         // (antes fallaba ~la mitad de las veces y el spot quedaba donde estaba).
         for (let k = 0; k < 4; k++) {
@@ -1437,9 +1742,19 @@ export class LevelGenerator {
             this._jitterHeights(rng, cfg, 1);
         }
 
+        // Cantidad de trampolines dentro del rango del nivel (antes de repartir los
+        // spots, que se acomodan alrededor de ellos).
+        this._fitTrampolineCount(rng, cfg);
+
         // Salida lejos del spawn y spots bien repartidos.
         const m = this.placementStats(cfg);
         if (m.goalSpawn < Math.min(GOAL_MIN_FROM_SPAWN, ctx.basePlacement.goalSpawn)) this._relocateGoal(rng, cfg);
+
+        // Con una forma macro, los spots se reparten de nuevo por alturas y franjas
+        // (con la salida ya definitiva).
+        if (this._macroActive) {
+            for (let i = 0; i < 3 && !this._placementOk(cfg, ctx.basePlacement); i++) this._resettleSpots(rng, cfg);
+        }
         for (let i = 0; i < 5 && !this._placementOk(cfg, ctx.basePlacement); i++) {
             this._repairSpots(rng, cfg);
             this._polishSpots(rng, cfg);
@@ -2181,6 +2496,9 @@ _trampolinesUsable(cfg) {
 
         if (Math.hypot(cfg.spawn.x - x, cfg.spawn.y - y) < 80) return false;
         if (Math.hypot(cfg.goal.x - x, cfg.goal.y - y) < 80) return false;
+        // Nada de spots dentro ni pegados a una columna (la parte baja de una columna
+        // apoyada en el piso no cuenta como superficie).
+        if ((cfg.platforms || []).some((p) => this._isColumn(p) && x > left(p) - 24 && x < right(p) + 24 && y > top(p) - 10 && y < bottom(p) + 10)) return false;
         if (near(cfg.gems, 60) || near(cfg.powerUps, 50) || near(cfg.portals, 70)) return false;
         if ((cfg.pointSpots || []).some((s, i) => i !== ignoreIndex && Math.hypot(s.x - x, s.y - y) < 60)) return false;
         if ((cfg.trampolines || []).some((t) => Math.abs(t.x - x) < t.w / 2 + TRAMPOLINE_SPOT_GAP && Math.abs(t.y - y) < 60)) return false;
@@ -2374,6 +2692,12 @@ _trampolinesUsable(cfg) {
             for (let j = i + 1; j < platforms.length; j++) {
                 const a = platforms[i];
                 const b = platforms[j];
+                // Una columna apoyada en el piso (o con una repisa encima) solo se
+                // toca, no se superpone: no es un defecto.
+                const depthX = (a.w + b.w) / 2 - Math.abs(a.x - b.x);
+                const depthY = (a.h + b.h) / 2 - Math.abs(a.y - b.y);
+                const resting = (this._isColumn(a) || this._isColumn(b)) && (depthX <= 1 || depthY <= 1);
+                if (resting) continue;
                 const overlapX = Math.abs(a.x - b.x) < (a.w + b.w) / 2 + inflate;
                 const overlapY = Math.abs(a.y - b.y) < (a.h + b.h) / 2 + inflate;
                 if (overlapX && overlapY) { overlaps++; continue; }
@@ -2386,6 +2710,11 @@ _trampolinesUsable(cfg) {
             }
         }
         return { overlaps, lowCeilings };
+    }
+
+    // Columna alta y angosta (no es piso ni plataforma de juego).
+    _isColumn(p) {
+        return p.h > 60 && p.w < p.h;
     }
 
     structureNoWorse(platforms, baseStats) {

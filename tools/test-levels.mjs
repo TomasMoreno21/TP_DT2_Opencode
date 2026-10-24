@@ -1,5 +1,5 @@
 import { ALL_LEVELS as LEVELS, WORLD } from '../src/assets/levels.js';
-import { LevelGenerator, DIFFICULTY_BAND, TIMER_RULES, TIMER_BANDS, GENERATION_COMFORT } from '../src/systems/LevelGenerator.js';
+import { LevelGenerator, DIFFICULTY_BAND, TIMER_RULES, TIMER_BANDS, GENERATION_COMFORT, LEVEL_TUNING } from '../src/systems/LevelGenerator.js';
 import { LevelValidator } from '../src/systems/LevelValidator.js';
 import { LEVEL_BASELINES } from '../src/assets/levelBaselines.js';
 
@@ -63,7 +63,12 @@ for (let k = 0; k < COUNT; k++) {
         }
 
         for (const key of ['pointSpots', 'gems', 'trampolines', 'hazards', 'powerUps', 'portals', 'movingPlatforms']) {
-            if ((cfg[key]?.length ?? 0) !== (base[key]?.length ?? 0)) fail(seed, base.id, `cambió la cantidad de ${key}`);
+            // Los niveles con `trampolines: {min,max}` en LEVEL_TUNING pueden variar su cantidad.
+            const range = key === 'trampolines' ? LEVEL_TUNING[base.id]?.trampolines : null;
+            const n = cfg[key]?.length ?? 0;
+            if (range) {
+                if (n < range.min || n > range.max) fail(seed, base.id, `${key}: ${n} fuera de [${range.min},${range.max}]`);
+            } else if (n !== (base[key]?.length ?? 0)) fail(seed, base.id, `cambió la cantidad de ${key}`);
         }
         if (cfg.quota !== base.quota) fail(seed, base.id, 'cambió la quota');
 
