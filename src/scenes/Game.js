@@ -454,6 +454,7 @@ export class Game extends Scene
 
         this.hud.setShield(this.player.shieldUntil - this.time.now, this.shieldTotalMs);
         this.hud.setDashCooldown(this.player.dashRemaining, PLAYER_CONFIG.dashCooldownMs);
+        this.hud.setComboTimer(this.scoreManager.comboRemaining(this.time.now));
 
         if (!this.gameEnded && this.scoreManager.multiplier > this.maxMult) {
             this.maxMult = this.scoreManager.multiplier;
@@ -580,6 +581,7 @@ export class Game extends Scene
         }
 
         this.level.goal.open();
+        this.hud.showExitMarker(this.level.goal.x, this.level.goal.y);
         Audio.play('goalOpen');
 
         this.floatingText.showBanner(512, 300, '¡META CUMPLIDA!', '#00ff88', 32);

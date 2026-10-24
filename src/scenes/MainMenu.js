@@ -7,6 +7,7 @@ import { LEVELS } from '../assets/levels';
 import { CampaignBuilder } from '../systems/CampaignBuilder';
 import { Tutorial } from '../systems/TutorialManager';
 import { Badges, BADGES } from '../systems/Badges';
+import { MenuButton } from '../systems/MenuButton';
 
 const COLORS = {
     bgTop: 0x232045,
@@ -46,49 +47,31 @@ export class MainMenu extends Scene
         this.cameras.main.setBackgroundColor(0x16132a);
         this.drawBackground();
 
-        const title = this.add.text(512, 145, 'FAST MOVE', {
-            fontFamily: 'Arial Black', fontSize: 80, color: COLORS.teal,
+        const title = this.add.text(512, 135, 'FAST MOVE', {
+            fontFamily: 'Arial Black', fontSize: 84, color: COLORS.teal,
             stroke: '#000000', strokeThickness: 12,
             shadow: { offsetX: 0, offsetY: 6, color: '#004f42', blur: 10, stroke: true, fill: true }
-        }).setOrigin(0.5).setAlpha(0);
+        }).setOrigin(0.5).setAlpha(0).setScale(0.8);
 
         // Entrada escalonada: título primero, el resto por delay.
-        this.tweens.add({ targets: title, alpha: 1, duration: 350 });
-        this.tweens.add({ targets: title, y: 138, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.tweens.add({ targets: title, alpha: 1, scale: 1, duration: 520, ease: 'Back.easeOut' });
+        this.tweens.add({ targets: title, y: 128, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: 520 });
 
-        const subtitle = this.add.text(512, 228, Lang.t('subtitle', { n: LEVELS.length }), {
-            fontFamily: 'Arial', fontSize: 20, color: COLORS.grey
+        const subtitle = this.add.text(512, 205, Lang.t('subtitle', { n: LEVELS.length }), {
+            fontFamily: 'Arial', fontSize: 19, color: COLORS.grey
         }).setOrigin(0.5).setAlpha(0);
-        this.tweens.add({ targets: subtitle, alpha: 1, duration: 350, delay: 120 });
+        this.tweens.add({ targets: subtitle, alpha: 1, duration: 350, delay: 160 });
 
         this.drawControlsPanel();
-
-        const best = this.add.text(512, 292, Lang.t('best', { v: HighScore.get() }), {
-            fontFamily: 'Arial Black', fontSize: 22, color: COLORS.gold,
-            stroke: '#000000', strokeThickness: 6
-        }).setOrigin(0.5).setAlpha(0);
-        this.tweens.add({ targets: best, alpha: 1, duration: 350, delay: 300 });
-
+        this.createBestScorePanel();
         this.createRankMedals();
-
-        this.createPlayButton();
-
-        this.createSecondaryButton(376, 570, 'controlsButton', Lang.t('controls'), () => this.toggleControls());
-        this.createSecondaryButton(648, 570, 'langButton', Lang.t('lang'), () => this.toggleLang());
-        this.createSecondaryButton(512, 646, 'tutorialButton', Lang.t('tutorialBtn'), () => this.toggleTutorial());
+        this.createButtons();
         this.buildLangPopup();
         this.buildTutorialPopup();
-        this.createSeedControls();
+        this.createSeedInfo();
+        this.createKeyboardNav();
 
-        this.input.keyboard.on('keydown-ESC', () => {
-            this.toggleControls(false);
-            this.toggleLang(false);
-            this.toggleTutorial(false);
-            if (this.cheatPopup?.visible) {
-                this.cheatPopup.setVisible(false);
-                this.controlsDim.setVisible(false);
-            }
-        });
+        this.input.keyboard.on('keydown-ESC', () => this.closeModals());
 
         // Código secreto: tipear "pene" abre el selector de nivel con vida infinita.
         this.typed = '';
@@ -96,6 +79,128 @@ export class MainMenu extends Scene
             this.typed = (this.typed + event.key.toLowerCase()).slice(-4);
             if (this.typed === 'pene') this.openCheatMenu();
         });
+    }
+
+    // Parallax: las capas de estrellas siguen suavemente al mouse.
+    update ()
+    {
+        const pointer = this.input.activePointer;
+        const nx = pointer.x / 1024 - 0.5;
+        const ny = pointer.y / 768 - 0.5;
+
+        for (const { layer, depth } of this.parallaxLayers) {
+            layer.x += (-nx * depth - layer.x) * 0.06;
+            layer.y += (-ny * depth - layer.y) * 0.06;
+        }
+    }
+
+    isModalOpen ()
+    {
+        return Boolean(this.controlsPopup.visible || this.langPopup.visible
+            || this.tutorialPopup.visible || this.cheatPopup?.visible);
+    }
+
+    closeModals ()
+    {
+        this.toggleControls(false);
+        this.toggleLang(false);
+        this.toggleTutorial(false);
+
+        if (this.cheatPopup?.visible) {
+            this.cheatPopup.setVisible(false);
+            this.controlsDim.setVisible(false);
+        }
+    }
+
+    // Botones del menú. Comparten el foco entre mouse y teclado: el último en
+    // recibir hover o flecha queda activo, y Enter/Espacio lo acciona.
+    createButtons ()
+    {
+        this.playButton = new MenuButton(this, {
+            x: 512, y: 476, w: 340, h: 88, label: Lang.t('play'), style: 'primary', delay: 420,
+            onClick: () => this.time.delayedCall(120, () => this.startGame(this.playButton)),
+            onHover: () => this.focusButton(0)
+        });
+
+        const secondary = [
+            [Lang.t('controls'), () => this.toggleControls()],
+            [Lang.t('tutorialBtn'), () => this.toggleTutorial()],
+            [Lang.t('rankingBtn'), () => this.scene.start('Ranking', { campaignSeed: this.campaignSeed })],
+            [Lang.t('lang'), () => this.toggleLang()]
+        ];
+        const spacing = 220;
+        const startX = 512 - ((secondary.length - 1) * spacing) / 2;
+
+        this.buttons = [this.playButton];
+        secondary.forEach(([label, onClick], i) => {
+            const index = this.buttons.length;
+            this.buttons.push(new MenuButton(this, {
+                x: startX + i * spacing, y: 580, w: 200, h: 56, label, delay: 520 + i * 70,
+                onClick, onHover: () => this.focusButton(index)
+            }));
+        });
+
+        const newLevelsIndex = this.buttons.length;
+        this.buttons.push(new MenuButton(this, {
+            x: 884, y: 738, w: 200, h: 34, label: Lang.t('newLevels'), style: 'ghost', delay: 800,
+            onClick: () => {
+                const seed = ((Date.now() * 2654435761) ^ Math.floor(Math.random() * 4294967296)) >>> 0;
+                this.scene.restart({ campaignSeed: seed });
+            },
+            onHover: () => this.focusButton(newLevelsIndex)
+        }));
+
+        this.focusIndex = -1;
+        this.focusButton(0);
+    }
+
+    focusButton (index)
+    {
+        if (this.focusIndex === index) {
+            return;
+        }
+
+        this.focusIndex = index;
+        this.buttons.forEach((button, i) => button.setActive(i === index));
+    }
+
+    createKeyboardNav ()
+    {
+        const move = (step) => {
+            if (this.isModalOpen() || this.starting) return;
+            this.focusButton((this.focusIndex + step + this.buttons.length) % this.buttons.length);
+            Audio.play('ui');
+        };
+        const activate = () => {
+            if (this.isModalOpen() || this.starting) return;
+            const button = this.buttons[this.focusIndex];
+            button.press();
+            this.time.delayedCall(90, () => {
+                button.release();
+                button.fire();
+            });
+        };
+
+        this.input.keyboard.on('keydown-UP', () => move(-1));
+        this.input.keyboard.on('keydown-LEFT', () => move(-1));
+        this.input.keyboard.on('keydown-DOWN', () => move(1));
+        this.input.keyboard.on('keydown-RIGHT', () => move(1));
+        this.input.keyboard.on('keydown-ENTER', activate);
+        this.input.keyboard.on('keydown-SPACE', activate);
+    }
+
+    createBestScorePanel ()
+    {
+        const panel = this.add.graphics();
+        panel.fillStyle(COLORS.panel, 0.9).fillRoundedRect(-150, -20, 300, 40, 20);
+        panel.lineStyle(2, 0xffdd44, 0.6).strokeRoundedRect(-150, -20, 300, 40, 20);
+
+        const text = this.add.text(0, 0, Lang.t('best', { v: HighScore.get() }), {
+            fontFamily: 'Arial Black', fontSize: 20, color: COLORS.gold
+        }).setOrigin(0.5);
+
+        const container = this.add.container(512, 258, [panel, text]).setAlpha(0);
+        this.tweens.add({ targets: container, alpha: 1, duration: 350, delay: 300 });
     }
 
     // Selector de nivel del código secreto: activa la vida infinita (dura hasta
@@ -140,18 +245,12 @@ export class MainMenu extends Scene
         Audio.play('ui');
     }
 
-    // Botón superior para sortear una semilla nueva (otros niveles) y la semilla
-    // actual debajo, para poder repetir o reportar una campaña concreta.
-    createSeedControls () {
-        this.createSecondaryButton(512, 44, 'seedButton', Lang.t('newLevels'), () => {
-            Audio.play('ui');
-            const seed = ((Date.now() * 2654435761) ^ Math.floor(Math.random() * 4294967296)) >>> 0;
-            this.scene.restart({ campaignSeed: seed });
-        });
-
-        this.add.text(512, 90, Lang.t('seed', { n: this.campaignSeed }), {
-            fontFamily: 'Arial', fontSize: 16, color: COLORS.grey
-        }).setOrigin(0.5);
+    // La semilla actual queda visible (abajo a la izquierda) para repetir o
+    // reportar una campaña concreta.
+    createSeedInfo () {
+        this.add.text(24, 738, Lang.t('seed', { n: this.campaignSeed }), {
+            fontFamily: 'Arial', fontSize: 14, color: '#8888aa'
+        }).setOrigin(0, 0.5);
     }
 
     // Pide la campaña en segundo plano (Web Worker) apenas se abre el menú: la
@@ -196,6 +295,8 @@ export class MainMenu extends Scene
         }
 
         this.starting = true;
+        // Partida nueva: el ranking vuelve a pedir iniciales (ver GameOver.maybeEnterRanking).
+        this.registry.remove('runEntry');
         const launch = () => this.scene.start('Game', {
             levelIndex: this.startLevel,
             completedScore: 0,
@@ -208,7 +309,7 @@ export class MainMenu extends Scene
             return;
         }
 
-        label.setText(Lang.t('generating')).setFontSize(26);
+        label.setLabel(Lang.t('generating'), 26);
         this.pendingStart = launch;
     }
 
@@ -217,15 +318,34 @@ export class MainMenu extends Scene
         g.fillGradientStyle(COLORS.bgTop, COLORS.bgTop, COLORS.bgBottom, COLORS.bgBottom, 1);
         g.fillRect(0, 0, 1024, 768);
 
-        g.fillStyle(COLORS.floor, 1);
-        g.fillRect(0, 704, 1024, 64);
+        // Capas de estrellas con distinta profundidad (se mueven con el mouse en update()).
+        this.parallaxLayers = [];
+        [
+            { count: 22, size: 1.2, alpha: 0.35, depth: 8 },
+            { count: 14, size: 1.8, alpha: 0.5, depth: 18 },
+            { count: 8, size: 2.6, alpha: 0.65, depth: 32 }
+        ].forEach(({ count, size, alpha, depth }) => {
+            const layer = this.add.container(0, 0);
+            for (let i = 0; i < count; i++) {
+                const star = this.add.circle(Math.random() * 1024, 20 + Math.random() * 650, size, 0xffffff, alpha);
+                layer.add(star);
+                this.tweens.add({
+                    targets: star, alpha: alpha * 0.25, duration: 900 + Math.random() * 1400,
+                    yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: Math.random() * 1200
+                });
+            }
+            this.parallaxLayers.push({ layer, depth });
+        });
 
-        g.fillStyle(0x1b1836, 1);
-        g.fillRect(120, 678, 220, 26);
-        g.fillRect(684, 678, 220, 26);
-        g.fillRect(462, 646, 100, 26);
+        const ground = this.add.graphics();
+        ground.fillStyle(COLORS.floor, 1);
+        ground.fillRect(0, 704, 1024, 64);
+        ground.fillStyle(0x1b1836, 1);
+        ground.fillRect(120, 678, 220, 26);
+        ground.fillRect(684, 678, 220, 26);
+        ground.fillRect(462, 678, 100, 26);
 
-        const spots = [[200, 630], [824, 630], [512, 596], [300, 596], [724, 596]];
+        const spots = [[200, 650], [824, 650], [512, 650], [120, 650], [904, 650]];
 
         for (const [x, y] of spots) {
             const dot = this.add.circle(x, y, 12, 0x00d1b2, 0.4);
@@ -238,35 +358,13 @@ export class MainMenu extends Scene
                 ease: 'Sine.easeInOut'
             });
         }
-
-        // Destellos blancos flotando para dar vida al fondo.
-        for (let i = 0; i < 14; i++) {
-            const sx = 40 + Math.random() * 944, sy = 60 + Math.random() * 560;
-            const spark = this.add.circle(sx, sy, 1.5 + Math.random() * 1.5, 0xffffff, 0.5);
-            this.tweens.add({
-                targets: spark,
-                alpha: 0.1,
-                duration: 900 + Math.random() * 1200,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-        }
     }
 
     drawControlsPanel () {
         // Fondo oscuro que cierra el popup al clickear afuera.
         this.controlsDim = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.6)
             .setInteractive().setVisible(false).setDepth(9);
-        this.controlsDim.on('pointerdown', () => {
-            this.toggleControls(false);
-            this.toggleLang(false);
-            this.toggleTutorial(false);
-            if (this.cheatPopup?.visible) {
-                this.cheatPopup.setVisible(false);
-                this.controlsDim.setVisible(false);
-            }
-        });
+        this.controlsDim.on('pointerdown', () => this.closeModals());
 
         const popup = this.add.container(0, 0).setVisible(false).setDepth(10);
 
@@ -338,7 +436,7 @@ export class MainMenu extends Scene
     // Una medalla por nivel con su mejor rango: color de bronce/plata/oro, o una
     // ranura apagada si todavia no hay rango. Las de oro brillan.
     createRankMedals () {
-        const label = this.add.text(512, 326, Lang.t('ranksMenu').toUpperCase(), {
+        const label = this.add.text(512, 316, Lang.t('ranksMenu').toUpperCase(), {
             fontFamily: 'Arial Black', fontSize: 15, color: COLORS.grey
         }).setOrigin(0.5).setAlpha(0);
         this.tweens.add({ targets: label, alpha: 0.8, duration: 350, delay: 340 });
@@ -346,7 +444,7 @@ export class MainMenu extends Scene
         const spacing = 84;
         const startX = 512 - ((LEVELS.length - 1) * spacing) / 2;
         LEVELS.forEach((_, i) => {
-            const medal = this.drawMedal(startX + i * spacing, 374, i + 1, RankStore.get(i + 1));
+            const medal = this.drawMedal(startX + i * spacing, 364, i + 1, RankStore.get(i + 1));
             medal.setScale(0);
             this.tweens.add({ targets: medal, scale: 1.5, duration: 380, delay: 380 + i * 90, ease: 'Back.easeOut' });
         });
@@ -376,69 +474,6 @@ export class MainMenu extends Scene
         }
 
         return this.add.container(x, y, items);
-    }
-
-    createPlayButton () {
-        if (!this.textures.exists('playButton')) {
-            const g = this.add.graphics();
-            g.fillStyle(0x00d1b2, 1).fillRoundedRect(0, 0, 320, 92, 22);
-            g.lineStyle(5, 0xffffff, 1).strokeRoundedRect(0, 0, 320, 92, 22);
-            g.generateTexture('playButton', 320, 92);
-            g.destroy();
-        }
-
-        const btn = this.add.image(512, 470, 'playButton').setInteractive({ useHandCursor: true }).setAlpha(0);
-        const label = this.add.text(512, 470, Lang.t('play'), {
-            fontFamily: 'Arial Black', fontSize: 38, color: '#00382c'
-        }).setOrigin(0.5).setAlpha(0);
-
-        // Entrada con pop + latido continuo (escala) y flotación (y).
-        this.tweens.add({ targets: [btn, label], alpha: 1, duration: 300, delay: 420 });
-        this.tweens.add({ targets: [btn, label], scale: 1.045, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: 700 });
-
-        btn.on('pointerup', () => Audio.play('ui'));
-
-        this.tweens.add({ targets: btn, y: 464, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-        this.tweens.add({ targets: label, y: 464, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-
-        btn.on('pointerover', () => {
-            btn.setTint(0xccfff5);
-            label.setColor('#00150f');
-        });
-
-        btn.on('pointerout', () => {
-            btn.clearTint();
-            label.setColor('#00382c');
-        });
-
-        btn.on('pointerdown', () => {
-            this.tweens.killTweensOf(btn);
-            this.tweens.killTweensOf(label);
-            btn.setScale(0.93);
-            label.setScale(0.93);
-            this.time.delayedCall(140, () => this.startGame(label));
-        });
-    }
-
-    createSecondaryButton (x, y, textureKey, labelText, onClick) {
-        if (!this.textures.exists(textureKey)) {
-            const g = this.add.graphics();
-            g.fillStyle(0x1b1836, 1).fillRoundedRect(0, 0, 260, 64, 16);
-            g.lineStyle(3, 0x00d1b2, 1).strokeRoundedRect(0, 0, 260, 64, 16);
-            g.generateTexture(textureKey, 260, 64);
-            g.destroy();
-        }
-
-        const btn = this.add.image(x, y, textureKey).setInteractive({ useHandCursor: true }).setAlpha(0);
-        const label = this.add.text(x, y, labelText, {
-            fontFamily: 'Arial Black', fontSize: 22, color: COLORS.teal
-        }).setOrigin(0.5).setAlpha(0);
-
-        this.tweens.add({ targets: [btn, label], alpha: 1, duration: 300, delay: 520 });
-
-        btn.on('pointerover', () => btn.setTint(0x2a2a5a));
-        btn.on('pointerout', () => btn.clearTint());
-        btn.on('pointerdown', onClick);
     }
 
     buildLangPopup () {

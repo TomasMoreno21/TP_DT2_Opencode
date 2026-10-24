@@ -3,6 +3,11 @@ import { HighScore } from '../systems/HighScore';
 import { Audio } from '../systems/Audio';
 import { LEVELS } from '../assets/levels';
 import { CampaignBuilder } from '../systems/CampaignBuilder';
+import { Leaderboard } from '../systems/Leaderboard';
+import { NameEntry } from '../systems/NameEntry';
+import { createRankingTable } from '../systems/RankingTable';
+import { MenuButton } from '../systems/MenuButton';
+import { Lang } from '../systems/Texts';
 
 const ENDING_CONFIG = {
     hit: { title: '¡Perdiste!', color: '#ff4455', tint: 0xff4455, bg: 0x2a0f16, face: '>_<', faceColor: '#ff8899' },
@@ -34,6 +39,7 @@ export class GameOver extends Scene
         this.deaths = data.deaths ?? 0;
         // La escena se reutiliza entre partidas: el estado del reintento se reinicia.
         this.retrying = false;
+        this.entryOpen = false;
         // Se lee el récord anterior antes de actualizarlo: si no, update()
         // devolvería el propio score y "nuevo récord" saldría siempre.
         const previousBest = HighScore.get();
@@ -125,10 +131,116 @@ export class GameOver extends Scene
         this.createButton(672, 'MENÚ', 0x1b1836, '#cccccc',
             () => this.scene.start('MainMenu'), 0x9a94c8);
 
-        this.input.keyboard.on('keydown-R', retry);
-        this.input.keyboard.on('keydown-SPACE', retry);
-        this.input.keyboard.on('keydown-M', () => this.scene.start('MainMenu'));
-        this.input.keyboard.on('keydown-ESC', () => this.scene.start('MainMenu'));
+        // Mientras se piden las iniciales las letras son para el nombre, no atajos.
+        const unlessEntering = (action) => () => { if (!this.entryOpen) action(); };
+
+        this.input.keyboard.on('keydown-R', unlessEntering(retry));
+        this.input.keyboard.on('keydown-SPACE', unlessEntering(retry));
+        this.input.keyboard.on('keydown-M', unlessEntering(() => this.scene.start('MainMenu')));
+        this.input.keyboard.on('keydown-ESC', unlessEntering(() => this.scene.start('MainMenu')));
+
+        this.maybeEnterRanking();
+    }
+
+    // Ranking local: si el puntaje entra al Top 10 se piden las iniciales (estilo
+    // arcade). Una misma partida (campaña) ocupa una sola fila: si mejora el puntaje
+    // reemplaza a la anterior. Con vida infinita (código secreto) no se registra.
+    maybeEnterRanking ()
+    {
+        if (this.registry.get('infiniteLife')) {
+            return;
+        }
+
+        const run = this.registry.get('runEntry');
+        const previous = run && this.campaignSeed !== null && run.seed === this.campaignSeed
+            ? Leaderboard.find(run.id) : null;
+
+        if (previous && previous.score >= this.score) {
+            return;
+        }
+
+        const replaceId = previous?.id ?? null;
+
+        if (!Leaderboard.qualifies(this.score, replaceId)) {
+            return;
+        }
+
+        this.openEntry(replaceId);
+    }
+
+    openEntry (replaceId)
+    {
+        this.entryOpen = true;
+        const layer = [];
+        const add = (obj) => { obj.setDepth(21); layer.push(obj); return obj; };
+        const label = (y, text, size, color, stroke = 6) => add(this.add.text(512, y, text, {
+            fontFamily: 'Arial Black', fontSize: size, color, stroke: '#000000', strokeThickness: stroke
+        }).setOrigin(0.5));
+
+        const dim = this.add.rectangle(512, 384, 1024, 768, 0x0b0919, 0.97).setInteractive().setDepth(20);
+        this.entryDim = dim;
+
+        const place = Leaderboard.positionFor(this.score, replaceId);
+        label(96, Lang.t('entryTitle'), 44, '#ffdd44', 8);
+        label(150, Lang.t('entryPlace', { p: place, s: this.score }), 26, '#ffffff');
+        label(214, Lang.t('entryPrompt'), 22, '#00d1b2', 5);
+        label(628, Lang.t('entryHint'), 15, '#8888aa', 3);
+
+        const entry = new NameEntry(this, {
+            x: 512, y: 380, initial: Leaderboard.lastName(),
+            onConfirm: (name) => {
+                const saved = Leaderboard.add({
+                    name,
+                    score: this.score,
+                    levels: this.reason === 'victory' ? LEVELS.length : this.levelIndex,
+                    combo: this.maxCombo,
+                    victory: this.reason === 'victory'
+                }, replaceId);
+
+                // Victoria = partida terminada; si no, se recuerda para reemplazar la fila.
+                if (this.reason === 'victory') {
+                    this.registry.remove('runEntry');
+                } else {
+                    this.registry.set('runEntry', { seed: this.campaignSeed, id: saved.id });
+                }
+
+                layer.forEach((obj) => obj.destroy());
+                this.showEntryTable(saved);
+            }
+        });
+        entry.container.setDepth(21);
+    }
+
+    showEntryTable (saved)
+    {
+        const layer = [];
+        const title = this.add.text(512, 50, Lang.t('rankingTitle'), {
+            fontFamily: 'Arial Black', fontSize: 40, color: '#ffdd44', stroke: '#000000', strokeThickness: 8
+        }).setOrigin(0.5).setDepth(21);
+        const table = createRankingTable(this, 512, 100, Leaderboard.get(), saved.id).setDepth(21);
+        layer.push(title, table);
+
+        const close = () => {
+            if (!this.entryOpen) return;
+            layer.forEach((obj) => obj.destroy());
+            button.root.destroy();
+            this.entryDim.destroy();
+            this.entryOpen = false;
+        };
+
+        const button = new MenuButton(this, {
+            x: 512, y: 660, w: 300, h: 64, label: Lang.t('entryContinue'), style: 'primary', delay: 200,
+            onClick: close
+        });
+        button.root.setDepth(21);
+        button.text.setFontSize(28);
+        button.setActive(true);
+
+        // Un instante de espera: el Enter que confirmó las iniciales no debe cerrar la tabla.
+        this.time.delayedCall(300, () => {
+            this.input.keyboard.once('keydown-ENTER', close);
+            this.input.keyboard.once('keydown-SPACE', close);
+        });
     }
 
     // Reintentar: tras perder se genera un nivel nuevo para esa instancia (otra

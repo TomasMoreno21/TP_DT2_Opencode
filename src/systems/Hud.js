@@ -1,181 +1,314 @@
 import { Lang } from './Texts';
+import { Audio } from './Audio';
 import { RANK_COLORS, RANK_ORDER, rankFor } from './Rank';
 
 export const HUD_CONFIG = {
     timerX: 512,
-    timerY: 22,
+    timerY: 52,
+    timerRadius: 42,
     lowTimeThreshold: 10,
     criticalTimeThreshold: 5
 };
 
+const DEPTH = 40;
+const TOP = -Math.PI / 2;
+const COMBO_COLORS = { 2: 0xffdd44, 3: 0xff8844, 4: 0xff6622, 5: 0xff4455 };
+const hex = (color) => `#${color.toString(16).padStart(6, '0')}`;
+
+// Barra redondeada: pista oscura + relleno proporcional.
+function drawBar (g, x, y, w, h, fraction, color) {
+    g.clear();
+    g.fillStyle(0x2a2750, 1).fillRoundedRect(x, y, w, h, h / 2);
+
+    if (fraction > 0) {
+        const fillW = Math.max(h, w * Math.min(fraction, 1));
+        g.fillStyle(color, 1).fillRoundedRect(x, y, fillW, h, h / 2);
+        g.fillStyle(0xffffff, 0.18).fillRoundedRect(x + 2, y + 1, Math.max(fillW - 4, 0), h / 2 - 1, h / 4);
+    }
+}
+
+// Arco que arranca arriba y avanza en sentido horario; fraction 1 = círculo completo.
+function drawArc (g, cx, cy, radius, width, fraction, color, alpha = 1) {
+    if (fraction <= 0) {
+        return;
+    }
+
+    g.lineStyle(width, color, alpha);
+    g.beginPath();
+    g.arc(cx, cy, radius, TOP, TOP + Math.PI * 2 * Math.min(fraction, 1), false);
+    g.strokePath();
+}
+
+// HUD en tres zonas: puntaje y meta (izquierda), reloj y combo (centro), nivel y
+// rango (derecha), con las habilidades abajo a la izquierda. Todo se dibuja con
+// Graphics, como el resto del proyecto.
 export class Hud {
-    constructor(scene) {
+    constructor (scene) {
         this.scene = scene;
         this.normalColor = '#ffffff';
         this.lowColor = '#ffdd44';
         this.criticalColor = '#ff4455';
         this.lastMult = 1;
         this.timerTotal = 60;
-
-        // Panel translúcido detrás del bloque de estado izquierdo.
-        const panel = scene.add.graphics().setScrollFactor(0);
-        panel.fillStyle(0x000000, 0.35);
-        panel.fillRoundedRect(8, 8, 212, 144, 12);
-
-        this.scoreText = scene.add.text(16, 16, 'Puntos: 0', {
-            fontFamily: 'Arial Black', fontSize: 24, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 6
-        }).setScrollFactor(0);
-
-        this.quotaText = scene.add.text(16, 52, 'Meta: 0/0', {
-            fontFamily: 'Arial', fontSize: 18, color: '#cccccc',
-            stroke: '#000000', strokeThickness: 4
-        }).setScrollFactor(0);
-
-        // Barra de progreso de la quota bajo el texto.
-        this.quotaBarBg = scene.add.rectangle(16, 74, 170, 8, 0x1a1a2e, 0.9)
-            .setOrigin(0, 0).setScrollFactor(0);
-        this.quotaBarBg.setStrokeStyle(1, 0xcccccc, 0.6);
-        this.quotaFill = scene.add.rectangle(17, 75, 168, 6, 0x00d1b2, 1)
-            .setOrigin(0, 0).setScrollFactor(0);
-        this.quotaFill.setScale(0, 1);
-
-        this.levelText = scene.add.text(1008, 16, 'Nivel 1/1', {
-            fontFamily: 'Arial Black', fontSize: 22, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 6
-        }).setOrigin(1, 0).setScrollFactor(0);
-
-        // Rango: barra hacia el oro con marcas de bronce y plata, bajo el nivel.
+        this.quotaMet = false;
         this.rankThresholds = null;
-        this.rankText = scene.add.text(1008, 48, '', {
-            fontFamily: 'Arial Black', fontSize: 16, color: '#aaaaaa',
-            stroke: '#000000', strokeThickness: 4
-        }).setOrigin(1, 0).setScrollFactor(0);
-        this.rankBarBg = scene.add.rectangle(838, 72, 170, 8, 0x1a1a2e, 0.9)
-            .setOrigin(0, 0).setScrollFactor(0);
-        this.rankBarBg.setStrokeStyle(1, 0xcccccc, 0.6);
-        this.rankFill = scene.add.rectangle(839, 73, 168, 6, 0x888888, 1)
-            .setOrigin(0, 0).setScrollFactor(0);
-        this.rankFill.setScale(0, 1);
-        this.rankTicks = scene.add.graphics().setScrollFactor(0);
+        this.lastRankIndex = -1;
+        this.dashReady = true;
+        this.shieldActive = false;
+        this.scoreShown = 0;
+        this.scoreTarget = 0;
+        this.scoreAnim = { v: 0 };
+        this.quotaState = { collected: 0, quota: 0 };
+        this.rankAnnounced = false;
 
-        this.comboText = scene.add.text(512, 102, 'x1', {
-            fontFamily: 'Arial Black', fontSize: 22, color: '#ffdd44',
-            stroke: '#000000', strokeThickness: 6
-        }).setOrigin(0.5).setScrollFactor(0).setVisible(false);
+        this.buildLeft();
+        this.buildTimer();
+        this.buildCombo();
+        this.buildRight();
+        this.buildAbilities();
 
-        this.airText = scene.add.text(512, 130, 'VOLANDO', {
-            fontFamily: 'Arial Black', fontSize: 16, color: '#66ff88',
-            stroke: '#000000', strokeThickness: 5
-        }).setOrigin(0.5).setScrollFactor(0).setVisible(false);
-
-        this.shieldBar = scene.add.rectangle(16, 100, 130, 10, 0x1a1a2e, 0.85)
-            .setOrigin(0, 0).setScrollFactor(0).setVisible(false);
-        this.shieldBar.setStrokeStyle(1, 0x2dd4ff, 0.8);
-        this.shieldFill = scene.add.rectangle(18, 102, 126, 6, 0x2dd4ff, 0.9)
-            .setOrigin(0, 0).setScrollFactor(0).setVisible(false);
-        this.shieldLabel = scene.add.text(16, 84, 'ESCUDO', {
-            fontFamily: 'Arial Black', fontSize: 14, color: '#2dd4ff',
-            stroke: '#000000', strokeThickness: 4
-        }).setScrollFactor(0).setVisible(false);
-
-        this.dashLabel = scene.add.text(16, 120, 'DASH', {
-            fontFamily: 'Arial Black', fontSize: 14, color: '#ffaa44',
-            stroke: '#000000', strokeThickness: 4
-        }).setScrollFactor(0);
-        this.dashBar = scene.add.rectangle(16, 136, 130, 10, 0x1a1a2e, 0.85)
-            .setOrigin(0, 0).setScrollFactor(0);
-        this.dashBar.setStrokeStyle(1, 0xffaa44, 0.8);
-        this.dashFill = scene.add.rectangle(18, 138, 126, 6, 0xffaa44, 0.9)
-            .setOrigin(0, 0).setScrollFactor(0);
-
-        this.timerText = scene.add.text(HUD_CONFIG.timerX, HUD_CONFIG.timerY, '1:00', {
-            fontFamily: 'Arial Black', fontSize: 56, color: this.normalColor,
-            stroke: '#000000', strokeThickness: 8
-        }).setOrigin(0.5, 0).setScrollFactor(0);
-
-        // Barra del timer bajo el número + viñeta roja de tiempo bajo.
-        this.timerBarBg = scene.add.rectangle(HUD_CONFIG.timerX - 100, 86, 200, 8, 0x1a1a2e, 0.9)
-            .setOrigin(0, 0).setScrollFactor(0);
-        this.timerBarBg.setStrokeStyle(1, 0xffffff, 0.5);
-        this.timerFill = scene.add.rectangle(HUD_CONFIG.timerX - 99, 87, 198, 6, 0xffffff, 1)
-            .setOrigin(0, 0).setScrollFactor(0);
-        this.vignette = scene.add.graphics().setScrollFactor(0).setVisible(false);
+        this.vignette = this.fix(scene.add.graphics()).setVisible(false);
     }
 
-    setTimerTotal(totalSeconds) {
-        this.timerTotal = Math.max(totalSeconds, 1);
+    // Todo el HUD queda fijo en pantalla y por encima del juego.
+    fix (obj) {
+        return obj.setScrollFactor(0).setDepth(DEPTH);
     }
 
-    setScore(value) {
-        this.scoreText.setText(`Puntos: ${value}`);
+    text (x, y, str, size, color, opts = {}) {
+        return this.fix(this.scene.add.text(x, y, str, {
+            fontFamily: opts.font ?? 'Arial Black', fontSize: size, color,
+            stroke: '#000000', strokeThickness: opts.stroke ?? 5
+        }).setOrigin(opts.originX ?? 0, opts.originY ?? 0.5));
+    }
+
+    panel (x, y, w, h) {
+        const g = this.fix(this.scene.add.graphics());
+        g.fillStyle(0x0b0919, 0.62).fillRoundedRect(x, y, w, h, 14);
+        g.lineStyle(2, 0x2a2a5a, 0.9).strokeRoundedRect(x, y, w, h, 14);
+        return g;
+    }
+
+    // --- Izquierda: puntaje y meta ---------------------------------------------
+
+    buildLeft () {
+        const scene = this.scene;
+        this.panel(8, 8, 262, 112);
+
+        this.text(22, 22, Lang.t('hudScore'), 12, '#8888aa', { stroke: 3 });
+        this.scoreText = this.text(22, 50, '0', 38, '#ffffff', { stroke: 7 });
+
+        this.quotaText = this.text(22, 86, '', 15, '#cccccc', { stroke: 4 });
+        this.quotaBar = this.fix(scene.add.graphics());
+        this.drawQuotaBar(0, false);
+    }
+
+    drawQuotaBar (fraction, met) {
+        const color = met ? 0x00ff88 : 0x00d1b2;
+        drawBar(this.quotaBar, 22, 100, 234, 12, fraction, color);
+
+        // Marcador de la meta al final de la barra.
+        this.quotaBar.fillStyle(met ? 0x00ff88 : 0xffdd44, 1)
+            .fillTriangle(256, 94, 262, 106, 250, 106);
+    }
+
+    setScore (value) {
         this.updateRank(value);
-    }
 
-    setRankThresholds(thresholds) {
-        this.rankThresholds = thresholds;
-        this.rankTicks.clear();
-        for (const rank of RANK_ORDER.slice(0, -1)) {
-            const x = 839 + 168 * (thresholds[rank] / thresholds.gold);
-            this.rankTicks.lineStyle(2, RANK_COLORS[rank], 1).lineBetween(x, 69, x, 83);
+        if (value === this.scoreTarget) {
+            return;
+        }
+
+        const gained = value > this.scoreTarget;
+        this.scoreTarget = value;
+        this.scoreAnim.v = this.scoreShown;
+        this.scoreTween?.stop();
+
+        // Los números suben de a poco en vez de saltar.
+        this.scoreTween = this.scene.tweens.add({
+            targets: this.scoreAnim,
+            v: value,
+            duration: Math.min(450, 120 + Math.abs(value - this.scoreShown) * 4),
+            ease: 'Cubic.easeOut',
+            onUpdate: () => {
+                this.scoreShown = Math.round(this.scoreAnim.v);
+                this.scoreText.setText(String(this.scoreShown));
+            },
+            onComplete: () => {
+                this.scoreShown = value;
+                this.scoreText.setText(String(value));
+            }
+        });
+
+        if (gained) {
+            this.pop(this.scoreText, 1.18);
         }
     }
 
-    updateRank(score) {
-        if (!this.rankThresholds) return;
-        const rank = rankFor(score, this.rankThresholds);
-        const color = rank ? RANK_COLORS[rank] : 0x888888;
-        this.rankText.setText(`${Lang.t('rankLabel')}: ${Lang.t(`rank_${rank ?? 'none'}`)}`);
-        this.rankText.setColor(rank ? `#${color.toString(16).padStart(6, '0')}` : '#aaaaaa');
-        this.rankFill.setScale(Math.min(score / this.rankThresholds.gold, 1), 1);
-        this.rankFill.setFillStyle(color, 1);
-    }
-
-    setQuota(collected, quota) {
+    setQuota (collected, quota) {
         const met = collected >= quota;
-        this.quotaText.setText(`Meta: ${collected}/${quota}`);
+        const progressed = collected > this.quotaState.collected;
+        this.quotaState = { collected, quota };
+
+        this.quotaText.setText(`${met ? '✓ ' : ''}${Lang.t('hudQuota', { c: collected, q: quota })}`);
         this.quotaText.setColor(met ? '#00ff88' : '#cccccc');
-        this.quotaFill.setScale(quota > 0 ? Math.min(collected / quota, 1) : 0, 1);
-        this.quotaFill.setFillStyle(met ? 0x00ff88 : 0x00d1b2, 1);
+        this.drawQuotaBar(quota > 0 ? collected / quota : 0, met);
+
+        if (met && !this.quotaMet) {
+            this.pop(this.quotaText, 1.4);
+            this.flash(8, 8, 262, 112, 0x00ff88);
+        } else if (progressed) {
+            this.pop(this.quotaText, 1.12);
+        }
+
+        this.quotaMet = met;
     }
 
-    setLevel(current, total) {
-        this.levelText.setText(`Nivel ${current}/${total}`);
+    // --- Centro: reloj y combo -------------------------------------------------
+
+    buildTimer () {
+        const { timerX: x, timerY: y, timerRadius: r } = HUD_CONFIG;
+        const disc = this.fix(this.scene.add.graphics());
+        disc.fillStyle(0x0b0919, 0.7).fillCircle(x, y, r + 8);
+        disc.lineStyle(2, 0x2a2a5a, 0.9).strokeCircle(x, y, r + 8);
+
+        this.timerRing = this.fix(this.scene.add.graphics());
+        this.timerText = this.text(x, y, '1:00', 30, this.normalColor, { originX: 0.5, stroke: 6 });
+        this.drawTimerRing(1, 0xffffff);
     }
 
-    formatTime(seconds) {
+    drawTimerRing (fraction, color) {
+        const { timerX: x, timerY: y, timerRadius: r } = HUD_CONFIG;
+        const g = this.timerRing.clear();
+        g.lineStyle(7, 0x0e0c1f, 1).strokeCircle(x, y, r);
+        drawArc(g, x, y, r, 7, fraction, color);
+    }
+
+    setTimerTotal (totalSeconds) {
+        this.timerTotal = Math.max(totalSeconds, 1);
+    }
+
+    formatTime (seconds) {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${String(secs).padStart(2, '0')}`;
     }
 
-    setTime(seconds) {
+    setTime (seconds) {
         this.timerText.setText(this.formatTime(seconds));
 
-        // La barra se vacía con el tiempo y cambia de color con la urgencia.
+        // El anillo se vacía con el tiempo y cambia de color con la urgencia.
         const fraction = Math.max(Math.min(seconds / this.timerTotal, 1), 0);
-        this.timerFill.setScale(fraction, 1);
 
         if (seconds <= HUD_CONFIG.criticalTimeThreshold) {
             this.timerText.setColor(this.criticalColor);
-            this.timerFill.setFillStyle(0xff4455, 1);
+            this.drawTimerRing(fraction, 0xff4455);
             this.startPulse();
             this.updateVignette(1);
         } else if (seconds <= HUD_CONFIG.lowTimeThreshold) {
             this.timerText.setColor(this.lowColor);
-            this.timerFill.setFillStyle(0xffdd44, 1);
+            this.drawTimerRing(fraction, 0xffdd44);
             this.stopPulse();
             this.updateVignette(0.5);
         } else {
             this.timerText.setColor(this.normalColor);
-            this.timerFill.setFillStyle(0xffffff, 1);
+            this.drawTimerRing(fraction, 0xffffff);
             this.stopPulse();
             this.updateVignette(0);
         }
     }
 
+    buildCombo () {
+        const scene = this.scene;
+        this.comboBg = this.fix(scene.add.graphics()).setVisible(false);
+        this.comboBar = this.fix(scene.add.graphics()).setVisible(false);
+        this.comboText = this.text(512, 124, 'x2', 24, '#ffdd44', { originX: 0.5, stroke: 6 }).setVisible(false);
+
+        this.airBg = this.fix(scene.add.graphics()).setVisible(false);
+        this.airText = this.text(512, 160, '', 13, '#66ff88', { originX: 0.5, stroke: 4 }).setVisible(false);
+    }
+
+    drawComboChip (color) {
+        this.comboBg.clear();
+        this.comboBg.fillStyle(0x0b0919, 0.75).fillRoundedRect(452, 108, 120, 38, 12);
+        this.comboBg.lineStyle(2, color, 1).strokeRoundedRect(452, 108, 120, 38, 12);
+    }
+
+    setMultiplier (multiplier) {
+        if (multiplier <= 1) {
+            this.comboText.setVisible(false);
+            this.comboBg.setVisible(false);
+            this.comboBar.setVisible(false);
+            this.stopComboScale();
+            this.lastMult = 1;
+            return;
+        }
+
+        // Subir de combo pega un sacudón chico y cambia de color por nivel.
+        if (multiplier > this.lastMult) {
+            this.scene.cameras.main.shake(70, 0.002);
+        }
+
+        this.lastMult = multiplier;
+        const color = COMBO_COLORS[multiplier] ?? 0xffdd44;
+        this.drawComboChip(color);
+        this.comboBg.setVisible(true);
+        this.comboBar.setVisible(true);
+        this.comboText.setText(`COMBO x${multiplier}`).setColor(hex(color)).setFontSize(20).setVisible(true);
+
+        this.stopComboScale();
+        this.comboText.setScale(1.4);
+
+        this.comboTextScaleTween = this.scene.tweens.add({
+            targets: this.comboText,
+            scale: 1,
+            duration: 200,
+            ease: 'Quad.easeOut'
+        });
+    }
+
+    // Tiempo que le queda al combo (1 → 0). Al agotarse el chip se apaga.
+    setComboTimer (fraction) {
+        if (this.lastMult <= 1) {
+            return;
+        }
+
+        if (fraction <= 0) {
+            this.setMultiplier(1);
+            return;
+        }
+
+        const color = COMBO_COLORS[this.lastMult] ?? 0xffdd44;
+        drawBar(this.comboBar, 462, 135, 100, 6, fraction, fraction < 0.25 ? 0xff4455 : color);
+    }
+
+    // Detiene el tween de escala anterior: si no, se acumulan sobre el mismo
+    // objetivo y la animación de "pop" se pisa a sí misma.
+    stopComboScale () {
+        if (this.comboTextScaleTween) {
+            this.comboTextScaleTween.stop();
+            this.comboTextScaleTween = null;
+        }
+
+        this.comboText.setScale(1);
+    }
+
+    setAirStreak (streak) {
+        if (streak > 0) {
+            this.airText.setText(Lang.t('hudAir', { n: streak })).setVisible(true);
+            const w = this.airText.width + 24;
+            this.airBg.clear().setVisible(true);
+            this.airBg.fillStyle(0x0b0919, 0.7).fillRoundedRect(512 - w / 2, 148, w, 24, 12);
+            this.airBg.lineStyle(2, 0x66ff88, 0.9).strokeRoundedRect(512 - w / 2, 148, w, 24, 12);
+            return;
+        }
+
+        this.airText.setVisible(false);
+        this.airBg.setVisible(false);
+    }
+
     // Viñeta difuminada por capas (no un rectángulo duro): crece al acabarse el tiempo.
-    drawVignette(strength) {
+    drawVignette (strength) {
         const g = this.vignette.clear();
         const layers = [
             { w: 120, a: 0.10 }, { w: 95, a: 0.15 }, { w: 70, a: 0.22 },
@@ -188,7 +321,7 @@ export class Hud {
         }
     }
 
-    updateVignette(strength) {
+    updateVignette (strength) {
         if (strength <= 0) {
             if (this.vignetteTween) {
                 this.vignetteTween.stop();
@@ -215,7 +348,7 @@ export class Hud {
         }
     }
 
-    startPulse() {
+    startPulse () {
         if (this.timerPulse) {
             return;
         }
@@ -230,7 +363,7 @@ export class Hud {
         });
     }
 
-    stopPulse() {
+    stopPulse () {
         if (this.timerPulse) {
             this.timerPulse.stop();
             this.timerPulse = null;
@@ -238,75 +371,179 @@ export class Hud {
         }
     }
 
-    setMultiplier(multiplier) {
-        if (multiplier <= 1) {
-            this.comboText.setVisible(false);
-            this.stopComboScale();
-            this.lastMult = 1;
-            return;
-        }
+    // --- Derecha: nivel y rango -----------------------------------------------
 
-        // Subir de combo pega un sacudón chico y cambia de color por nivel.
-        if (multiplier > this.lastMult) {
-            this.scene.cameras.main.shake(70, 0.002);
-        }
+    buildRight () {
+        this.panel(754, 8, 262, 112);
 
-        this.lastMult = multiplier;
-        const colors = { 2: '#ffdd44', 3: '#ff8844', 4: '#ff6622', 5: '#ff4455' };
-        this.comboText.setText(`x${multiplier}`).setColor(colors[multiplier] ?? '#ffdd44').setVisible(true);
+        this.levelText = this.text(1002, 26, 'Nivel 1/1', 20, '#ffffff', { originX: 1, stroke: 5 });
+        this.rankText = this.text(1002, 58, '', 15, '#aaaaaa', { originX: 1, stroke: 4 });
+        this.rankBar = this.fix(this.scene.add.graphics());
+        this.rankMarks = this.fix(this.scene.add.graphics());
+        this.drawRankBar(0, 0x888888);
+    }
 
-        this.stopComboScale();
-        this.comboText.setScale(1.4);
+    drawRankBar (fraction, color) {
+        drawBar(this.rankBar, 768, 84, 234, 12, fraction, color);
+    }
 
-        this.comboTextScaleTween = this.scene.tweens.add({
-            targets: this.comboText,
-            scale: 1,
-            duration: 200,
-            ease: 'Quad.easeOut'
+    setLevel (current, total) {
+        this.levelText.setText(Lang.t('hudLevel', { c: current, t: total }));
+    }
+
+    // Marcas de bronce, plata y oro sobre la barra de rango.
+    setRankThresholds (thresholds) {
+        this.rankThresholds = thresholds;
+        const g = this.rankMarks.clear();
+
+        RANK_ORDER.forEach((rank, i) => {
+            const x = 768 + 234 * (thresholds[rank] / thresholds.gold);
+            const big = i === RANK_ORDER.length - 1;
+            g.fillStyle(0x000000, 0.6).fillCircle(x - (big ? 3 : 0), 90, 8);
+            g.fillStyle(RANK_COLORS[rank], 1).fillCircle(x - (big ? 3 : 0), 90, 6);
         });
     }
 
-    // Detiene el tween de escala anterior: si no, se acumulan sobre el mismo
-    // objetivo y la animacion de "pop" se pisa a si misma.
-    stopComboScale() {
-        if (this.comboTextScaleTween) {
-            this.comboTextScaleTween.stop();
-            this.comboTextScaleTween = null;
+    updateRank (score) {
+        if (!this.rankThresholds) return;
+
+        const rank = rankFor(score, this.rankThresholds);
+        const color = rank ? RANK_COLORS[rank] : 0x888888;
+        const index = rank ? RANK_ORDER.indexOf(rank) : -1;
+
+        this.rankText.setText(`${Lang.t('rankLabel')}: ${Lang.t(`rank_${rank ?? 'none'}`)}`);
+        this.rankText.setColor(rank ? hex(color) : '#aaaaaa');
+        this.drawRankBar(Math.min(score / this.rankThresholds.gold, 1), color);
+
+        // Subir de medalla: pop, destello y sonido.
+        if (this.rankAnnounced && index > this.lastRankIndex) {
+            this.pop(this.rankText, 1.35);
+            this.flash(754, 8, 262, 112, color);
+            Audio.play('perfect');
         }
 
-        this.comboText.setScale(1);
+        this.lastRankIndex = index;
+        this.rankAnnounced = true;
     }
 
-    setShield(remainingMs, totalMs) {
-        const active = remainingMs > 0;
+    // --- Habilidades -----------------------------------------------------------
 
-        this.shieldBar.setVisible(active);
-        this.shieldFill.setVisible(active);
-        this.shieldLabel.setVisible(active);
+    buildAbilities () {
+        const scene = this.scene;
+        const y = 728;
+
+        // Dash.
+        this.dashRing = this.fix(scene.add.graphics());
+        this.dashIcon = this.fix(scene.add.graphics());
+        this.dashPos = { x: 40, y };
+        this.dashLabel = this.text(40, y + 27, 'SHIFT', 9, '#8888aa', { originX: 0.5, stroke: 3 });
+
+        // Escudo: solo aparece mientras está activo.
+        this.shieldPos = { x: 92, y };
+        this.shieldRing = this.fix(scene.add.graphics()).setVisible(false);
+        this.shieldIcon = this.fix(scene.add.graphics()).setVisible(false);
+
+        this.setDashCooldown(0, 1);
+    }
+
+    drawAbilityBase (g, x, y) {
+        g.fillStyle(0x0b0919, 0.85).fillCircle(x, y, 22);
+        g.lineStyle(4, 0x0e0c1f, 1).strokeCircle(x, y, 19);
+    }
+
+    // Indicador del dash: el anillo se llena mientras recarga y brilla al estar listo.
+    setDashCooldown (remainingMs, totalMs) {
+        const ready = remainingMs <= 0;
+        const fraction = ready ? 1 : Math.max(Math.min(1 - remainingMs / totalMs, 1), 0);
+        const { x, y } = this.dashPos;
+        const color = ready ? 0xffaa44 : 0x777777;
+
+        this.dashRing.clear();
+        this.drawAbilityBase(this.dashRing, x, y);
+        drawArc(this.dashRing, x, y, 19, 4, fraction, color);
+
+        // Dos chevrones »
+        this.dashIcon.clear().lineStyle(3, color, 1);
+        for (const dx of [-6, 3]) {
+            this.dashIcon.beginPath();
+            this.dashIcon.moveTo(x + dx - 3, y - 7);
+            this.dashIcon.lineTo(x + dx + 4, y);
+            this.dashIcon.lineTo(x + dx - 3, y + 7);
+            this.dashIcon.strokePath();
+        }
+
+        this.dashLabel.setColor(ready ? '#ffaa44' : '#555566');
+
+        if (ready && !this.dashReady) {
+            this.flash(x - 26, y - 26, 52, 52, 0xffaa44, 26);
+        }
+
+        this.dashReady = ready;
+    }
+
+    setShield (remainingMs, totalMs) {
+        const active = remainingMs > 0;
+        const { x, y } = this.shieldPos;
+
+        this.shieldRing.setVisible(active);
+        this.shieldIcon.setVisible(active);
 
         if (!active) {
+            this.shieldActive = false;
             return;
         }
 
         const fraction = Math.max(Math.min(remainingMs / totalMs, 1), 0);
-        this.shieldFill.setScale(fraction, 1);
-    }
+        const color = fraction < 0.25 ? 0xff4455 : 0x2dd4ff;
 
-    setAirStreak(streak) {
-        if (streak > 0) {
-            this.airText.setText(`VOLANDO x${streak}`).setVisible(true);
-            return;
+        this.shieldRing.clear();
+        this.drawAbilityBase(this.shieldRing, x, y);
+        drawArc(this.shieldRing, x, y, 19, 4, fraction, color);
+
+        // Escudo: silueta de blasón.
+        this.shieldIcon.clear().fillStyle(color, 1);
+        this.shieldIcon.fillPoints([
+            { x: x - 8, y: y - 8 }, { x: x + 8, y: y - 8 }, { x: x + 8, y: y + 1 },
+            { x, y: y + 10 }, { x: x - 8, y: y + 1 }
+        ], true);
+
+        if (!this.shieldActive) {
+            this.shieldActive = true;
+            this.flash(x - 26, y - 26, 52, 52, 0x2dd4ff, 26);
         }
-
-        this.airText.setVisible(false);
     }
 
-    // Indicador de cooldown del dash: la barra se llena cuando está listo.
-    setDashCooldown(remainingMs, totalMs) {
-        const ready = remainingMs <= 0;
-        const fraction = ready ? 1 : Math.max(Math.min(1 - remainingMs / totalMs, 1), 0);
+    // --- Efectos ---------------------------------------------------------------
 
-        this.dashFill.setScale(fraction, 1);
-        this.dashLabel.setColor(ready ? '#ffaa44' : '#777777');
+    // Pop de escala para textos (crece de golpe y vuelve a 1).
+    pop (text, scale) {
+        text.setScale(scale);
+        this.scene.tweens.add({
+            targets: text, scaleX: 1, scaleY: 1, duration: 220, ease: 'Back.easeOut'
+        });
+    }
+
+    // Destello rectangular que se apaga (feedback de logros del HUD).
+    flash (x, y, w, h, color, radius = 14) {
+        const g = this.fix(this.scene.add.graphics());
+        g.fillStyle(color, 0.45).fillRoundedRect(x, y, w, h, radius);
+        this.scene.tweens.add({
+            targets: g, alpha: 0, duration: 480, ease: 'Quad.easeOut',
+            onComplete: () => g.destroy()
+        });
+    }
+
+    // Flecha que rebota sobre la salida cuando se abre.
+    showExitMarker (x, y) {
+        const scene = this.scene;
+        const top = Math.max(y - 78, 70);
+        const arrow = this.fix(scene.add.graphics());
+        arrow.fillStyle(0x00ff88, 1).fillTriangle(-14, 0, 14, 0, 0, 18);
+        arrow.lineStyle(3, 0x000000, 0.5).strokeTriangle(-14, 0, 14, 0, 0, 18);
+        const label = this.text(0, -16, Lang.t('hudExit'), 16, '#00ff88', { originX: 0.5, stroke: 5 });
+
+        const marker = scene.add.container(x, top, [arrow, label]).setScrollFactor(0).setDepth(DEPTH);
+        scene.tweens.add({ targets: marker, y: top + 12, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.exitMarker = marker;
     }
 }

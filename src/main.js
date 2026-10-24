@@ -3,6 +3,7 @@ import { Game } from './scenes/Game';
 import { GameOver } from './scenes/GameOver';
 import { MainMenu } from './scenes/MainMenu';
 import { Pause } from './scenes/Pause';
+import { Ranking } from './scenes/Ranking';
 import { Preloader } from './scenes/Preloader';
 import { AUTO, Game as PhaserGame, Scale } from 'phaser';
 
@@ -29,6 +30,7 @@ const config = {
         MainMenu,
         Game,
         GameOver,
+        Ranking,
         Pause
     ]
 };

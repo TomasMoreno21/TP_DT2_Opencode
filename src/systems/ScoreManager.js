@@ -19,6 +19,15 @@ export class ScoreManager {
         return this.collected >= this.quota;
     }
 
+    // Fracción de la ventana de combo que queda (1 → 0); 0 si no hay combo activo.
+    comboRemaining(now) {
+        if (this.combo <= 0 || this.multiplier <= 1) {
+            return 0;
+        }
+
+        return Math.max(0, 1 - (now - this.lastCollectionTime) / this.comboWindowMs);
+    }
+
     // Combo compartido por puntos y gemas. countQuota controla si la recolección
     // suma a la meta; airborne acumula la cadena "sin pies en el suelo" (M6).
     addValue(value, now, countQuota, airborne) {
