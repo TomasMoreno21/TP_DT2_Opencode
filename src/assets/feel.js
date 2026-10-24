@@ -18,8 +18,11 @@ export const FEEL = {
     },
 
     // Zoom por combo.
-    zoom: { comboHigh: 1.03, comboMultiplier: 4, ms: 300 },
+    zoom: { comboHigh: 1.03, comboMultiplier: 4, ms: 300, punch: 1.018, punchMs: 80 },
 
     // Efectos de partículas.
-    fx: { burstCount: 10, burstLifespan: 400 }
+    fx: { burstCount: 10, burstLifespan: 400, ringRadius: 56, ringMs: 220, maxGhosts: 24, maxRings: 16, maxStreaks: 24 },
+
+    // Bloom de pantalla completa (filtro de Phaser 4): sutil, solo realza lo brillante.
+    bloom: { threshold: 0.6, blurRadius: 2, blurSteps: 3, blurQuality: 0, blendAmount: 0.7 }
 };

@@ -20,6 +20,7 @@ import { LevelGenerator } from '../systems/LevelGenerator';
 import { CampaignBuilder } from '../systems/CampaignBuilder';
 import { FEEL } from '../assets/feel';
 import { Fx } from '../systems/Fx';
+import { CameraFx } from '../systems/CameraFx';
 import { Metrics } from '../systems/Metrics';
 
 export class Game extends Scene
@@ -174,6 +175,8 @@ export class Game extends Scene
         const levelConfig = this.resolveLevelConfig();
 
         this.pace = new GamePace(this);
+        this.fx = new Fx(this);
+        this.camFx = new CameraFx(this);
         this.zoomLevel = 1;
 
         this.level = new Level(this, levelConfig);
@@ -235,7 +238,6 @@ export class Game extends Scene
         this.timer = new GameTimer(this, () => this.onTimeUp(), levelConfig.durationSeconds);
         this.hud = new Hud(this);
         this.floatingText = new FloatingText(this);
-        this.fx = new Fx(this);
         this.metrics = new Metrics(this.levelIndex + 1);
 
         this.rankThresholds = rankThresholds(this.scoreManager.quota);
@@ -285,7 +287,7 @@ export class Game extends Scene
         });
 
         this.listen('player-dash', () => Audio.play('dash'));
-        this.listen('player-dash', () => this.cameras.main.shake(...FEEL.shake.dash));
+        this.listen('player-dash', () => this.camFx.shake('dash'));
         this.listen('player-jump', (kind) => Audio.play('jump', { kind }));
         this.listen('player-jump', (kind) => kind === 'wall' && this.unlockBadge('wallJump'));
         this.listen('player-dash', () => this.unlockBadge('dash'));
@@ -517,7 +519,7 @@ export class Game extends Scene
                 this.unlockBadge('portal');
                 this.burstAt(portal.x, portal.y, 0x9d7bff);
                 this.burstAt(this.player.rect.x, this.player.rect.y, 0x9d7bff);
-                this.cameras.main.flash(120, 157, 123, 255);
+                this.camFx.flash(120, 157, 123, 255);
             }
         }
     }
@@ -637,7 +639,7 @@ export class Game extends Scene
         for (const [dx, color] of [[-30, 0x00ff88], [30, 0xffdd44], [0, 0x2dd4ff], [-15, 0xff66aa], [15, 0xffffff]]) {
             this.burstAt(px + dx, py - 10, color);
         }
-        this.cameras.main.shake(...FEEL.shake.goal);
+        this.camFx.shake('goal');
 
         this.floatingText.showBanner(512, 300, `¡Nivel ${this.levelIndex + 1} superado!`, '#00ff88', 32, 1700);
         if (timeBonus > 0) {
@@ -722,7 +724,7 @@ export class Game extends Scene
             }
             this.player.invulnerableUntil = this.time.now + 800;
             Audio.play('hit');
-            this.cameras.main.flash(150, 255, 40, 40);
+            this.camFx.flash(150, 255, 40, 40);
             return;
         }
 
@@ -734,8 +736,8 @@ export class Game extends Scene
             this.player.absorbHit();
             this.unlockBadge('shield');
             Audio.play('hit');
-            this.cameras.main.shake(...FEEL.shake.shield);
-            this.cameras.main.flash(150, 90, 220, 255);
+            this.camFx.shake('shield');
+            this.camFx.flash(150, 90, 220, 255);
             this.burstAt(this.player.rect.x, this.player.rect.y, 0x2dd4ff);
             this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡ESCUDO!', '#2dd4ff', 20);
             return;
@@ -750,8 +752,8 @@ export class Game extends Scene
         this.player.flinch();
         this.player.rect.setFillStyle(0xff4455);
 
-        this.cameras.main.shake(...FEEL.shake.death);
-        this.cameras.main.flash(300, 255, 40, 40);
+        this.camFx.shake('death');
+        this.camFx.flash(300, 255, 40, 40);
 
         this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡Impacto!', '#ff4455', 26);
 

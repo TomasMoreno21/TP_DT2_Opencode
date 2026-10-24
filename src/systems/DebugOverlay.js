@@ -21,6 +21,7 @@ export function installDebugOverlay(game) {
             lines.push(`${scene.scene.key}: objetos ${list.length} · emisores ${emitters} · tweens ${scene.tweens.getTweens().length}`);
 
             if (scene.scene.key === 'Game') {
+                if (scene.fx) lines.push(`${scene.fx.stats} · bloom ${scene.camFx.bloomActive ? 'sí' : 'no'}`);
                 lines.push(`listeners dash ${scene.events.listenerCount('player-dash')} · salto ${scene.events.listenerCount('player-jump')}`);
 
                 const sm = scene.scoreManager;
@@ -32,6 +33,18 @@ export function installDebugOverlay(game) {
 
         box.textContent = lines.join('\n');
     };
+
+    // F4: prueba el bloom de pantalla completa (filtro de Phaser 4) sobre la escena de juego.
+    window.addEventListener('keydown', (event) => {
+        if (event.key !== 'F4') return;
+
+        const scene = game.scene.getScene('Game');
+
+        if (scene?.camFx) {
+            event.preventDefault();
+            scene.camFx.setBloom(!scene.camFx.bloomActive);
+        }
+    });
 
     window.addEventListener('keydown', (event) => {
         if (event.key === 'F3') {

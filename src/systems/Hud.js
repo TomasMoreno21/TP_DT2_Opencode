@@ -1,6 +1,5 @@
 import { Lang } from './Texts';
 import { Audio } from './Audio';
-import { FEEL } from '../assets/feel';
 import { RANK_COLORS, RANK_ORDER, rankFor } from './Rank';
 
 export const HUD_CONFIG = {
@@ -247,7 +246,7 @@ export class Hud {
 
         // Subir de combo pega un sacudón chico y cambia de color por nivel.
         if (multiplier > this.lastMult) {
-            this.scene.cameras.main.shake(...FEEL.shake.combo);
+            this.scene.camFx.shake('combo');
         }
 
         this.lastMult = multiplier;

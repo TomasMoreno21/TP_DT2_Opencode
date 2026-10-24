@@ -1097,3 +1097,12 @@ El cuello de botella es **tu tiempo de revisión** (2–3 h/día), no la impleme
 | **Sáb 7** | **Entrega** | — |
 
 **Regla de recorte (por 0.4):** si hay retraso, se cae primero J8 (oleadas, graze, dash refund), después la música por nivel, y se protege el núcleo: movimiento, tensión del N2 y recolección.
+
+### D.6 Registro de avance
+
+| Fase | Estado | Resultado |
+|---|---|---|
+| J0 | **Hecho** (`3fa7f68`) | Fuga de emisores y listeners duplicados corregidos (20 → 3 listeners tras 4 reinicios; 40 → 2 emisores tras 40 ráfagas); estelas unificadas; `feel.js`, `Metrics` y overlay F3 (solo dev) |
+| J1 | **Hecho, sin commitear** | `Fx` con pools y topes (ráfaga, chispa, polvo, anillo, línea, fantasma); `CameraFx` (sacudidas por nombre, destello, punch de zoom, bloom, con ganchos para reducir movimiento/destellos); estela del dash migrada al pool; **spike de filtros resuelto (ver abajo)** |
+
+**Spike de filtros de Phaser 4 (4.0.0):** viable. La cámara admite filtros y `Actions.AddEffectBloom` arma el bloom (umbral + desenfoque en paralelo, mezcla aditiva). Medido en el navegador de desarrollo: **~60 FPS con y sin bloom**. Se deja **apagado por defecto** y se prueba con **F4** (solo desarrollo); la decisión de activarlo y sus valores (`FEEL.bloom`) van en J6. Pendiente: medirlo en una GPU integrada de gama media (3.1) antes de fijarlo. Phaser 4 trae además filtros útiles para fases siguientes: `Wipe` (cortina de transición, S-2), `Vignette`, `Glow` y `Displacement`.
