@@ -68,6 +68,12 @@ function scheduleStep(track, t) {
     const root = def.tonic + def.prog[bar % 4];
     const dest = (name) => track.layers[name];
 
+    // Marca cada negra para que el mundo (grilla, plataformas) lata con la música.
+    if (step % 4 === 0) {
+        track.beats.push(t);
+        if (track.beats.length > 8) track.beats.shift();
+    }
+
     // Base: pad al inicio del compás y bajo en corcheas (negras en el menú).
     if (step === 0) {
         for (const off of [0, 3, 7]) {
@@ -183,7 +189,7 @@ function build(key) {
     const track = {
         key, def, trackGain, layers, on: {},
         step: 0, bar: 0, nextTime: ctx.currentTime + 0.08,
-        tension: 0, mult: 1, frenzy: false, pressure: false, retired: false, timer: null
+        tension: 0, mult: 1, frenzy: false, pressure: false, retired: false, timer: null, beats: []
     };
 
     track.timer = setInterval(() => tick(track), 25);
@@ -275,6 +281,33 @@ export const Music = {
             current.pressure = on;
             applyLayers(current);
         }
+    },
+
+    // Latido de la negra actual: 1 justo en el golpe y baja a 0 antes del siguiente.
+    get pulse() {
+        const ctx = bus.context;
+
+        if (!current || current.retired || !ctx) {
+            return 0;
+        }
+
+        const now = ctx.currentTime;
+        let last = -1;
+
+        for (let i = current.beats.length - 1; i >= 0; i--) {
+            if (current.beats[i] <= now) {
+                last = current.beats[i];
+                break;
+            }
+        }
+
+        if (last < 0) {
+            return 0;
+        }
+
+        const k = Math.max(0, 1 - (now - last) / (stepDuration(current) * 4));
+
+        return k * k;
     },
 
     // Para el overlay de debug.

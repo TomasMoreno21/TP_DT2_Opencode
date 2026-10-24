@@ -24,6 +24,9 @@ import { CameraFx } from '../systems/CameraFx';
 import { Metrics } from '../systems/Metrics';
 import { Music } from '../systems/Music';
 import { CollectFx } from '../systems/CollectFx';
+import { Backdrop } from '../systems/Backdrop';
+import { PlatformGlow } from '../systems/PlatformGlow';
+import { themeFor } from '../assets/themes';
 import { TensionDirector } from '../systems/TensionDirector';
 
 export class Game extends Scene
@@ -150,30 +153,9 @@ export class Game extends Scene
 
         this.cameras.main.setBackgroundColor(0x141026);
 
-        // Fondo neón procedural con parallax suave (sin assets externos).
-        if (!this.textures.exists('neon-star')) {
-            const sg = this.make.graphics({ x: 0, y: 0, add: false });
-            sg.fillStyle(0xffffff, 1).fillCircle(8, 12, 2);
-            sg.fillStyle(0x00d1b2, 0.9).fillCircle(34, 30, 1.6);
-            sg.fillStyle(0xffdd44, 0.9).fillCircle(52, 10, 1.4);
-            sg.fillStyle(0xffffff, 0.7).fillCircle(22, 48, 1.2);
-            sg.generateTexture('neon-star', 64, 64);
-            sg.destroy();
-        }
-
-        const bg = this.add.graphics().setScrollFactor(0).setDepth(-10);
-        bg.fillGradientStyle(0x232045, 0x232045, 0x141026, 0x141026, 1);
-        bg.fillRect(0, 0, 1024, 768);
-        bg.fillStyle(0x00d1b2, 0.18).fillRect(0, 708, 1024, 3);
-        bg.fillStyle(0xffdd44, 0.08).fillRect(0, 712, 1024, 8);
-        bg.lineStyle(1, 0x00d1b2, 0.07);
-        for (let y = 64; y < 768; y += 64) {
-            bg.lineBetween(0, y, 1024, y);
-        }
-
-        this.bgStars = this.add.tileSprite(512, 384, 1024, 768, 'neon-star')
-            .setScrollFactor(0).setDepth(-9).setAlpha(0.85);
-        this.tweens.add({ targets: this.bgStars, alpha: 0.55, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        // Fondo en capas con parallax y paleta propia del nivel (sin assets externos).
+        this.theme = themeFor(this.levelIndex);
+        this.backdrop = new Backdrop(this, this.theme);
 
         const levelConfig = this.resolveLevelConfig();
 
@@ -184,7 +166,8 @@ export class Game extends Scene
         this.collectFx = new CollectFx(this);
         this.zoomLevel = 1;
 
-        this.level = new Level(this, levelConfig);
+        this.level = new Level(this, levelConfig, this.theme);
+        this.platformGlow = new PlatformGlow(this, this.level, this.theme);
         this.player = new Player(this, levelConfig.spawn.x, levelConfig.spawn.y);
 
         this.physics.add.collider(this.player.rect, this.level.platforms);
@@ -515,11 +498,12 @@ export class Game extends Scene
 
     update (time, delta)
     {
-        // Parallax suave: estrellas siguen un poco a la cámara + deriva lenta.
-        if (this.bgStars) {
-            this.bgStars.tilePositionX = this.cameras.main.scrollX * 0.25;
-            this.bgStars.tilePositionY = this.cameras.main.scrollY * 0.25 + time * 0.006;
-        }
+        // Fondo con parallax, plataformas que laten con el beat en frenesí y vórtice de la salida.
+        const pulse = Music.pulse;
+
+        this.backdrop.update(time, this.player.rect.x, pulse);
+        this.platformGlow.update(this.seenMult === 5 ? pulse : 0);
+        this.level.goal.update(time);
 
         this.player.update(delta);
         this.tutorial?.update();

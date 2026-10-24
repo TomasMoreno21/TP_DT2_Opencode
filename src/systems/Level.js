@@ -2,7 +2,8 @@ import { EntityFactory } from '../patterns/EntityFactory';
 
 // Materializa un nivel a partir de su declaracion en assets/levels.js.
 export class Level {
-    constructor(scene, config) {
+    // theme: paleta del nivel (assets/themes.js); sin ella se usan los colores de siempre.
+    constructor(scene, config, theme = null) {
         this.scene = scene;
         this.config = config;
         this.platforms = scene.physics.add.staticGroup();
@@ -13,7 +14,7 @@ export class Level {
             this.platforms.add(rect);
             // Borde neón superior (o lateral en paredes) para legibilidad.
             const isWall = p.h > p.w * 2;
-            const edgeColor = isWall ? 0x9d7bff : 0x00d1b2;
+            const edgeColor = isWall ? (theme?.wall ?? 0x9d7bff) : (theme?.accent ?? 0x00d1b2);
             if (isWall) {
                 scene.add.rectangle(p.x, p.y, 4, p.h - 4, edgeColor, 0.8);
             } else {
