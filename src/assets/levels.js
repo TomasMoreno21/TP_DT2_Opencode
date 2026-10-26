@@ -10,7 +10,7 @@ export const ALL_LEVELS = [
         name: 'Arranque',
         durationSeconds: 60,
         quota: 12,
-        spawn: { x: 200, y: 650 },
+        spawn: { x: 200, y: 684 },
         // N1 sin proyectiles: nivel de arranque tranqui (reversible).
         projectiles: null,
         platforms: [
@@ -116,19 +116,15 @@ export const ALL_LEVELS = [
     },
     {
         id: 3,
-        name: 'Movimiento',
+        name: 'Frágiles',
         durationSeconds: 50,
         quota: 13,
         spawn: { x: 120, y: 684 },
-        // Los carriles (movingPlatforms) son la via principal del centro y lo
-        // alto: la zona carril tiene pocas plataformas fijas y el generador
-        // valida con el tiempo real de las moviles (ver LevelValidator, timed).
-        timedMovers: true,
-        laneZone: { x1: 190, x2: 834, y1: 0, y2: 460, maxFixed: 3 },
+        // Proyectiles apenas mas rapidos que los del N2, con progresion muy lenta.
         projectiles: {
-            initialInterval: 1650,
-            minInterval: 1000,
-            maxSpeedMultiplier: 1.5,
+            initialInterval: 1850,
+            minInterval: 1100,
+            maxSpeedMultiplier: 1.35,
             wallGapX: 52
         },
         platforms: [
@@ -137,67 +133,53 @@ export const ALL_LEVELS = [
             // Paredes de los bordes
             { x: 40, y: 400, w: 24, h: 720, color: 0x4a4270 },
             { x: 984, y: 400, w: 24, h: 720, color: 0x4a4270 },
-            // Fila 1 (y=630)
-            // Las plataformas del borde izquierdo llegan hasta la pared (fixed): sin
-            // canal para trepar por wall jump y esquivar los carriles.
-            { x: 149, y: 630, w: 194, h: 20, color: 0x3a3a5c, fixed: true },
-            { x: 512, y: 630, w: 170, h: 20, color: 0x3a3a5c },
-            { x: 798, y: 630, w: 150, h: 20, color: 0x3a3a5c },
-            // Fila 2 (y=540): el vacio central lo cruza la ferry baja
-            { x: 154, y: 540, w: 206, h: 20, color: 0x3a3a5c, fixed: true },
-            { x: 851, y: 540, w: 243, h: 20, color: 0x3a3a5c },
-            // Escalera del borde izquierdo (unica via fija hacia arriba)
-            { x: 131, y: 450, w: 158, h: 20, color: 0x3a3a5c, fixed: true },
-            { x: 131, y: 360, w: 158, h: 20, color: 0x3a3a5c, fixed: true },
-            { x: 131, y: 270, w: 158, h: 20, color: 0x3a3a5c, fixed: true },
-            // Techo desde la pared hasta el centro: sin el, el salto + dash desde el
-            // ultimo escalon cruza directo a la salida (o se trepa la pared) y los
-            // carriles sobran.
-            { x: 316, y: 170, w: 528, h: 20, color: 0x3a3a5c, fixed: true },
-            // Aterrizaje de la salida (unica fija en la zona carril)
-            { x: 881, y: 270, w: 182, h: 20, color: 0x3a3a5c }
+            // Ruta segura (lenta): zigzag por la izquierda y el centro hasta la salida.
+            { x: 170, y: 630, w: 190, h: 20, color: 0x3a3a5c },
+            { x: 340, y: 540, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 170, y: 450, w: 170, h: 20, color: 0x3a3a5c },
+            { x: 340, y: 360, w: 150, h: 20, color: 0x3a3a5c },
+            { x: 520, y: 270, w: 170, h: 20, color: 0x3a3a5c },
+            { x: 880, y: 270, w: 190, h: 20, color: 0x3a3a5c }
         ],
-        movingPlatforms: [
-            // Ferry baja: cruza el vacio central de la fila 2.
-            { x: 470, y: 540, w: 100, h: 20, distance: 190, speed: 85, axis: 'x', phase: 0, dwell: 0.4 },
-            // Ascensor: del alfeizar de la fila 2 derecha hasta el nivel de la ferry alta.
-            { x: 680, y: 475, w: 70, h: 20, distance: 150, speed: 100, axis: 'y', phase: 0.25, dwell: 0.6 },
-            // Ferry alta: ancha, desfasada y mas rapida; une la escalera con la salida.
-            { x: 520, y: 330, w: 90, h: 20, distance: 300, speed: 110, axis: 'x', phase: 0.5, dwell: 0.3 }
+        // Ruta rapida (a la derecha): cada una cae 0,7 s despues de pisarla y vuelve a los 3 s.
+        fragilePlatforms: [
+            { x: 560, y: 630, w: 150 },
+            { x: 740, y: 540, w: 140 },
+            { x: 880, y: 450, w: 140 },
+            { x: 520, y: 450, w: 130 },
+            { x: 720, y: 360, w: 130 }
+        ],
+        gems: [
+            { x: 880, y: 362 }
         ],
         pointSpots: [
-            // Piso
             { x: 200, y: 688 },
             { x: 880, y: 688 },
-            // Fila 1
             { x: 170, y: 600 },
-            { x: 512, y: 600 },
-            { x: 798, y: 600 },
-            // Fila 2
-            { x: 185, y: 510 },
-            { x: 814, y: 510 },
-            // Escalera
-            { x: 150, y: 420 },
-            { x: 150, y: 330 },
-            { x: 150, y: 240 },
-            // Sobre las rutas de las ferries (se toman en el aire con timing)
-            { x: 470, y: 460 },
-            { x: 520, y: 280 }
+            { x: 560, y: 600 },
+            { x: 340, y: 510 },
+            { x: 740, y: 510 },
+            { x: 170, y: 420 },
+            { x: 880, y: 420 },
+            { x: 520, y: 420 },
+            { x: 340, y: 330 },
+            { x: 720, y: 330 },
+            { x: 520, y: 240 }
         ],
         goal: { x: 880, y: 224 }
     },
     {
         id: 4,
         name: 'Peligro',
-        durationSeconds: 43,
+        durationSeconds: 47,
         quota: 14,
-        spawn: { x: 110, y: 660 },
+        spawn: { x: 110, y: 684 },
+        // Proyectil estandar con ritmo mas rapido que el N3 (el ricochet queda para el N5).
         projectiles: {
             initialInterval: 1350,
             minInterval: 820,
             maxSpeedMultiplier: 1.7,
-            wallGapX: 52,
-            variant: 'ricochet'
+            wallGapX: 52
         },
         platforms: [
             // Piso
@@ -230,7 +212,7 @@ export const ALL_LEVELS = [
             // Paso por la fila 1 central
             { x: 512, y: 622, w: 110, offsetMs: 275 },
             // Fila 2 derecha (obliga a cronometrar el cruce al remate)
-            { x: 724, y: 530, w: 90, offsetMs: 925 }
+            { x: 724, y: 530, w: 76, offsetMs: 925 }
         ],
         powerUps: [
             // Escudo accesible: sobre la plataforma izquierda de la fila 1
@@ -260,14 +242,14 @@ export const ALL_LEVELS = [
         id: 5,
         name: 'Final',
         durationSeconds: 55,
-        quota: 16,
+        quota: 18,
         spawn: { x: 110, y: 660 },
         projectiles: {
             initialInterval: 1100,
             minInterval: 680,
             maxSpeedMultiplier: 1.9,
             wallGapX: 52,
-            variant: 'rastra'
+            variant: 'ricochet'
         },
         platforms: [
             // Piso
@@ -282,8 +264,6 @@ export const ALL_LEVELS = [
             // Rutas laterales (40 px hacia la torre: el pasillo del trampolín queda libre)
             { x: 340, y: 590, w: 150, h: 20, color: 0x3a3a5c },
             { x: 684, y: 590, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 340, y: 480, w: 150, h: 20, color: 0x3a3a5c },
-            { x: 684, y: 480, w: 150, h: 20, color: 0x3a3a5c },
             { x: 340, y: 370, w: 150, h: 20, color: 0x3a3a5c },
             { x: 684, y: 370, w: 150, h: 20, color: 0x3a3a5c }
         ],
@@ -291,9 +271,17 @@ export const ALL_LEVELS = [
             // Rebote del piso izquierdo a la ruta lateral baja
             { x: 200, y: 706, w: 80 }
         ],
-        movingPlatforms: [
-            // Horizontal que cruza el hueco central del piso (evita los pinchos)
-            { x: 512, y: 640, w: 90, h: 20, distance: 200, speed: 80, axis: 'x' }
+        fragilePlatforms: [
+            // Pisos intermedios de las rutas laterales: se desmoronan al pisarlos.
+            { x: 340, y: 480, w: 150 },
+            { x: 684, y: 480, w: 150 },
+            // Atajos fragiles hacia el costado de la torre.
+            { x: 150, y: 520, w: 110 },
+            { x: 874, y: 520, w: 110 }
+        ],
+        powerUps: [
+            // Respiro en el piso, entre la torre y los pinchos de la derecha.
+            { x: 610, y: 688, respawnMs: 16000 }
         ],
         hazards: [
             // Pinchos de piso desfasados: se cruza en la ventana retraída
@@ -326,6 +314,6 @@ export const ALL_LEVELS = [
     }
 ];
 
-// Entrega: la campaña se limita a los primeros niveles. Subir el número para reactivar el resto (hay 5).
-export const ACTIVE_LEVELS = 2;
+// Campaña completa de 5 niveles (N3 frágiles, N4 pinchos y escudo, N5 portales y combinación).
+export const ACTIVE_LEVELS = 5;
 export const LEVELS = ALL_LEVELS.slice(0, ACTIVE_LEVELS);

@@ -13,6 +13,8 @@ import { GamePace } from '../systems/GamePace';
 import { Audio } from '../systems/Audio';
 import { TutorialManager, Tutorial, Coach } from '../systems/TutorialManager';
 import { Badges } from '../systems/Badges';
+import { AchievementToast } from '../systems/AchievementToast';
+import { AchievementStore, AIR_STREAK_TARGET, evaluateLevel, goldInAllLevels } from '../systems/Achievements';
 import { PRACTICE, PRACTICE_BY_LEVEL } from '../assets/practice';
 import { Lang } from '../systems/Texts';
 import { LEVELS, WORLD } from '../assets/levels';
@@ -200,6 +202,22 @@ export class Game extends Scene
             this.physics.add.collider(this.player.rect, this.level.movingPlatforms);
         }
 
+        if (this.level.fragileList.length) {
+            // Solo activa el aterrizaje desde arriba: el wall grab (contacto lateral) y el
+            // dash no la rompen.
+            this.physics.add.collider(this.player.rect, this.level.fragilePlatforms, (player, rect) => {
+                const fragile = this.level.fragileList.find((f) => f.rect === rect);
+                const onTop = player.body.blocked.down || player.body.touching.down;
+
+                if (fragile && onTop && !this.player.isDashing) {
+                    fragile.trigger(this.time.now);
+                }
+            });
+            this.listen('fragile-shake', (x) => Audio.play('fragileShake', { x }));
+            this.listen('fragile-fall', (x) => Audio.play('fragileFall', { x }));
+            this.listen('fragile-back', (x) => Audio.play('fragileBack', { x }));
+        }
+
         if (this.level.powerUpList.length) {
             this.physics.add.overlap(this.player.rect, this.level.powerUps, (player, circle) => {
                 const powerUp = this.level.powerUpList.find((p) => p.circle === circle);
@@ -230,6 +248,7 @@ export class Game extends Scene
         this.timer = new GameTimer(this, () => this.onTimeUp(), levelConfig.durationSeconds);
         this.hud = new Hud(this);
         this.floatingText = new FloatingText(this);
+        this.achToast = new AchievementToast(this);
         this.metrics = new Metrics(this.levelIndex + 1);
 
         this.rankThresholds = rankThresholds(this.scoreManager.quota);
@@ -336,6 +355,11 @@ export class Game extends Scene
             this.hud.setAirStreak(this.scoreManager.airStreak);
             this.player.setMultiplier(this.scoreManager.multiplier);
             this.applyComboZoom();
+
+            if (this.scoreManager.airStreak >= AIR_STREAK_TARGET) {
+                this.unlockAchievement('airborne');
+            }
+
             Audio.play('point', { chain: this.scoreManager.combo, combo: this.scoreManager.multiplier, x: point.circle.x });
             this.burstAt(point.circle.x, point.circle.y, point.color);
 
@@ -374,6 +398,11 @@ export class Game extends Scene
                 this.hud.setAirStreak(this.scoreManager.airStreak);
                 this.player.setMultiplier(this.scoreManager.multiplier);
                 this.applyComboZoom();
+
+                if (this.scoreManager.airStreak >= AIR_STREAK_TARGET) {
+                    this.unlockAchievement('airborne');
+                }
+
                 Audio.play('gem', { x: gem.x });
                 this.unlockBadge('gem');
                 this.burstAt(gem.x, gem.y, gem.color);
@@ -503,6 +532,27 @@ export class Game extends Scene
         }
     }
 
+    // Logro de desempeño: no se otorga en vida infinita ni en práctica.
+    unlockAchievement (id)
+    {
+        if (this.registry.get('infiniteLife') || this.practice) {
+            return;
+        }
+
+        if (AchievementStore.unlock(id)) {
+            this.showAchievement(id);
+        }
+    }
+
+    // Tarjeta del logro (arriba a la izquierda); los que salen juntos se encolan.
+    showAchievement (id)
+    {
+        this.achToast.show(id);
+
+        const p = this.player.rect;
+        this.burstAt(p.x, p.y - 10, 0xffdd44);
+    }
+
     // Práctica: sin timer ni proyectiles; los golpes reaparecen en vez de terminar.
     setupPractice ()
     {
@@ -560,6 +610,7 @@ export class Game extends Scene
         this.timer.update();
         this.projectileManager.update(delta);
         this.updateMovingPlatforms(delta);
+        this.updateFragilePlatforms();
         this.updateHazards();
 
         const seconds = this.timer.remainingSeconds;
@@ -673,6 +724,13 @@ export class Game extends Scene
         }
     }
 
+    // Ciclo de las plataformas frágiles: temblor, caída, reaparición.
+    updateFragilePlatforms() {
+        for (const fragile of this.level.fragileList) {
+            fragile.update(this.time.now, this.player.rect);
+        }
+    }
+
     // Actualiza el ciclo de los pinchos y detecta daño en su fase activa.
     updateHazards() {
         if (this.level.hazardList.length === 0) {
@@ -747,6 +805,26 @@ export class Game extends Scene
         this.scoreManager.addBonus(timeBonus);
         const rank = rankFor(this.scoreManager.score, this.rankThresholds);
         RankStore.update(this.levelIndex + 1, rank);
+
+        // Logros de fin de nivel. Los puntos del nivel (sin bono de tiempo) alimentan
+        // el acumulado de "collector"; un nivel perdido nunca llega acá.
+        const remainingRatio = Math.min(seconds / (this.timer.durationMs / 1000), 1);
+
+        for (const id of evaluateLevel({ deaths: this.deaths, maxMult: this.maxMult, rank, remainingRatio })) {
+            this.unlockAchievement(id);
+        }
+
+        if (goldInAllLevels(RankStore.all(), LEVELS.length)) {
+            this.unlockAchievement('goldAll');
+        }
+
+        if (this.levelIndex + 1 >= LEVELS.length) {
+            this.unlockAchievement('champion');
+        }
+
+        if (!this.registry.get('infiniteLife') && AchievementStore.addPoints(baseScore)) {
+            this.showAchievement('collector');
+        }
 
         const bankedScore = this.totalScore;
 

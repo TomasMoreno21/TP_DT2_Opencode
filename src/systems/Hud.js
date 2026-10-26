@@ -102,10 +102,10 @@ export class Hud {
         const scene = this.scene;
         this.panel(8, 8, 262, 112);
 
-        this.text(22, 22, Lang.t('hudScore'), 12, '#8888aa', { stroke: 3 });
-        this.scoreText = this.text(22, 50, '0', 38, '#ffffff', { stroke: 7 });
+        // Sin rótulo "PUNTAJE": el número grande se explica solo.
+        this.scoreText = this.text(22, 44, '0', 38, '#ffffff', { stroke: 6 });
 
-        this.quotaText = this.text(22, 86, '', 15, '#cccccc', { stroke: 4 });
+        this.quotaText = this.text(22, 82, '', 15, '#cccccc', { stroke: 3 });
         this.quotaBar = this.fix(scene.add.graphics());
         this.drawQuotaBar(0, false);
     }
@@ -270,7 +270,7 @@ export class Hud {
         this.comboText = this.text(512, 124, 'x2', 24, '#ffdd44', { originX: 0.5, stroke: 6 }).setVisible(false);
 
         this.airBg = this.fix(scene.add.graphics()).setVisible(false);
-        this.airText = this.text(512, 160, '', 13, '#66ff88', { originX: 0.5, stroke: 4 }).setVisible(false);
+        this.airText = this.text(512, 160, '', 14, '#66ff88', { originX: 0.5, stroke: 3 }).setVisible(false);
     }
 
     drawComboChip (color) {
@@ -426,7 +426,7 @@ export class Hud {
         this.panel(754, 8, 262, 112);
 
         this.levelText = this.text(1002, 26, 'Nivel 1/1', 20, '#ffffff', { originX: 1, stroke: 5 });
-        this.rankText = this.text(1002, 58, '', 15, '#aaaaaa', { originX: 1, stroke: 4 });
+        this.rankText = this.text(1002, 58, '', 15, '#aaaaaa', { originX: 1, stroke: 3 });
         this.rankBar = this.fix(this.scene.add.graphics());
         this.rankMarks = this.fix(this.scene.add.graphics());
         this.drawRankBar(0, 0x888888);
@@ -485,7 +485,7 @@ export class Hud {
         this.dashRing = this.fix(scene.add.graphics());
         this.dashIcon = this.fix(scene.add.graphics());
         this.dashPos = { x: 40, y };
-        this.dashLabel = this.text(40, y + 27, 'SHIFT', 9, '#8888aa', { originX: 0.5, stroke: 3 });
+        this.dashLabel = this.text(40, y + 27, 'SHIFT', 11, '#aaaacc', { originX: 0.5, stroke: 2 });
 
         // Escudo: solo aparece mientras está activo.
         this.shieldPos = { x: 92, y };

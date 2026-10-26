@@ -69,6 +69,13 @@ const EVENTS = {
         noise({ duration: 0.18, volume: 0.18, filter: { type: 'bandpass', freq: 500, endFreq: 2600, q: 1.2 } });
         tone({ freq: 260, endFreq: 700, type: 'sawtooth', duration: 0.12, volume: 0.14 });
     },
+    // Plataforma fragil: crujido al pisarla, derrumbe al caer y chime suave al volver.
+    fragileShake: ({ x } = {}) => noise({ duration: 0.25, volume: 0.1, pan: panFor(x), priority: 1, filter: { type: 'bandpass', freq: 700, endFreq: 1500, q: 2 } }),
+    fragileFall: ({ x } = {}) => {
+        noise({ duration: 0.3, volume: 0.18, pan: panFor(x), priority: 1, filter: { type: 'lowpass', freq: 1800, endFreq: 150 } });
+        tone({ freq: 160, endFreq: 50, type: 'triangle', duration: 0.22, volume: 0.16, pan: panFor(x), priority: 1 });
+    },
+    fragileBack: ({ x } = {}) => tone({ freq: 520, endFreq: 780, type: 'sine', duration: 0.12, volume: 0.08, pan: panFor(x), priority: 0 }),
     portal: () => tone({ freq: 500, endFreq: 1800, type: 'sine', duration: 0.16, volume: 0.14 }),
     shield: () => tone({ freq: 380, endFreq: 760, type: 'sine', duration: 0.18, volume: 0.2 }),
     hit: () => {
@@ -120,6 +127,11 @@ const EVENTS = {
     goalOpen: () => {
         [523, 659, 784].forEach((f, i) => tone({ freq: f, endFreq: f * 1.2, type: 'triangle', duration: 0.16, volume: 0.18, delay: i * 0.09, wet: 0.2, priority: 2 }));
     },
+    // Logro desbloqueado: arpegio corto ascendente con destello agudo.
+    achievement: () => {
+        [659, 784, 988, 1319].forEach((f, i) => tone({ freq: f, type: 'triangle', duration: 0.14, volume: 0.15, delay: i * 0.07, wet: 0.3, priority: 2 }));
+        tone({ freq: 2637, type: 'sine', duration: 0.3, volume: 0.07, delay: 0.28, wet: 0.45, priority: 2 });
+    },
     goalReached: () => {
         duck(0.4, 500);
         [523, 659, 784, 1047].forEach((f, i) => tone({ freq: f, type: 'square', duration: 0.14, volume: 0.14, delay: i * 0.07, wet: 0.2, priority: 2 }));
@@ -128,7 +140,8 @@ const EVENTS = {
     victory: () => {
         [523, 659, 784, 1047, 1319].forEach((f, i) => tone({ freq: f, type: 'triangle', duration: 0.2, volume: 0.18, delay: i * 0.1, wet: 0.3, priority: 2 }));
     },
-    ui: () => tone({ freq: 440, endFreq: 660, type: 'sine', duration: 0.06, volume: 0.12 })
+    ui: () => tone({ freq: 440, endFreq: 660, type: 'sine', duration: 0.06, volume: 0.12 }),
+    hover: () => tone({ freq: 880, type: 'sine', duration: 0.03, volume: 0.04 })
 };
 
 export const Audio = {

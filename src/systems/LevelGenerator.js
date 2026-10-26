@@ -1,6 +1,7 @@
 import { WORLD } from '../assets/levels.js';
 import { LevelValidator } from './LevelValidator.js';
 import { LEVEL_BASELINES } from '../assets/levelBaselines.js';
+import { generateShapedLevel, spawnClear } from './LevelShapes.js';
 import { PLAYER_CONFIG } from '../entities/Player.js';
 import { TRAMPOLINE_CONFIG } from '../entities/Trampoline.js';
 import { MOVING_PLATFORM_CONFIG } from '../entities/MovingPlatform.js';
@@ -120,6 +121,12 @@ const LANE_TIMED_COST = 5;
 // y con 0,95 los niveles base de N1 dejan de ser alcanzables: se usa 1.
 export const GENERATION_COMFORT = 1;
 
+// Niveles con formas: intentos por semilla, tiempo tras el cual no se hace otro intento y
+// tope del presupuesto de tiempo (quota x frames medios a un spot / timer; N1 y N2 estan en ~30 %).
+export const SHAPED_ATTEMPTS = 4;
+export const SHAPED_TIME_LIMIT_MS = 3500;
+export const SHAPED_MAX_BUDGET = { 1: 0.45, 3: 0.5, 4: 0.55, 5: 0.55 };
+
 // Banda de dificultad aceptada: el esfuerzo del candidato (frames del peor
 // objetivo) respecto del nivel base. Fuera de la banda el mapa se descarta por
 // trivial o por injugable aunque sea técnicamente alcanzable.
@@ -130,7 +137,9 @@ export const DIFFICULTY_BAND = { min: 0.7, max: 1.4 };
 // salida respecto del diseño base. N1 es un nivel de arranque: menos mutación,
 // salida baja y banda más indulgente. N3 exige más variedad y más esfuerzo.
 export const LEVEL_TUNING = {
-    1: { maxIntensity: 0.55, minNovelty: 3, difficulty: { min: 0.6, max: 1.15 }, goalYTolerance: 90 },
+    // N1, N3, N4 y N5 se arman con formas de referencia (LevelShapes.js); el N2 con sus formas
+    // macro y la mutación de plataformas.
+    1: { shaped: true },
     2: {
         maxIntensity: 0.95,
         minNovelty: 8,
@@ -143,20 +152,11 @@ export const LEVEL_TUNING = {
         candidatePool: 2,
         shapes: ['escalera-doble', 'terrazas', 'pozo', 'escalera-torre', 'torres-gemelas']
     },
-    3: {
-        maxIntensity: 0.95,
-        minNovelty: 7,
-        difficulty: { min: 0.75, max: 1.35 },
-        goalYTolerance: 170,
-        // N3 se centra en plataformas móviles: se exige al menos una, alcanzable y
-        // que conecte zonas o lleve a puntos/gemas/meta.
-        requireMovingPlatform: true,
-        movingPlatformMinRise: 60,
-        movingPlatformMaxRise: 260,
-        // Foco en móviles: menos plataformas estáticas y al menos dos móviles.
-        maxStaticPlatforms: 10,
-        minMovingPlatforms: 2,
-    },
+    // N3-N5 (frágiles, pinchos y portales): varias formas por nivel y mecánicas mutadas
+    // (ver LevelShapes.js); sin mutación de plataformas ni BFS al jugar.
+    3: { shaped: true },
+    4: { shaped: true },
+    5: { shaped: true }
 };
 
 // El timer parte del timer diseñado del nivel y se escala (amortiguado) con el
@@ -185,7 +185,7 @@ const GOAL_HEIGHT_ABOVE_TOP = 36;
 const SPOT_HEIGHT_ABOVE_TOP = 24;
 const PLAYER_CLEARANCE = 60;
 
-function createRng(seed) {
+export function createRng(seed) {
     let s = seed >>> 0;
     const rng = {
         next() {
@@ -338,6 +338,11 @@ export class LevelGenerator {
     // asistencia el mapa sale más fácil y más espacioso (y con algo más de tiempo).
     generateLevelFor(levelId, seed, baseConfig, attempts = DEFAULT_ATTEMPTS, opts = {}) {
         const assist = Math.min(ASSIST_MAX, Math.max(0, opts.assist ?? 0));
+
+        if (LEVEL_TUNING[levelId]?.shaped) {
+            return this._shapedLevel(levelId, seed, baseConfig, assist, opts.forceShape ?? null);
+        }
+
         const rng = createRng((seed ^ Math.imul(levelId, 131542391)) >>> 0);
         // Pre-mutación suave: cada semilla parte de un diseño base ligeramente
         // distinto (plataformas movidas pocos px) para tener más variedad de
@@ -480,6 +485,65 @@ export class LevelGenerator {
         return {
             config: clone(baseConfig), res: base.res, seed, ok: base.res.ok, mutated: false, attempts: tried, validations,
             mutations: [], rejected: stats, difficulty: 1, quality: this._quality(baseConfig, assist), assist
+        };
+    }
+
+    // Niveles con formas (LEVEL_TUNING.shaped: N1, N3, N4, N5): se sortea una forma por semilla,
+    // se varian sus medidas y se mutan sus mecanicas (LevelShapes.js). Cada candidato se valida con
+    // el BFS (spots, gema, salida, ruta segura) y con tope de presupuesto de tiempo; si no pasa se
+    // sortea otro (hasta SHAPED_ATTEMPTS) y, si ninguno sirve, se usa el diseño base ya validado.
+    // +2 s por muerte seguida como asistencia. Con forceShape (herramientas de prueba) se
+    // devuelve el primer candidato sin validar.
+    _shapedLevel(levelId, seed, baseConfig, assist, forceShape = null) {
+        const rng = createRng((seed ^ Math.imul(levelId, 131542391)) >>> 0);
+        const base = this.baseline(clone(baseConfig));
+        const maxBudget = SHAPED_MAX_BUDGET[levelId] ?? 0.55;
+        const started = Date.now();
+        let validations = 0;
+        let config = null;
+        let res = null;
+        let attempts = 0;
+
+        for (; attempts < (forceShape ? 1 : SHAPED_ATTEMPTS); attempts++) {
+            const candidate = generateShapedLevel(rng, levelId, baseConfig, forceShape);
+
+            if (forceShape) {
+                config = candidate;
+                res = base.res;
+                break;
+            }
+
+            if (!spawnClear(candidate)) continue;
+
+            const check = this.validator.validate(candidate);
+            validations++;
+            const budget = (candidate.quota * check.meanFrames) / 60 / candidate.durationSeconds;
+
+            const hasGem = levelId < 3 || Boolean(candidate.gems?.length);
+
+            if (check.ok && hasGem && budget <= maxBudget) {
+                config = candidate;
+                res = check;
+                break;
+            }
+
+            // Un candidato lento no deja tiempo para otro intento (el worker corta a los 8 s).
+            if (Date.now() - started > SHAPED_TIME_LIMIT_MS) break;
+        }
+
+        const usedBase = config === null;
+        if (usedBase) {
+            config = clone(baseConfig);
+            res = base.res;
+        }
+
+        config.durationSeconds = baseConfig.durationSeconds + 2 * assist;
+
+        return {
+            config, res, seed, ok: res.ok, mutated: !usedBase && config.shape !== 'base', attempts, validations,
+            mutations: [usedBase ? 'base-fijo' : config.shape],
+            rejected: { layout: 0, structure: 0, unreachable: 0, difficulty: Math.max(0, attempts - (usedBase ? 0 : 1)) },
+            difficulty: 1, quality: this._quality(config, assist), assist
         };
     }
 

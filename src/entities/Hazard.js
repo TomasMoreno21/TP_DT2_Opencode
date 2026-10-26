@@ -1,7 +1,7 @@
 export const HAZARD_CONFIG = {
     height: 8,
     restMs: 1300,
-    warnMs: 500,
+    warnMs: 900,
     extendedMs: 900,
     spikeHeight: 26,
     spikeCount: 5,

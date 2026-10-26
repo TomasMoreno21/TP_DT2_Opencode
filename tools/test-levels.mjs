@@ -66,7 +66,13 @@ for (let k = 0; k < COUNT; k++) {
             // Los niveles con `trampolines: {min,max}` en LEVEL_TUNING pueden variar su cantidad.
             const range = key === 'trampolines' ? LEVEL_TUNING[base.id]?.trampolines : null;
             const n = cfg[key]?.length ?? 0;
-            if (range) {
+            // N3-N5 (formas de LevelShapes): pinchos, escudos, gemas y trampolines varian por forma; lo
+            // que se exige es 12 spots, 1 gema y portales en pares (la validez la barre test-models).
+            if (LEVEL_TUNING[base.id]?.shaped) {
+                if (key === 'pointSpots' && n !== 12) fail(seed, base.id, `${n} spots`);
+                if (key === 'gems' && n !== (base.id >= 3 ? 1 : 0)) fail(seed, base.id, `${n} gemas`);
+                if (key === 'portals' && n % 2 !== 0) fail(seed, base.id, 'portales impares');
+            } else if (range) {
                 if (n < range.min || n > range.max) fail(seed, base.id, `${key}: ${n} fuera de [${range.min},${range.max}]`);
             } else if (n !== (base[key]?.length ?? 0)) fail(seed, base.id, `cambió la cantidad de ${key}`);
         }

@@ -12,6 +12,18 @@ const frame = [
 const base = { durationSeconds: 600, quota: 1, projectiles: null, spawn: { x: 200, y: 650 }, goal: { x: 920, y: 676 } };
 
 export const PRACTICE = {
+    fragile: {
+        ...base,
+        id: 'practice-fragile',
+        platforms: frame,
+        // Tres frágiles en escalera: se cruzan sin quedarse parado.
+        fragilePlatforms: [
+            { x: 330, y: 620, w: 140 },
+            { x: 560, y: 540, w: 140 },
+            { x: 800, y: 460, w: 160 }
+        ],
+        pointSpots: [{ x: 800, y: 436 }]
+    },
     hazard: {
         ...base,
         id: 'practice-hazard',
@@ -30,4 +42,4 @@ export const PRACTICE = {
 };
 
 // Nivel (índice) que estrena cada mecánica.
-export const PRACTICE_BY_LEVEL = { 3: 'hazard', 4: 'portal' };
+export const PRACTICE_BY_LEVEL = { 2: 'fragile', 3: 'hazard', 4: 'portal' };

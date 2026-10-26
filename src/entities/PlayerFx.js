@@ -223,7 +223,7 @@ export class PlayerFx {
         const level = this.scene.level;
         let best = Infinity;
 
-        for (const group of [level.platforms, level.movingPlatforms, level.trampolines]) {
+        for (const group of [level.platforms, level.movingPlatforms, level.trampolines, level.fragilePlatforms]) {
             if (!group) continue;
 
             for (const o of group.getChildren()) {

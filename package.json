@@ -18,7 +18,10 @@
     "build": "node log.js build & vite build",
     "dev-nolog": "vite",
     "build-nolog": "vite build",
-    "test-levels": "node tools/test-levels.mjs"
+    "test-levels": "node tools/test-levels.mjs",
+    "test-achievements": "node tools/test-achievements.mjs",
+    "test-models": "node tools/test-models.mjs",
+    "audit-fairness": "node tools/audit-fairness.mjs"
   },
   "devDependencies": {
     "terser": "^5.39.0",

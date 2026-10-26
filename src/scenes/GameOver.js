@@ -117,17 +117,11 @@ export class GameOver extends Scene
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
 
-        if (this.lostScore > 0) {
-            this.add.text(512, 340, `Puntos perdidos en el nivel: ${this.lostScore}`, {
-                fontFamily: 'Arial', fontSize: 20, color: '#ff8844'
-            }).setOrigin(0.5);
-        }
-
         this.drawStatsPanel();
         this.drawLossInfo();
 
         if (this.isNewRecord) {
-            const record = this.add.text(512, 532, '¡Nuevo récord!', {
+            const record = this.add.text(512, 450, '¡Nuevo récord!', {
                 fontFamily: 'Arial Black', fontSize: 22, color: '#00ff88',
                 stroke: '#000000', strokeThickness: 6
             }).setOrigin(0.5).setScale(0);
@@ -147,8 +141,8 @@ export class GameOver extends Scene
 
         const retry = () => this.retry(primaryTarget, isVictory);
 
-        this.primaryLabel = this.createButton(596, primaryLabel, 0x00d1b2, '#00382c', retry);
-        this.createButton(672, 'MENÚ', 0x1b1836, '#cccccc',
+        this.primaryLabel = this.createButton(556, primaryLabel, 0x00d1b2, '#00382c', retry);
+        this.createButton(634, 'MENÚ', 0x1b1836, '#cccccc',
             () => this.scene.start('MainMenu'), 0x9a94c8);
 
         // Mientras se piden las iniciales las letras son para el nombre, no atajos.
@@ -317,11 +311,10 @@ export class GameOver extends Scene
         const missing = this.quota - this.collected;
         const lines = [];
 
-        if (missing > 0) lines.push([Lang.t('overMissing', { n: missing }), 18, '#ffcc66']);
-        lines.push([Lang.t(this.reason === 'timeout' ? 'overTipTime' : 'overTipHit'), 14, '#9a94c8']);
+        if (missing > 0) lines.push([Lang.t('overMissing', { n: missing }), 20, '#ffcc66']);
 
         lines.forEach(([text, size, color], i) => {
-            const label = this.add.text(512, 486 + i * 24, text, {
+            const label = this.add.text(512, 410 + i * 24, text, {
                 fontFamily: 'Arial', fontSize: size, color
             }).setOrigin(0.5).setAlpha(0);
 
@@ -331,26 +324,15 @@ export class GameOver extends Scene
 
     drawStatsPanel ()
     {
-        // Panel rojo uniforme en todo final (victoria en verde).
-        const accent = this.reason === 'victory'
-            ? { label: '#00ff88', fill: 0x17452a, border: 0x00ff88 }
-            : { label: '#ff99aa', fill: 0x5c2230, border: 0xff4455 };
+        // Una línea simple, sin panel: el color del resultado ya lo da el título.
+        const labelColor = this.reason === 'victory' ? '#00ff88' : '#ff99aa';
 
-        const panel = this.add.graphics();
-        panel.fillStyle(accent.fill, 1);
-        panel.fillRoundedRect(302, 376, 420, 84, 14);
-        panel.lineStyle(3, accent.border, 0.9);
-        panel.strokeRoundedRect(302, 376, 420, 84, 14);
-
-        // Mejor puntaje centrado en el medio del panel.
-        const labelText = this.add.text(0, 418, 'Mejor puntaje: ', {
-            fontFamily: 'Arial Black', fontSize: 22, color: accent.label,
-            stroke: '#000000', strokeThickness: 5
+        const labelText = this.add.text(0, 360, 'Mejor puntaje: ', {
+            fontFamily: 'Arial Black', fontSize: 20, color: labelColor
         }).setOrigin(0, 0.5);
 
-        const valueText = this.add.text(0, 418, `${this.best}`, {
-            fontFamily: 'Arial Black', fontSize: 22, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 5
+        const valueText = this.add.text(0, 360, `${this.best}`, {
+            fontFamily: 'Arial Black', fontSize: 20, color: '#ffffff'
         }).setOrigin(0, 0.5);
 
         const total = labelText.width + valueText.width;

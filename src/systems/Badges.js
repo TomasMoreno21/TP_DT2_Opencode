@@ -2,7 +2,7 @@
 // en localStorage y se listan en el popup de Tutorial del menú.
 const KEY = 'fastMoveBadges';
 
-export const BADGES = ['wallJump', 'dash', 'perfect', 'shield', 'portal'];
+export const BADGES = ['wallJump', 'dash', 'perfect', 'shield', 'portal', 'gem'];
 
 function load() {
     try {

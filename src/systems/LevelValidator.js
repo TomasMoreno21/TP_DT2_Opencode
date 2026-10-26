@@ -90,7 +90,11 @@ function timedMover(m) {
     return { at, box, horizontal, vel };
 }
 
-function buildPlatforms(config, timed = false) {
+// noFragile: ignora las plataformas fragiles (ruta segura). Las fragiles se
+// modelan como solidas: se aguantan 0,7 s tras pisarlas y reaparecen a los 3 s,
+// asi que cualquier objetivo al que se llega sin quedarse parado sobre ellas es
+// alcanzable en el juego real.
+function buildPlatforms(config, timed = false, noFragile = false) {
     const plats = [];
     for (const p of config.platforms || []) {
         plats.push({
@@ -99,6 +103,18 @@ function buildPlatforms(config, timed = false) {
             y1: p.y - p.h / 2,
             y2: p.y + p.h / 2,
             tall: p.h >= 120
+        });
+    }
+
+    for (const f of noFragile ? [] : config.fragilePlatforms || []) {
+        const h = f.h ?? 20;
+        plats.push({
+            x1: f.x - f.w / 2,
+            x2: f.x + f.w / 2,
+            y1: f.y - h / 2,
+            y2: f.y + h / 2,
+            tall: false,
+            fragile: true
         });
     }
 
@@ -242,7 +258,7 @@ export class LevelValidator {
     // los trampolines no cuentan como obstáculo para los spots.
     checkLayout(config) {
         const issues = [];
-        const solids = (config.platforms || []).map((p) => ({
+        const solids = [...(config.platforms || []), ...(config.fragilePlatforms || []).map((f) => ({ ...f, h: f.h ?? 20 }))].map((p) => ({
             x1: p.x - p.w / 2, x2: p.x + p.w / 2, y1: p.y - p.h / 2, y2: p.y + p.h / 2
         }));
 
@@ -301,7 +317,7 @@ export class LevelValidator {
         // las coloca en cada paso y el jugador parado encima viaja con ellas.
         const timed = opts.timed ?? Boolean(config.timedMovers);
         const movers = timed ? (config.movingPlatforms || []).map(timedMover) : [];
-        const staticPlatforms = buildPlatforms(config, timed);
+        const staticPlatforms = buildPlatforms(config, timed, Boolean(opts.noFragile));
         let cachedFrame = -1;
         let cachedPlatforms = staticPlatforms;
         const platformsAt = (f) => {
@@ -523,6 +539,18 @@ export class LevelValidator {
         return Number.isFinite(goal.frames);
     }
 
+    // Ruta segura (niveles con plataformas fragiles): la salida debe poder
+    // alcanzarse sin pisar ninguna fragil.
+    hasSafeRoute(config) {
+        if (!(config.fragilePlatforms || []).length) {
+            return true;
+        }
+
+        const goal = { x: config.goal.x, y: config.goal.y, dx: GOAL_DX, dy: GOAL_DY, frames: Infinity };
+        this.explore(config, [goal], { noFragile: true });
+        return Number.isFinite(goal.frames);
+    }
+
     // opts.platformTargets: además de spots, gemas y salida, comprueba que se
     // pueda llegar parado sobre cada plataforma flotante (`isolatedPlatforms`
     // lista los índices de las que quedan aisladas). No afecta a `ok`.
@@ -565,8 +593,11 @@ export class LevelValidator {
             ? reachableSpots.reduce((acc, s) => acc + s.frames, 0) / reachableSpots.length
             : 0;
 
+        const safeRoute = this.hasSafeRoute(config);
+
         return {
-            ok: Number.isFinite(goal) && badSpots.length === 0 && badGems.length === 0 && layoutIssues.length === 0,
+            ok: Number.isFinite(goal) && badSpots.length === 0 && badGems.length === 0 && layoutIssues.length === 0 && safeRoute,
+            safeRoute,
             goalOk: Number.isFinite(goal),
             goalFrames: goal,
             spotsTotal: spots.length,

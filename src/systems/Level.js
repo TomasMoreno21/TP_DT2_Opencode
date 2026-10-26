@@ -26,6 +26,7 @@ export class Level {
 
         this.materializeTrampolines();
         this.materializeMovingPlatforms();
+        this.materializeFragilePlatforms();
         this.materializeHazards();
         this.materializePowerUps();
         this.materializePortals();
@@ -40,6 +41,10 @@ export class Level {
 
         for (const trampoline of this.trampolineList) {
             trampoline.destroy();
+        }
+
+        for (const fragile of this.fragileList) {
+            fragile.destroy();
         }
 
         for (const gem of this.gemList) {
@@ -74,6 +79,17 @@ export class Level {
             const platform = EntityFactory.createMovingPlatform(this.scene, p);
             this.movingPlatforms.add(platform.rect);
             this.movingPlatformList.push(platform);
+        }
+    }
+
+    materializeFragilePlatforms() {
+        this.fragilePlatforms = this.scene.physics.add.staticGroup();
+        this.fragileList = [];
+
+        for (const f of this.config.fragilePlatforms ?? []) {
+            const fragile = EntityFactory.createFragilePlatform(this.scene, f);
+            this.fragilePlatforms.add(fragile.rect);
+            this.fragileList.push(fragile);
         }
     }
 

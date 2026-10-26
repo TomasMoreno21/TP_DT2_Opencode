@@ -1,4 +1,5 @@
 import { Audio } from './Audio';
+import { Settings } from './Settings';
 
 const STYLES = {
     primary: {
@@ -28,6 +29,7 @@ export class MenuButton
         this.onClick = onClick;
         this.active = false;
         this.pressed = false;
+        this.shine = 0;
 
         this.g = scene.add.graphics();
         this.text = scene.add.text(0, 0, label, {
@@ -50,7 +52,10 @@ export class MenuButton
             scene.tweens.add({ targets: this.text, y: -3, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         }
 
-        this.root.on('pointerover', () => onHover?.());
+        this.root.on('pointerover', () => {
+            Audio.play('hover');
+            onHover?.();
+        });
         this.root.on('pointerdown', () => this.press());
         this.root.on('pointerup', () => { if (this.pressed) { this.release(); this.fire(); } });
         this.root.on('pointerout', () => this.release());
@@ -69,6 +74,16 @@ export class MenuButton
         g.fillStyle(0x000000, 0.35).fillRoundedRect(-hw, -hh + 5, w, h, style.radius);
         g.fillStyle(this.active ? style.fillActive : style.fill, 1).fillRoundedRect(-hw, -hh, w, h, style.radius);
         g.fillStyle(0xffffff, this.active ? 0.14 : 0.07).fillRoundedRect(-hw + 4, -hh + 3, w - 8, h * 0.42, style.radius - 2);
+        // Destello que cruza el botón al activarse (banda recortada a los bordes).
+        if (this.shine > 0 && this.shine < 1) {
+            const bandW = w * 0.22;
+            const x0 = Math.max(-hw + 6, -hw + this.shine * (w + bandW) - bandW);
+            const x1 = Math.min(hw - 6, -hw + this.shine * (w + bandW));
+
+            if (x1 > x0) {
+                g.fillStyle(0xffffff, 0.28).fillRect(x0, -hh + 4, x1 - x0, h - 8);
+            }
+        }
         g.lineStyle(this.active ? 4 : 3, style.border, 1).strokeRoundedRect(-hw, -hh, w, h, style.radius);
 
         this.text.setColor(this.active ? style.textActive : style.text);
@@ -81,8 +96,22 @@ export class MenuButton
         }
 
         this.active = active;
-        this.draw();
         this.scaleTo(active ? 1.05 : 1);
+        this.sweepShine(active);
+        this.draw();
+    }
+
+    sweepShine (active)
+    {
+        this.shineTween?.stop();
+        this.shine = 0;
+
+        if (active && !Settings.reduceFlash) {
+            this.shineTween = this.scene.tweens.add({
+                targets: this, shine: 1, duration: 420, ease: 'Sine.easeInOut',
+                onUpdate: () => this.draw(), onComplete: () => this.draw()
+            });
+        }
     }
 
     scaleTo (scale)

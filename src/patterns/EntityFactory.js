@@ -3,6 +3,7 @@ import { Point } from '../entities/Point';
 import { Projectile } from '../entities/Projectile';
 import { Trampoline } from '../entities/Trampoline';
 import { MovingPlatform } from '../entities/MovingPlatform';
+import { FragilePlatform } from '../entities/FragilePlatform';
 import { Hazard } from '../entities/Hazard';
 import { PowerUp } from '../entities/PowerUp';
 import { Portal } from '../entities/Portal';
@@ -31,6 +32,10 @@ export class EntityFactory {
 
     static createMovingPlatform(scene, data) {
         return new MovingPlatform(scene, data);
+    }
+
+    static createFragilePlatform(scene, data) {
+        return new FragilePlatform(scene, data);
     }
 
     static createHazard(scene, data) {
