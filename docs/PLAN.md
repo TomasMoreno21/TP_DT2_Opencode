@@ -306,3 +306,4 @@ Queda en firme la regla: cualquier control o mecánica central **fuera** de los 
 - Estadísticas por nivel en `localStorage` (mejor tiempo, mejor combo).
 - Rejugar un nivel ya superado ("modo práctica") sin afectar el récord de campaña.
 - Niveles extra (6+) o variantes de mapa.
+- **Modo modificadores (GDD §9):** `systems/Modifiers.js` + interruptor en OPCIONES (`Settings.modifiers`). Desvío del GDD acordado con el usuario: con el modo encendido siempre sale 1 modificador y 5 % de las veces 2 (en vez de 30 % + 5 por nivel). Ranking aparte con pestañas Normal / Modificadores (`Leaderboard.mode`). Test: `node tools/test-modifiers.mjs`. Pendiente: playtest manual de los 6 modificadores y de la pestaña del ranking.

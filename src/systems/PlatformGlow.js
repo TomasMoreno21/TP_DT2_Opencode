@@ -1,3 +1,4 @@
+import { WORLD } from '../assets/levels';
 // Resplandor suave sobre los bordes luminosos de las plataformas fijas, del color del tema.
 // Se dibuja una vez; en frenesí late con el beat de la música (se vuelve a dibujar solo
 // cuando la intensidad cambia lo suficiente).
@@ -21,7 +22,7 @@ export class PlatformGlow {
         for (const r of this.rects) {
             if (r.wall) {
                 // Pared: franja hacia el interior del mapa.
-                const dir = r.x < 512 ? 1 : -1;
+                const dir = r.x < (WORLD.width / 2) ? 1 : -1;
                 const edge = r.x + dir * (r.w / 2);
 
                 g.fillStyle(theme.wall, 0.07 * k).fillRect(dir > 0 ? edge : edge - 10, r.y - r.h / 2, 10, r.h);

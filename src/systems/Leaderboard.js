@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'fast-move-leaderboard';
+const STORAGE_KEYS = { normal: 'fast-move-leaderboard', mods: 'fast-move-leaderboard-mods' };
 const NAME_KEY = 'fast-move-last-name';
 
 export const LEADERBOARD_SIZE = 10;
@@ -8,9 +8,16 @@ export const NAME_LENGTH = 3;
 // { id, name, score, levels, combo, victory, date }. Como HighScore, funciona
 // sin persistencia si localStorage no está disponible.
 export class Leaderboard {
+    // Ranking activo ('normal' | 'mods'); Ranking y GameOver lo fijan antes de leer o guardar.
+    static mode = 'normal';
+
+    static get key () {
+        return STORAGE_KEYS[Leaderboard.mode];
+    }
+
     static get () {
         try {
-            const list = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            const list = JSON.parse(localStorage.getItem(Leaderboard.key));
 
             if (!Array.isArray(list)) {
                 return [];
@@ -27,7 +34,7 @@ export class Leaderboard {
 
     static save (entries) {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+            localStorage.setItem(Leaderboard.key, JSON.stringify(entries));
         } catch (error) {
             // Ignorar: el juego funciona igual sin persistencia.
         }

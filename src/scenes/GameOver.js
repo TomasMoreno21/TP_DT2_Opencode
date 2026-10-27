@@ -1,15 +1,18 @@
+import { WORLD } from '../assets/levels';
 import { Scene } from 'phaser';
 import { HighScore } from '../systems/HighScore';
 import { Audio } from '../systems/Audio';
 import { LEVELS } from '../assets/levels';
 import { CampaignBuilder } from '../systems/CampaignBuilder';
 import { Leaderboard } from '../systems/Leaderboard';
+import { Settings } from '../systems/Settings';
 import { NameEntry } from '../systems/NameEntry';
 import { createRankingTable } from '../systems/RankingTable';
 import { MenuButton } from '../systems/MenuButton';
 import { Lang } from '../systems/Texts';
 import { Music } from '../systems/Music';
 import { Wipe } from '../systems/Wipe';
+import { CampaignSummary } from '../systems/CampaignSummary';
 
 const ENDING_CONFIG = {
     hit: { title: '¡Perdiste!', color: '#ff4455', tint: 0xff4455, bg: 0x2a0f16, face: '>_<', faceColor: '#ff8899' },
@@ -28,6 +31,7 @@ export class GameOver extends Scene
     {
         // score: puntaje bankeado (niveles completados). lostScore: puntos del nivel fallido.
         this.score = data.score ?? 0;
+        Leaderboard.mode = Settings.modifiers ? 'mods' : 'normal';
         this.lostScore = data.lostScore ?? 0;
         this.reason = data.reason ?? 'timeout';
         this.levelIndex = data.levelIndex ?? 0;
@@ -64,9 +68,9 @@ export class GameOver extends Scene
             Wipe.reveal(this, wipeColor, 360);
         }
 
-        // Tras ganar suena la música tranquila; tras perder, silencio (la muerte ya la apagó).
+        // Tras ganar vuelve el tema principal; tras perder, silencio (la muerte ya la apagó).
         if (isVictory) {
-            Music.play('menu');
+            Music.play('main');
         } else {
             Music.stop();
         }
@@ -86,14 +90,14 @@ export class GameOver extends Scene
         }
 
         // Carita del bichito según resultado, con pop de entrada.
-        const face = this.add.text(512, 96, config.face, {
+        const face = this.add.text((WORLD.width / 2), 96, config.face, {
             fontFamily: 'Arial Black', fontSize: 64, color: config.faceColor,
             stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5).setScale(0);
         this.tweens.add({ targets: face, scale: 1, duration: 350, ease: 'Back.easeOut' });
 
         // Título: cae de arriba con rebote; en derrota sacude la pantalla.
-        const title = this.add.text(512, -60, config.title, {
+        const title = this.add.text((WORLD.width / 2), -60, config.title, {
             fontFamily: 'Arial Black', fontSize: 64, color: config.color,
             stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5);
@@ -108,11 +112,11 @@ export class GameOver extends Scene
             }
         });
 
-        this.add.text(512, 252, this.subtitle(), {
+        this.add.text((WORLD.width / 2), 252, this.subtitle(), {
             fontFamily: 'Arial', fontSize: 22, color: '#cccccc'
         }).setOrigin(0.5);
 
-        this.add.text(512, 300, `Puntaje: ${this.score}`, {
+        this.add.text((WORLD.width / 2), 300, `Puntaje: ${this.score}`, {
             fontFamily: 'Arial Black', fontSize: 32, color: '#ffffff',
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
@@ -120,8 +124,14 @@ export class GameOver extends Scene
         this.drawStatsPanel();
         this.drawLossInfo();
 
+        const run = this.registry.get('campaignRun');
+
+        if (isVictory && run) {
+            new CampaignSummary(this).show(run, LEVELS.length, 436);
+        }
+
         if (this.isNewRecord) {
-            const record = this.add.text(512, 450, '¡Nuevo récord!', {
+            const record = this.add.text((WORLD.width / 2), isVictory ? 392 : 450, '¡Nuevo récord!', {
                 fontFamily: 'Arial Black', fontSize: 22, color: '#00ff88',
                 stroke: '#000000', strokeThickness: 6
             }).setOrigin(0.5).setScale(0);
@@ -187,11 +197,11 @@ export class GameOver extends Scene
         this.entryOpen = true;
         const layer = [];
         const add = (obj) => { obj.setDepth(21); layer.push(obj); return obj; };
-        const label = (y, text, size, color, stroke = 6) => add(this.add.text(512, y, text, {
+        const label = (y, text, size, color, stroke = 6) => add(this.add.text((WORLD.width / 2), y, text, {
             fontFamily: 'Arial Black', fontSize: size, color, stroke: '#000000', strokeThickness: stroke
         }).setOrigin(0.5));
 
-        const dim = this.add.rectangle(512, 384, 1024, 768, 0x0b0919, 0.97).setInteractive().setDepth(20);
+        const dim = this.add.rectangle((WORLD.width / 2), 384, WORLD.width, 768, 0x0b0919, 0.97).setInteractive().setDepth(20);
         this.entryDim = dim;
 
         const place = Leaderboard.positionFor(this.score, replaceId);
@@ -201,7 +211,7 @@ export class GameOver extends Scene
         label(628, Lang.t('entryHint'), 15, '#8888aa', 3);
 
         const entry = new NameEntry(this, {
-            x: 512, y: 380, initial: Leaderboard.lastName(),
+            x: (WORLD.width / 2), y: 380, initial: Leaderboard.lastName(),
             onConfirm: (name) => {
                 const saved = Leaderboard.add({
                     name,
@@ -228,10 +238,10 @@ export class GameOver extends Scene
     showEntryTable (saved)
     {
         const layer = [];
-        const title = this.add.text(512, 50, Lang.t('rankingTitle'), {
+        const title = this.add.text((WORLD.width / 2), 50, Lang.t('rankingTitle'), {
             fontFamily: 'Arial Black', fontSize: 40, color: '#ffdd44', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5).setDepth(21);
-        const table = createRankingTable(this, 512, 100, Leaderboard.get(), saved.id).setDepth(21);
+        const table = createRankingTable(this, (WORLD.width / 2), 100, Leaderboard.get(), saved.id).setDepth(21);
         layer.push(title, table);
 
         const close = () => {
@@ -243,7 +253,7 @@ export class GameOver extends Scene
         };
 
         const button = new MenuButton(this, {
-            x: 512, y: 660, w: 300, h: 64, label: Lang.t('entryContinue'), style: 'primary', delay: 200,
+            x: (WORLD.width / 2), y: 660, w: 300, h: 64, label: Lang.t('entryContinue'), style: 'primary', delay: 200,
             onClick: close
         });
         button.root.setDepth(21);
@@ -314,7 +324,7 @@ export class GameOver extends Scene
         if (missing > 0) lines.push([Lang.t('overMissing', { n: missing }), 20, '#ffcc66']);
 
         lines.forEach(([text, size, color], i) => {
-            const label = this.add.text(512, 410 + i * 24, text, {
+            const label = this.add.text((WORLD.width / 2), 410 + i * 24, text, {
                 fontFamily: 'Arial', fontSize: size, color
             }).setOrigin(0.5).setAlpha(0);
 
@@ -336,7 +346,7 @@ export class GameOver extends Scene
         }).setOrigin(0, 0.5);
 
         const total = labelText.width + valueText.width;
-        labelText.setX(512 - total / 2);
+        labelText.setX((WORLD.width / 2) - total / 2);
         valueText.setX(labelText.x + labelText.width);
     }
 
@@ -344,7 +354,7 @@ export class GameOver extends Scene
     {
         for (let i = 0; i < 16; i++) {
             const spark = this.add.circle(
-                40 + Math.random() * 944, 60 + Math.random() * 640,
+                40 + Math.random() * (WORLD.width - 80), 60 + Math.random() * 640,
                 1.5 + Math.random() * 2, tint, 0.4);
             this.tweens.add({
                 targets: spark,
@@ -390,8 +400,8 @@ export class GameOver extends Scene
             g.destroy();
         }
 
-        const btn = this.add.image(512, y, key).setInteractive({ useHandCursor: true });
-        const label = this.add.text(512, y, text, {
+        const btn = this.add.image((WORLD.width / 2), y, key).setInteractive({ useHandCursor: true });
+        const label = this.add.text((WORLD.width / 2), y, text, {
             fontFamily: 'Arial Black', fontSize: 26, color: textColor
         }).setOrigin(0.5);
 

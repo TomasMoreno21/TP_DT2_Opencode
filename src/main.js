@@ -1,3 +1,4 @@
+import { WORLD } from './assets/levels';
 import { Boot } from './scenes/Boot';
 import { Game } from './scenes/Game';
 import { GameOver } from './scenes/GameOver';
@@ -10,8 +11,8 @@ import { AUTO, Game as PhaserGame, Scale } from 'phaser';
 
 const config = {
     type: AUTO,
-    width: 1024,
-    height: 768,
+    width: WORLD.width,
+    height: WORLD.height,
     parent: 'game-container',
     backgroundColor: '#028af8',
     scale: {

@@ -1,9 +1,10 @@
+import { WORLD } from '../assets/levels';
 import { Lang } from './Texts';
 import { Audio } from './Audio';
 import { RANK_COLORS, RANK_ORDER, rankFor } from './Rank';
 
 export const HUD_CONFIG = {
-    timerX: 512,
+    timerX: (WORLD.width / 2),
     timerY: 52,
     timerRadius: 42,
     lowTimeThreshold: 10,
@@ -73,7 +74,7 @@ export class Hud {
         this.edgePulseGfx = this.fix(scene.add.graphics()).setAlpha(0);
         // Borde dorado que respira mientras dura el frenesí (x5).
         this.frenzyGfx = this.fix(scene.add.graphics()).setVisible(false);
-        this.frenzyGfx.lineStyle(14, 0xffdd44, 0.5).strokeRect(0, 0, 1024, 768);
+        this.frenzyGfx.lineStyle(14, 0xffdd44, 0.5).strokeRect(0, 0, WORLD.width, 768);
         this.frenzyTween = null;
     }
 
@@ -206,7 +207,7 @@ export class Hud {
             return;
         }
 
-        this.edgePulseGfx.clear().lineStyle(18, color, 0.55).strokeRect(0, 0, 1024, 768);
+        this.edgePulseGfx.clear().lineStyle(18, color, 0.55).strokeRect(0, 0, WORLD.width, 768);
         this.scene.tweens.killTweensOf(this.edgePulseGfx);
         this.edgePulseGfx.setAlpha(1);
         this.scene.tweens.add({ targets: this.edgePulseGfx, alpha: 0, duration: 420, ease: 'Quad.easeOut' });
@@ -267,16 +268,16 @@ export class Hud {
         const scene = this.scene;
         this.comboBg = this.fix(scene.add.graphics()).setVisible(false);
         this.comboBar = this.fix(scene.add.graphics()).setVisible(false);
-        this.comboText = this.text(512, 124, 'x2', 24, '#ffdd44', { originX: 0.5, stroke: 6 }).setVisible(false);
+        this.comboText = this.text((WORLD.width / 2), 124, 'x2', 24, '#ffdd44', { originX: 0.5, stroke: 6 }).setVisible(false);
 
         this.airBg = this.fix(scene.add.graphics()).setVisible(false);
-        this.airText = this.text(512, 160, '', 14, '#66ff88', { originX: 0.5, stroke: 3 }).setVisible(false);
+        this.airText = this.text((WORLD.width / 2), 160, '', 14, '#66ff88', { originX: 0.5, stroke: 3 }).setVisible(false);
     }
 
     drawComboChip (color) {
         this.comboBg.clear();
-        this.comboBg.fillStyle(0x0b0919, 0.75).fillRoundedRect(452, 108, 120, 38, 12);
-        this.comboBg.lineStyle(2, color, 1).strokeRoundedRect(452, 108, 120, 38, 12);
+        this.comboBg.fillStyle(0x0b0919, 0.75).fillRoundedRect(WORLD.width / 2 - 60, 108, 120, 38, 12);
+        this.comboBg.lineStyle(2, color, 1).strokeRoundedRect(WORLD.width / 2 - 60, 108, 120, 38, 12);
     }
 
     setMultiplier (multiplier) {
@@ -324,7 +325,7 @@ export class Hud {
         }
 
         const color = COMBO_COLORS[this.lastMult] ?? 0xffdd44;
-        drawBar(this.comboBar, 462, 135, 100, 6, fraction, fraction < 0.25 ? 0xff4455 : color);
+        drawBar(this.comboBar, WORLD.width / 2 - 50, 135, 100, 6, fraction, fraction < 0.25 ? 0xff4455 : color);
 
         // Por vencer: el chip parpadea despacio (≈1,5 Hz, lejos del umbral de fotosensibilidad).
         const blink = fraction < 0.25 && Math.floor(this.scene.time.now / 330) % 2 === 0;
@@ -347,8 +348,8 @@ export class Hud {
             this.airText.setText(Lang.t('hudAir', { n: streak })).setVisible(true);
             const w = this.airText.width + 24;
             this.airBg.clear().setVisible(true);
-            this.airBg.fillStyle(0x0b0919, 0.7).fillRoundedRect(512 - w / 2, 148, w, 24, 12);
-            this.airBg.lineStyle(2, 0x66ff88, 0.9).strokeRoundedRect(512 - w / 2, 148, w, 24, 12);
+            this.airBg.fillStyle(0x0b0919, 0.7).fillRoundedRect((WORLD.width / 2) - w / 2, 148, w, 24, 12);
+            this.airBg.lineStyle(2, 0x66ff88, 0.9).strokeRoundedRect((WORLD.width / 2) - w / 2, 148, w, 24, 12);
             return;
         }
 
@@ -366,7 +367,7 @@ export class Hud {
 
         for (const { w, a } of layers) {
             g.lineStyle(w, 0xff2233, a * strength);
-            g.strokeRect(0, 0, 1024, 768);
+            g.strokeRect(0, 0, WORLD.width, 768);
         }
     }
 
@@ -423,17 +424,23 @@ export class Hud {
     // --- Derecha: nivel y rango -----------------------------------------------
 
     buildRight () {
-        this.panel(754, 8, 262, 112);
+        this.panel((WORLD.width - 270), 8, 262, 112);
 
-        this.levelText = this.text(1002, 26, 'Nivel 1/1', 20, '#ffffff', { originX: 1, stroke: 5 });
-        this.rankText = this.text(1002, 58, '', 15, '#aaaaaa', { originX: 1, stroke: 3 });
+        this.levelText = this.text((WORLD.width - 22), 26, 'Nivel 1/1', 20, '#ffffff', { originX: 1, stroke: 5 });
+        this.rankText = this.text((WORLD.width - 22), 58, '', 15, '#aaaaaa', { originX: 1, stroke: 3 });
         this.rankBar = this.fix(this.scene.add.graphics());
         this.rankMarks = this.fix(this.scene.add.graphics());
+        this.modText = this.text((WORLD.width - 22), 112, '', 14, '#ffdd44', { originX: 1, stroke: 4 });
         this.drawRankBar(0, 0x888888);
     }
 
     drawRankBar (fraction, color) {
-        drawBar(this.rankBar, 768, 84, 234, 12, fraction, color);
+        drawBar(this.rankBar, (WORLD.width - 256), 84, 234, 12, fraction, color);
+    }
+
+    // Etiqueta del modo modificadores (vacía si no hay).
+    setModifiers (label) {
+        this.modText.setText(label);
     }
 
     setLevel (current, total) {
@@ -446,7 +453,7 @@ export class Hud {
         const g = this.rankMarks.clear();
 
         RANK_ORDER.forEach((rank, i) => {
-            const x = 768 + 234 * (thresholds[rank] / thresholds.gold);
+            const x = (WORLD.width - 256) + 234 * (thresholds[rank] / thresholds.gold);
             const big = i === RANK_ORDER.length - 1;
             g.fillStyle(0x000000, 0.6).fillCircle(x - (big ? 3 : 0), 90, 8);
             g.fillStyle(RANK_COLORS[rank], 1).fillCircle(x - (big ? 3 : 0), 90, 6);
@@ -467,7 +474,7 @@ export class Hud {
         // Subir de medalla: pop, destello y sonido.
         if (this.rankAnnounced && index > this.lastRankIndex) {
             this.pop(this.rankText, 1.35);
-            this.flash(754, 8, 262, 112, color);
+            this.flash((WORLD.width - 270), 8, 262, 112, color);
             Audio.play('perfect');
         }
 

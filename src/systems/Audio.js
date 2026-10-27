@@ -1,3 +1,4 @@
+import { WORLD } from '../assets/levels';
 import { bus, duck, ensureContext, noise, toggleMute, tone } from './AudioBus';
 
 // Paleta de sonidos del juego (docs/PLAN_FEEL.md §8.2). Único punto de entrada:
@@ -22,8 +23,8 @@ function chainFreq(chain) {
     return ROOT * Math.pow(2, semitones / 12);
 }
 
-// Panorama según la posición horizontal (0..1024), suave para no marear.
-const panFor = (x) => (x === undefined ? 0 : clamp((x - 512) / 512, -1, 1) * 0.6);
+// Panorama según la posición horizontal (0..WORLD.width), suave para no marear.
+const panFor = (x) => (x === undefined ? 0 : clamp((x - (WORLD.width / 2)) / (WORLD.width / 2), -1, 1) * 0.6);
 
 const EVENTS = {
     // Recolección: nota de la escala según la posición en la cadena. Con el combo se
@@ -65,6 +66,15 @@ const EVENTS = {
     },
     // Derrape: fricción corta al invertir la dirección corriendo.
     skid: () => noise({ duration: 0.09, volume: 0.07, priority: 0, filter: { type: 'bandpass', freq: 1900, endFreq: 900, q: 3 } }),
+    // Pisada al correr: golpecito seco y bajo, apenas audible para no tapar la música.
+    step: () => noise({ duration: 0.035, volume: 0.04, priority: 0, filter: { type: 'bandpass', freq: 380 + Math.random() * 120, q: 1.5 } }),
+    // Agarrarse a la pared: roce metálico corto con un golpe grave.
+    wallGrab: () => {
+        noise({ duration: 0.1, volume: 0.09, priority: 0, filter: { type: 'bandpass', freq: 2600, endFreq: 1400, q: 4 } });
+        tone({ freq: 140, endFreq: 90, type: 'triangle', duration: 0.08, volume: 0.12, priority: 0 });
+    },
+    // El dash volvió a cargarse: ping agudo y breve.
+    dashReady: () => tone({ freq: 1180, endFreq: 1560, type: 'sine', duration: 0.07, volume: 0.07, priority: 0 }),
     dash: () => {
         noise({ duration: 0.18, volume: 0.18, filter: { type: 'bandpass', freq: 500, endFreq: 2600, q: 1.2 } });
         tone({ freq: 260, endFreq: 700, type: 'sawtooth', duration: 0.12, volume: 0.14 });

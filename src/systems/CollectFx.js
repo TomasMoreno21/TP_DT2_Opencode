@@ -1,3 +1,4 @@
+import { WORLD } from '../assets/levels';
 import { FEEL } from '../assets/feel';
 import { Audio } from './Audio';
 import { Lang } from './Texts';
@@ -63,7 +64,7 @@ export class CollectFx {
 
         // Hitos de racha.
         if (chain === 5 || chain === 10) {
-            floatingText.showBanner(512, 230, Lang.t(chain === 5 ? 'streak5' : 'streak10'), hex(tint), 34, 450);
+            floatingText.showBanner((WORLD.width / 2), 230, Lang.t(chain === 5 ? 'streak5' : 'streak10'), hex(tint), 34, 450);
         }
     }
 

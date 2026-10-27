@@ -32,6 +32,12 @@ import { themeFor } from '../assets/themes';
 import { LevelIntro } from '../systems/LevelIntro';
 import { Wipe } from '../systems/Wipe';
 import { TensionDirector } from '../systems/TensionDirector';
+import { Settings } from '../systems/Settings';
+import { LevelSummary } from '../systems/LevelSummary';
+import { MODIFIERS, rollModifiers, applyToConfig, bonusOf } from '../systems/Modifiers';
+
+// Profundidad a partir de la cual un objeto fijo a la pantalla cuenta como interfaz (HUD, tutorial, avisos).
+const UI_DEPTH = 38;
 
 export class Game extends Scene
 {
@@ -51,6 +57,11 @@ export class Game extends Scene
         // Micro-práctica: mapa mínimo de una mecánica nueva (ver assets/practice.js).
         this.practice = data.practice ?? null;
         this.initData = data;
+
+        // Resumen de la campaña en curso (rangos, tiempo y combo) para la pantalla final.
+        if (this.levelIndex === 0 && !this.practice) {
+            this.registry.set('campaignRun', { ranks: [], seconds: 0, maxCombo: 1 });
+        }
 
         // Pausa: la escena pausada no avanza su reloj, pero el del juego sí. Se resta
         // lo pausado al tiempo que ve la escena para que ningún plazo (combo, dash,
@@ -92,20 +103,23 @@ export class Game extends Scene
         this.scene.resume();
     }
 
-    // Reemplaza este nivel por otro mapa (misma dificultad, sin asistencia extra).
-    regenerateLevel ()
+    // Reemplaza un nivel (por defecto este) por otro mapa, sin asistencia extra.
+    // Con otro `levelIndex` (opción de desarrollo del menú de pausa) salta a ese nivel.
+    regenerateLevel (levelIndex = this.levelIndex)
     {
         const seed = ((Date.now() * 2654435761) ^ Math.floor(Math.random() * 4294967296)) >>> 0;
+        const deaths = levelIndex === this.levelIndex ? this.deaths : 0;
 
-        return CampaignBuilder.buildLevel(seed, this.levelIndex, { assist: this.deaths }).then((entry) => {
+        return CampaignBuilder.buildLevel(seed, levelIndex, { assist: deaths }).then((entry) => {
             const campaign = this.campaign.slice();
-            campaign[this.levelIndex] = entry;
+            campaign[levelIndex] = entry;
             this.scene.start('Game', {
-                levelIndex: this.levelIndex,
+                levelIndex,
                 completedScore: this.completedScore,
                 campaignSeed: this.campaignSeed,
                 campaign,
-                deaths: this.deaths
+                deaths,
+                noPractice: levelIndex !== this.levelIndex || this.initData.noPractice
             });
         });
     }
@@ -137,16 +151,18 @@ export class Game extends Scene
     {
         // La primera vez que se llega a un nivel con mecánica nueva, antes va la práctica.
         const mech = PRACTICE_BY_LEVEL[this.levelIndex];
-        if (!this.practice && mech && Tutorial.wantsPractice(mech)) {
+        if (!this.practice && !this.initData.noPractice && mech && Tutorial.wantsPractice(mech)) {
             this.scene.start('Game', { ...this.initData, practice: { mech } });
             return;
         }
 
         this.gameEnded = false;
         this.levelComplete = false;
+        this.frozen = false;
         this.lastSecond = null;
         this.warned5s = false;
         this.maxMult = 1;
+        this.gemsCollected = 0;
         this.intro = null;
         this.restarting = false;
 
@@ -159,11 +175,23 @@ export class Game extends Scene
 
         this.cameras.main.setBackgroundColor(0x141026);
 
+        // El zoom del combo solo debe afectar al mundo: la interfaz (objetos fijos a la pantalla y por
+        // encima de UI_DEPTH) va en una segunda cámara sin zoom, así no se corta en los bordes.
+        this.uiCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
+        this.uiPending = [];
+        const queueUi = (go) => this.uiPending.push(go);
+
+        this.events.on('addedtoscene', queueUi);
+        this.events.once('shutdown', () => this.events.off('addedtoscene', queueUi));
+
         // Fondo en capas con parallax y paleta propia del nivel (sin assets externos).
         this.theme = themeFor(this.levelIndex);
         this.backdrop = new Backdrop(this, this.theme);
 
-        const levelConfig = this.resolveLevelConfig();
+        // Modo modificadores: se sortea en cada create, así que reintentar vuelve a sortear.
+        const baseConfig = this.resolveLevelConfig();
+        this.modifiers = Settings.modifiers && !this.practice ? rollModifiers(baseConfig) : [];
+        const levelConfig = applyToConfig(baseConfig, this.modifiers);
 
         this.pace = new GamePace(this);
         this.fx = new Fx(this);
@@ -176,9 +204,13 @@ export class Game extends Scene
         this.platformGlow = new PlatformGlow(this, this.level, this.theme);
         this.player = new Player(this, levelConfig.spawn.x, levelConfig.spawn.y);
 
+        if (this.modifiers.includes('slowDash')) {
+            this.player.dashCooldownMs *= 2;
+        }
+
         this.physics.add.collider(this.player.rect, this.level.platforms);
 
-        this.cameras.main.setBounds(0, 0, 1024, 768);
+        this.cameras.main.setBounds(0, 0, WORLD.width, 768);
         this.cameras.main.startFollow(this.player.rect, true, 0.12, 0.12);
         this.cameras.main.setDeadzone(80, 120);
 
@@ -245,6 +277,10 @@ export class Game extends Scene
 
         this.scoreManager = new ScoreManager();
         this.scoreManager.setQuota(levelConfig.quota);
+
+        if (this.modifiers.includes('fragileCombo')) {
+            this.scoreManager.comboWindowMs = 1800;
+        }
         this.timer = new GameTimer(this, () => this.onTimeUp(), levelConfig.durationSeconds);
         this.hud = new Hud(this);
         this.floatingText = new FloatingText(this);
@@ -256,30 +292,31 @@ export class Game extends Scene
         this.hud.setScore(this.scoreManager.score);
         this.hud.setQuota(this.scoreManager.collected, this.scoreManager.quota);
         this.hud.setLevel(this.levelIndex + 1, LEVELS.length);
+        this.hud.setModifiers(this.modifiersLabel());
         this.hud.setTimerTotal(levelConfig.durationSeconds);
         this.hud.setTime(this.timer.remainingSeconds);
 
         if (this.practice) {
             this.setupPractice();
         } else {
-            this.floatingText.showBanner(512, 240, `Nivel ${this.levelIndex + 1} - ${levelConfig.name}`, '#00d1b2', 34);
+            this.floatingText.showBanner((WORLD.width / 2), 240, `Nivel ${this.levelIndex + 1} - ${levelConfig.name}`, '#00d1b2', 34);
         }
         if (this.registry.get('infiniteLife')) {
-            this.floatingText.showBanner(512, 200, 'VIDA INFINITA', '#ff66aa', 18);
+            this.floatingText.showBanner((WORLD.width / 2), 200, 'VIDA INFINITA', '#ff66aa', 18);
         }
         if (this.deaths > 0) {
-            this.floatingText.showBanner(512, 286, 'Mapa nuevo: más espacio y más tiempo', '#66ff88', 20);
+            this.floatingText.showBanner((WORLD.width / 2), 286, 'Mapa nuevo: más espacio y más tiempo', '#66ff88', 20);
         }
 
         const coachHint = this.practice ? null : Coach.take();
         if (coachHint) {
-            this.floatingText.showBanner(512, 340, Lang.t(coachHint), '#ffdd44', 18, 3500);
+            this.floatingText.showBanner((WORLD.width / 2), 340, Lang.t(coachHint), '#ffdd44', 18, 3500);
         }
 
         this.muteKey = this.input.keyboard.addKey('M');
         this.muteKey.on('down', () => {
             const isMuted = Audio.toggle();
-            this.floatingText.show(512, 120, isMuted ? 'MUTE' : 'SONIDO', '#ffffff', 18);
+            this.floatingText.show((WORLD.width / 2), 120, isMuted ? 'MUTE' : 'SONIDO', '#ffffff', 18);
         });
 
         this.retryKey = this.input.keyboard.addKey('R');
@@ -298,12 +335,15 @@ export class Game extends Scene
         this.listen('player-dash', () => this.unlockBadge('dash'));
         this.listen('player-land', (vy) => vy > FEEL.player.landMinVy && Audio.play('land', { vy }));
         this.listen('player-skid', () => Audio.play('skid'));
+        this.listen('player-step', () => Audio.play('step'));
+        this.listen('player-wallgrab', () => Audio.play('wallGrab'));
+        this.listen('player-dashready', () => Audio.play('dashReady'));
         this.listen('combo-up', (level) => Audio.play('comboUp', { level }));
         this.listen('combo-lost', () => Audio.play('comboLost'));
         // El combo se apaga: chispas grises que se disipan sobre el jugador.
         this.listen('combo-lost', () => this.fx.spark(this.player.rect.x, this.player.rect.y, 0x8888aa, 8));
         this.listen('frenzy-start', () => {
-            this.floatingText.showBanner(512, 230, Lang.t('streakFrenzy'), '#ff4455', 40, 600);
+            this.floatingText.showBanner((WORLD.width / 2), 230, Lang.t('streakFrenzy'), '#ff4455', 40, 600);
             this.camFx.punch();
         });
         this.listen('frenzy-start', () => Audio.play('frenzy'));
@@ -335,7 +375,7 @@ export class Game extends Scene
 
         // Durante el tutorial el reloj está en pausa y no hay orbes: aparecen al terminar.
         this.pointsPending = Boolean(this.tutorial?.active);
-        this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots, this.pointsPending);
+        this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots, this.pointsPending, this.modifiers.includes('singlePoint') ? 1 : undefined);
         this.projectileManager = new ProjectileManager(this, this.timer.durationMs, levelConfig.projectiles);
 
         this.physics.add.overlap(this.player.rect, this.pointSpawner.points.map((point) => point.circle), (player, circle) => {
@@ -392,6 +432,7 @@ export class Game extends Scene
                 const { gained, airBonus } = this.scoreManager.scoreGem(gem.value, this.time.now, { airborne });
                 this.metrics.collect(this.time.now, this.scoreManager.multiplier);
                 this.events.emit('point-collected');
+                this.gemsCollected++;
                 this.timer.addSeconds(gem.bonusSeconds);
                 this.hud.setScore(this.scoreManager.score);
                 this.hud.setMultiplier(this.scoreManager.multiplier);
@@ -452,9 +493,17 @@ export class Game extends Scene
 
             this.registry.set('lastIntro', this.levelIndex);
             this.physics.world.pause();
-            this.intro = new LevelIntro(this, { name: LEVELS[this.levelIndex]?.name, theme: this.theme, short });
+            // Los niveles 3 a 5 presentan su mecánica nueva en la tarjeta (ya no hay prácticas previas).
+            const tip = { 2: 'introTipFragile', 3: 'introTipHazard', 4: 'introTipPortal' }[this.levelIndex];
+            this.intro = new LevelIntro(this, { name: LEVELS[this.levelIndex]?.name, theme: this.theme, short, tip: tip ? Lang.t(tip) : null, mods: this.modifiersLabel() || null });
             this.intro.start(() => this.physics.world.resume());
         }
+    }
+
+    // "Reloj corto +15% · Ráfaga +20%" (vacío fuera del modo modificadores).
+    modifiersLabel ()
+    {
+        return this.modifiers.map((id) => `${Lang.t(`mod_${id}`)} +${Math.round(MODIFIERS[id].bonus * 100)}%`).join(' · ');
     }
 
     // Reinicia el nivel con un wipe corto (R). La pantalla se destapa en la escena nueva.
@@ -528,7 +577,7 @@ export class Game extends Scene
     unlockBadge (id)
     {
         if (Badges.unlock(id)) {
-            this.floatingText.showBanner(512, 118, '★ ' + Lang.t('badgeNew', { n: Lang.t('badge_' + id) }), '#ffdd44', 20, 1200);
+            this.floatingText.showBanner((WORLD.width / 2), 118, '★ ' + Lang.t('badgeNew', { n: Lang.t('badge_' + id) }), '#ffdd44', 20, 1200);
         }
     }
 
@@ -559,13 +608,13 @@ export class Game extends Scene
         const mech = this.practice.mech;
         const name = Lang.t('pr' + mech[0].toUpperCase() + mech.slice(1));
         this.hud.levelText.setText(Lang.t('prTitle', { m: name }));
-        this.add.text(512, 150, Lang.t('prTitle', { m: name }), {
+        this.add.text((WORLD.width / 2), 150, Lang.t('prTitle', { m: name }), {
             fontFamily: 'Arial Black', fontSize: '26px', color: '#00d1b2', stroke: '#000000', strokeThickness: 5
         }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
-        this.add.text(512, 186, Lang.t('prHint' + mech[0].toUpperCase() + mech.slice(1)), {
+        this.add.text((WORLD.width / 2), 186, Lang.t('prHint' + mech[0].toUpperCase() + mech.slice(1)), {
             fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', stroke: '#000000', strokeThickness: 3
         }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
-        this.add.text(512, 210, Lang.t('prSkip'), { fontFamily: 'Arial', fontSize: '13px', color: '#9aa4c7' })
+        this.add.text((WORLD.width / 2), 210, Lang.t('prSkip'), { fontFamily: 'Arial', fontSize: '13px', color: '#9aa4c7' })
             .setOrigin(0.5).setScrollFactor(0).setDepth(51);
 
         this.input.keyboard.addKey('ENTER').on('down', () => this.endPractice());
@@ -591,6 +640,13 @@ export class Game extends Scene
         this.backdrop.update(time, this.player.rect.x, pulse);
         this.platformGlow.update(this.seenMult === 5 ? pulse : 0);
         this.level.goal.update(time);
+
+        this.routeUi();
+
+        // Con la salida cruzada el nivel entero queda congelado hasta el resumen.
+        if (this.frozen) {
+            return;
+        }
 
         if (this.intro?.active) {
             return;
@@ -621,12 +677,12 @@ export class Game extends Scene
 
             if (seconds === 5 && !this.warned5s && !this.gameEnded) {
                 this.warned5s = true;
-                this.floatingText.showBanner(512, 200, '¡Últimos 5s!', '#ff4455', 30);
+                this.floatingText.showBanner((WORLD.width / 2), 200, '¡Últimos 5s!', '#ff4455', 30);
             }
         }
 
         this.hud.setShield(this.player.shieldUntil - this.time.now, this.shieldTotalMs);
-        this.hud.setDashCooldown(this.player.dashRemaining, PLAYER_CONFIG.dashCooldownMs);
+        this.hud.setDashCooldown(this.player.dashRemaining, this.player.dashCooldownMs);
         this.hud.setComboTimer(this.scoreManager.comboRemaining(this.time.now));
         this.trackCombo();
         this.tension.update(delta);
@@ -638,6 +694,35 @@ export class Game extends Scene
 
         this.updateAirStreak();
         this.updatePortals();
+    }
+
+    // Detiene todo el nivel (física, proyectiles, pinchos, plataformas y reloj) al cruzar la salida.
+    freezeLevel ()
+    {
+        this.frozen = true;
+        this.timer.paused = true;
+        this.pace.restore();
+        this.physics.world.pause();
+    }
+
+    // Reparte los objetos nuevos entre las dos cámaras: la interfaz solo en la de la interfaz y el
+    // resto solo en la principal (la que hace zoom). Los hijos de un contenedor siguen a su raíz.
+    routeUi ()
+    {
+        const main = this.cameras.main;
+        const route = (go, ui) => {
+            (ui ? main : this.uiCam).ignore(go);
+            go.list?.forEach((child) => route(child, ui));
+        };
+
+        for (const go of this.uiPending.splice(0)) {
+            if (!go.scene) continue;
+
+            let root = go;
+            while (root.parentContainer) root = root.parentContainer;
+
+            route(go, root.scrollFactorX === 0 && root.depth >= UI_DEPTH);
+        }
     }
 
     // M6: la cadena "sin pies en el suelo" se corta al aterrizar sobre el piso.
@@ -769,11 +854,13 @@ export class Game extends Scene
         this.hud.showExitMarker(this.level.goal.x, this.level.goal.y);
         Audio.play('goalOpen');
 
-        this.floatingText.showBanner(512, 300, '¡META CUMPLIDA!', '#00ff88', 32);
-        this.floatingText.showBanner(512, 348, 'Llegá a la salida', '#ffffff', 22, 700);
+        this.floatingText.showBanner((WORLD.width / 2), 300, '¡META CUMPLIDA!', '#00ff88', 32);
+        this.floatingText.showBanner((WORLD.width / 2), 348, 'Llegá a la salida', '#ffffff', 22, 700);
         // Chispas sobre la salida para guiar al jugador.
         this.burstAt(this.level.goal.x, this.level.goal.y, 0x00ff88);
         this.burstAt(this.level.goal.x, this.level.goal.y, 0xffffff);
+
+        this.routeUi();
     }
 
     onGoalReached ()
@@ -784,7 +871,7 @@ export class Game extends Scene
 
         if (this.practice) {
             Audio.play('goalReached');
-            this.floatingText.showBanner(512, 300, Lang.t('prDone'), '#00ff88', 32);
+            this.floatingText.showBanner((WORLD.width / 2), 300, Lang.t('prDone'), '#00ff88', 32);
             this.time.delayedCall(900, () => this.endPractice());
             this.levelComplete = true;
             return;
@@ -804,7 +891,19 @@ export class Game extends Scene
 
         this.scoreManager.addBonus(timeBonus);
         const rank = rankFor(this.scoreManager.score, this.rankThresholds);
+        // El bonus de modificadores va después del rango: no infla la medalla.
+        const modBonus = Math.round(this.scoreManager.score * bonusOf(this.modifiers));
+
+        this.scoreManager.addBonus(modBonus);
         RankStore.update(this.levelIndex + 1, rank);
+
+        const run = this.registry.get('campaignRun');
+
+        if (run) {
+            run.ranks[this.levelIndex] = rank;
+            run.seconds += this.endingStats().survived;
+            run.maxCombo = Math.max(run.maxCombo, this.maxMult);
+        }
 
         // Logros de fin de nivel. Los puntos del nivel (sin bono de tiempo) alimentan
         // el acumulado de "collector"; un nivel perdido nunca llega acá.
@@ -829,7 +928,7 @@ export class Game extends Scene
         const bankedScore = this.totalScore;
 
         // Un instante de cámara lenta y punch al pisar la salida; confeti sobre el jugador.
-        this.pace.slowmo(250, 0.5);
+        this.freezeLevel();
         this.camFx.punch();
         const px = this.player.rect.x, py = this.player.rect.y;
         for (const [dx, color] of [[-30, 0x00ff88], [30, 0xffdd44], [0, 0x2dd4ff], [-15, 0xff66aa], [15, 0xffffff]]) {
@@ -837,7 +936,7 @@ export class Game extends Scene
         }
         this.camFx.shake('goal');
 
-        this.floatingText.showBanner(512, 300, `¡Nivel ${this.levelIndex + 1} superado!`, '#00ff88', 32, 2200);
+        this.floatingText.showBanner((WORLD.width / 2), 300, `¡Nivel ${this.levelIndex + 1} superado!`, '#00ff88', 32, 1500);
 
         // Cuenta en vivo: un tic ascendente por cada segundo que sobraba.
         const tallyStart = 280;
@@ -852,28 +951,25 @@ export class Game extends Scene
 
         const doneAt = tallyStart + tallyMs;
 
+        // Resumen del nivel: una fila por dato y la medalla del rango al final.
+        const rankColor = rank ? `#${RANK_COLORS[rank].toString(16).padStart(6, '0')}` : '#aaaaaa';
+        const rows = [
+            { label: Lang.t('sumScore'), value: baseScore },
+            { label: Lang.t('sumTime'), value: `+${timeBonus}`, color: '#66ccff' },
+            ...(modBonus > 0 ? [{ label: Lang.t('sumMods'), value: `+${modBonus}`, color: '#ffdd44' }] : []),
+            { label: Lang.t('sumCombo'), value: `x${this.maxMult}` },
+            { label: Lang.t('sumGems'), value: this.gemsCollected },
+            { label: Lang.t('sumDeaths'), value: this.deaths }
+        ];
+
         this.time.delayedCall(doneAt, () => {
             this.hud.setScore(this.scoreManager.score);
-
-            if (timeBonus > 0) {
-                this.floatingText.showBanner(512, 348, Lang.t('timeBonus', { v: timeBonus }), '#66ccff', 22, 1400);
-            }
-        });
-
-        // La medalla cae con rebote.
-        const rankColor = rank ? `#${RANK_COLORS[rank].toString(16).padStart(6, '0')}` : '#aaaaaa';
-
-        this.time.delayedCall(doneAt + 320, () => {
-            const medal = this.add.text(512, 330, `${Lang.t('rankLabel')}: ${Lang.t(`rank_${rank ?? 'none'}`)}`, {
-                fontFamily: 'Arial Black', fontSize: 26, color: rankColor, stroke: '#000000', strokeThickness: 6
-            }).setOrigin(0.5).setScrollFactor(0).setDepth(60).setScale(1.5).setAlpha(0);
-
-            this.tweens.add({ targets: medal, y: 388, alpha: 1, scale: 1, duration: 480, ease: 'Bounce.easeOut' });
+            new LevelSummary(this).show(`¡Nivel ${this.levelIndex + 1} superado!`, rows, { label: Lang.t('rankLabel'), text: Lang.t(`rank_${rank ?? 'none'}`), color: rankColor });
             this.camFx.punch();
         });
 
-        // Cortina diagonal hacia el nivel siguiente (o hacia la pantalla final).
-        this.time.delayedCall(doneAt + 320 + 1000, () => {
+        // Cortina diagonal hacia el nivel siguiente (o hacia la pantalla final), con tiempo para leer el panel.
+        this.time.delayedCall(doneAt + 300 + rows.length * 90 + 480 + 1100, () => {
             this.registry.set('wipeIn', this.theme.bgBottom);
             Wipe.cover(this, this.theme.bgBottom, 360, () => {
                 if (this.levelIndex + 1 < LEVELS.length) {

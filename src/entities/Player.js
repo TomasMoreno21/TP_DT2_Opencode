@@ -91,6 +91,8 @@ export class Player {
         this.dashPressed = false;
         this.dashUntil = 0;
         this.dashCooldownUntil = 0;
+        this.dashCooling = false;
+        this.dashCooldownMs = PLAYER_CONFIG.dashCooldownMs;
         this.dashDir = 1;
         this.dashNextTrailAt = 0;
         this.facing = 1;
@@ -156,6 +158,11 @@ export class Player {
         this.fx.update(deltaMs);
         this.turning = false;
 
+        if (this.dashCooling && this.scene.time.now >= this.dashCooldownUntil) {
+            this.dashCooling = false;
+            this.scene.events.emit('player-dashready');
+        }
+
         if (this.isInvulnerable) {
             // Parpadeo suave y lento (antes vibraba).
             this.rect.setAlpha(Math.floor(this.scene.time.now / 160) % 2 === 0 ? 0.65 : 1);
@@ -202,7 +209,8 @@ export class Player {
             this.dashDir = dir;
             this.facing = dir;
             this.dashUntil = now + PLAYER_CONFIG.dashDurationMs;
-            this.dashCooldownUntil = now + PLAYER_CONFIG.dashCooldownMs;
+            this.dashCooldownUntil = now + this.dashCooldownMs;
+            this.dashCooling = true;
             this.dashNextTrailAt = 0;
             // El dash apaga la gravedad y corta la caída: vuelo en línea recta.
             // Los i-frames cubren todo el impulso más un margen al terminar (dashGraceMs).
@@ -254,6 +262,10 @@ export class Player {
             && now - this.lastWallJumpTime >= PLAYER_CONFIG.wallJumpCooldown;
 
         if (touchingWall && holdingToward && !this.isDashing) {
+            if (!this.wallGrabbing) {
+                this.scene.events.emit('player-wallgrab');
+            }
+
             this.wallGrabbing = true;
             this.rect.setFillStyle(PLAYER_CONFIG.wallGrabColor);
             this.body.setAllowGravity(false);

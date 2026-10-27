@@ -1,311 +1,156 @@
 import { WORLD } from '../assets/levels.js';
 import { HAZARD_CONFIG } from '../entities/Hazard.js';
+import { LAYOUT_STYLES, BOUNCE_STYLES, buildLayout, fitsLayout, floorSpots, frame, plat, fragile, hazardOn, powerOn } from './LevelLayout.js';
 
-// Formas de los niveles 3 a 5 (frágiles, pinchos y portales): cada nivel tiene
-// varias estructuras que se sortean por semilla (como las formas macro del N2) y
-// cuyas mecánicas se mutan (ver `mutateMechanics`). Son builders puros: reciben el
-// rng del generador y devuelven datos. A diferencia de las formas del N2 no se
-// validan con BFS al jugar (es lento): cada forma se barre offline con
-// tools/test-models.mjs (`npm run test-models`) y los parámetros se acotan para que
-// cualquier valor del rango sea alcanzable. Si se toca una forma hay que correrlo.
+// Niveles 1 a 5: la estructura sale de LevelLayout.js (grafo de plataformas con reglas de espacio
+// y carriles de trampolín reservados) y acá se le suman las mecánicas de cada nivel (frágiles,
+// pinchos, portales), los spots y la gema. Son builders puros: reciben el rng del generador y
+// devuelven datos. Al jugar no se valida con BFS (es lento): cada estilo se barre offline con
+// tools/test-models.mjs (`npm run test-models`) y los parámetros se acotan para que cualquier
+// valor del rango sea alcanzable. Si se toca el generador hay que correrlo.
 
 const FLOOR_TOP = WORLD.floorTop;
-const PLATFORM_COLOR = 0x3a3a5c;
-const WALL_COLOR = 0x4a4270;
-const TOWER_COLOR = 0x453f6b;
-const WALL_EDGE_LEFT = 52;
-const WALL_EDGE_RIGHT = WORLD.width - 52;
 
-const plat = (x, top, w, h = 20) => ({ x: Math.round(x), y: Math.round(top + h / 2), w: Math.round(w), h, color: PLATFORM_COLOR });
-const fragile = (x, top, w) => ({ x: Math.round(x), y: Math.round(top + 10), w: Math.round(w) });
-const tower = (x, top, w) => ({ x, y: Math.round((top + FLOOR_TOP) / 2), w, h: FLOOR_TOP - top, color: TOWER_COLOR });
+// Estilos de estructura por nivel: el N2 (rebotes) tiene los suyos; el resto comparte los generales.
+export const LEVEL_SHAPES = { 1: LAYOUT_STYLES, 2: BOUNCE_STYLES, 3: LAYOUT_STYLES, 4: LAYOUT_STYLES, 5: LAYOUT_STYLES };
 
-function frame() {
-    return [
-        { x: 512, y: 740, w: 1024, h: 56, color: PLATFORM_COLOR },
-        { x: 40, y: 400, w: 24, h: 720, color: WALL_COLOR },
-        { x: 984, y: 400, w: 24, h: 720, color: WALL_COLOR }
-    ];
+// --- Mecánicas por nivel ----------------------------------------------------------
+
+function shuffle(rng, list) {
+    const a = list.slice();
+
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = rng.int(0, i);
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+
+    return a;
 }
 
-// Cadena de escalones: avanza desde el borde x0 hacia `dir` (+1 derecha, -1 izquierda); cada
-// escalon es una plataforma ancha `w` con un hueco hasta el siguiente. Los escalones se achican
-// (minimo 70 px) para que la cadena termine antes de `limit` (por defecto, antes del centro:
-// las dos escaleras de una forma nunca se tocan, porque dos plataformas pegadas a alturas
-// levemente distintas forman un escalon de pocos px que traba al jugador). Devuelve [{ x, top, w }].
-function chain(rng, x0, dir, tops, wMin, wMax, gap = 14, limit = dir > 0 ? 470 : 554) {
+// Elige hasta `count` posiciones del piso separadas al menos `apart` entre sí.
+function pickFloor(rng, layout, count, apart, taken = []) {
+    const xs = floorSpots(rng, layout, 140, taken, 110);
     const out = [];
-    let edge = x0;
 
-    tops.forEach((top, i) => {
-        const left = tops.length - i;
-        const room = Math.abs(limit - edge);
-        const cap = Math.floor((room - (left - 1) * (gap + 6)) / left);
-        const w = Math.min(rng.int(wMin, wMax), Math.max(70, cap));
-
-        // La altura (±4 px) y el hueco varian por escalon: el BFS al generar descarta lo que no se sube.
-        out.push({ x: edge + (dir * w) / 2, top: top + rng.int(-4, 4), w });
-        edge += dir * (w + gap + rng.int(0, 8));
-    });
+    for (const x of xs ? shuffle(rng, xs) : []) {
+        if (out.length >= count) break;
+        if (out.every((o) => Math.abs(o - x) >= apart)) out.push(x);
+    }
 
     return out;
 }
 
-const SPAWN_LEFT = { x: 120, y: 684 };
-
-// --- Nivel 1: sin mecánicas, solo estructura ------------------------------------
-
-const N1_SPAWN = { x: 200, y: 684 };
-const N1_GOAL = { x: 920, y: 676 };
-
-// Filas escalonadas: 3 plataformas, luego 2 entre ellas, etc.; cada una queda a ~150 px
-// de dos de la fila de abajo, así que siempre hay por dónde subir.
-function terraces(rng) {
-    const tops = [620, 530, 440, 350, 260];
-    const platforms = [];
-    const j = () => rng.int(-25, 25);
-
-    tops.forEach((top, r) => {
-        const xs = r % 2 === 0 ? [200, 512, 824] : [356, 668];
-
-        for (const x of xs) platforms.push(plat(x + j(), top, rng.int(120, 160)));
-    });
-
-    return { platforms, spawn: { ...N1_SPAWN }, goal: { ...N1_GOAL } };
-}
-
-// Dos escaleras de cuatro escalones que suben hacia el centro y una plataforma arriba.
-function stairsN1(rng) {
-    const tops = [620, 530, 440, 350];
-    const left = chain(rng, 60, 1, tops, 90, 120);
-    const right = chain(rng, 964, -1, tops, 90, 120);
-
-    return {
-        platforms: [...left, ...right].map((s) => plat(s.x, s.top, s.w)).concat(plat(512 + rng.int(-30, 30), 260, rng.int(130, 170))),
-        spawn: { ...N1_SPAWN },
-        goal: { ...N1_GOAL }
+// Pasa la estructura al formato del nivel: N3 y N5 convierten plataformas que no están en el
+// camino a la salida en frágiles; N4 y N5 suman lugares para pinchos y escudos; N5, portales.
+function layoutToConfig(rng, levelId, layout) {
+    const { items, path, trampolines, spawn, goal, goalItem, tower } = layout;
+    const below = (p) => items.filter((q) => { for (let k = q.parent; k >= 0; k = items[k].parent) if (items[k] === p) return true; return false; });
+    // N3: las frágiles son el camino casi obligado a lo que hay arriba de ellas (cuanto más cuelga de
+    // una, antes se elige); la ruta segura a la salida queda siempre fuera de ellas.
+    const off = shuffle(rng, items.filter((p) => !path.has(p) && !p.tower))
+        .sort((a, b) => (levelId === 3 ? below(b).length - below(a).length : 0));
+    const fragiles = new Set(off.slice(0, levelId === 3 ? rng.int(3, 4) : levelId === 5 ? 2 : 0));
+    const safe = items.filter((p) => !fragiles.has(p));
+    const cfg = {
+        platforms: [...frame(), ...(tower ? [tower.pillar] : []), ...safe.map((p) => plat(p.x, p.top, p.w))],
+        trampolines,
+        spawn,
+        goal
     };
-}
 
-// Pirámide: pares de plataformas que se acercan al centro al subir, y una cima sola.
-function pyramid(rng) {
-    const tops = [620, 530, 440, 350, 260];
-    const platforms = [];
-    const w = () => rng.int(120, 150);
+    if (fragiles.size) cfg.fragilePlatforms = [...fragiles].map((p) => fragile(p.x, p.top, p.w));
+    if (levelId === 3) cfg.regionKeys = [...new Set([...fragiles].flatMap((f) => [f, ...below(f)]))].map((p) => keyOf(p.x, p.top));
+    if (tower) cfg.bonusKeys = [keyOf(tower.cap.x, tower.cap.top)];
 
-    tops.forEach((top, r) => {
-        const dx = 330 - r * 60 + rng.int(-15, 15);
+    if (levelId >= 4) {
+        const taken = [];
 
-        platforms.push(plat(512 - dx, top, w()), plat(512 + dx, top, w()));
-    });
-    platforms.push(plat(512 + rng.int(-20, 20), 170, rng.int(130, 170)));
+        // N5: portales primero (pares piso -> plataforma), así los pinchos se reparten alrededor.
+        if (levelId === 5) {
+            const dests = shuffle(rng, safe.filter((p) => p !== goalItem && !p.tower && p.top <= 520 && p.w >= 110)).slice(0, rng.int(1, 2));
 
-    return { platforms, spawn: { ...N1_SPAWN }, goal: { ...N1_GOAL } };
-}
+            cfg.portals = [];
 
-// --- Nivel 3: plataformas frágiles ------------------------------------------
+            for (const d of dests) {
+                const x = pickFloor(rng, layout, 1, 0, taken)[0];
 
-// Dos escaleras de cuatro escalones que suben hacia el centro y una plataforma de
-// salida entre ellas arriba. La izquierda es segura; la derecha es frágil.
-function fragileDoubleStairs(rng) {
-    const tops = [620, 530, 440, 350];
-    const left = chain(rng, 60, 1, tops, 100, 120);
-    const right = chain(rng, 964, -1, tops, 100, 120);
-    const goalW = rng.int(110, 140);
-    const goalX = 512 + rng.int(-20, 20);
-
-    return {
-        platforms: [...left.map((s) => plat(s.x, s.top, s.w)), plat(goalX, 260, goalW)],
-        fragilePlatforms: right.map((s) => fragile(s.x, s.top, s.w)),
-        spawn: { ...SPAWN_LEFT },
-        goal: { x: goalX, y: 260 - 36 }
-    };
-}
-
-// El diseño base del N3: zigzag seguro por la izquierda y diagonal frágil por la derecha.
-function fragileZigzag(rng) {
-    const j = () => rng.int(-12, 12);
-
-    return {
-        platforms: [
-            plat(170 + j(), 620, 190), plat(340 + j(), 530, 150), plat(170 + j(), 440, 170),
-            plat(340 + j(), 350, 150), plat(520 + j(), 260, 170), plat(880, 260, 190)
-        ],
-        fragilePlatforms: [
-            fragile(560 + j(), 620, 150), fragile(740 + j(), 530, 140), fragile(880, 440, 140),
-            fragile(520 + j(), 440, 130), fragile(720 + j(), 350, 130)
-        ],
-        spawn: { ...SPAWN_LEFT },
-        goal: { x: 880, y: 224 }
-    };
-}
-
-// Puente frágil: a la izquierda, una escalera segura de cuatro escalones hasta la salida; a la
-// derecha, una escalera frágil de tres escalones y una pasarela frágil que llega a la misma salida.
-function fragileBridge(rng) {
-    const left = chain(rng, 60, 1, [620, 530, 440, 350], 90, 110, 14, 430);
-    const right = chain(rng, 964, -1, [620, 530, 440], 100, 120, 14, 700);
-    const goalX = 540 + rng.int(-10, 10);
-    const goalW = rng.int(110, 130);
-    const lastRight = right[2];
-    const deck = fragile(lastRight.x - lastRight.w / 2 - 55, 350, rng.int(100, 120));
-
-    return {
-        platforms: [...left.map((s) => plat(s.x, s.top, s.w)), plat(goalX, 260, goalW)],
-        fragilePlatforms: [...right.map((s) => fragile(s.x, s.top, s.w)), deck],
-        spawn: { ...SPAWN_LEFT },
-        goal: { x: goalX, y: 260 - 36 }
-    };
-}
-
-// --- Nivel 4: pinchos y escudo ------------------------------------------------
-
-const HAZARD_PLATE = 14;
-
-const hazardOn = (x, top, w) => ({ x: Math.round(x), y: Math.round(top - 4), w: Math.round(w) });
-const powerOn = (x, top) => ({ x: Math.round(x), y: Math.round(top - 26) });
-
-// Escaleras dobles seguras que suben hacia un remate central; pinchos al piso y en
-// los escalones del medio.
-function hazardStairs(rng) {
-    const tops = [620, 530, 440, 350];
-    const left = chain(rng, 60, 1, tops, 100, 130);
-    const right = chain(rng, 964, -1, tops, 100, 130);
-    const top = plat(512 + rng.int(-20, 20), 260, rng.int(130, 170));
-
-    return {
-        platforms: [...left, ...right].map((s) => plat(s.x, s.top, s.w)).concat(top),
-        hazardSlots: [
-            hazardOn(300, FLOOR_TOP, 110), hazardOn(512, FLOOR_TOP, 110), hazardOn(724, FLOOR_TOP, 110),
-            hazardOn(left[1].x, left[1].top, left[1].w - 40), hazardOn(right[1].x, right[1].top, right[1].w - 40),
-            hazardOn(left[3].x, left[3].top, left[3].w - 40), hazardOn(right[3].x, right[3].top, right[3].w - 40)
-        ],
-        powerSlots: [powerOn(left[0].x, left[0].top), powerOn(right[2].x, right[2].top), powerOn(left[3].x, left[3].top), powerOn(right[3].x, right[3].top)],
-        spawn: { x: 110, y: 684 },
-        goal: { x: top.x, y: 260 - 36 }
-    };
-}
-
-// Serpiente: filas largas ancladas a una pared y a la otra, alternando; se sube por
-// la abertura del lado libre. Los pinchos cruzan las filas.
-function hazardSnake(rng) {
-    const tops = [620, 530, 440];
-    // Filas cortas (la mitad del ancho del mundo, mas o menos): el recorrido de la serpiente
-    // debe entrar en el tiempo del nivel.
-    const gap = rng.int(480, 540);
-    const platforms = [];
-    const slots = [];
-    const powers = [];
-
-    tops.forEach((top, i) => {
-        const leftAnchored = i % 2 === 0;
-        const w = WALL_EDGE_RIGHT - WALL_EDGE_LEFT - gap;
-        const x = leftAnchored ? WALL_EDGE_LEFT + w / 2 : WALL_EDGE_RIGHT - w / 2;
-
-        platforms.push(plat(x, top, w));
-        slots.push(hazardOn(x + rng.int(-60, 60), top, 100));
-        powers.push(powerOn(leftAnchored ? x + w / 2 - 40 : x - w / 2 + 40, top));
-    });
-
-    // La salida va en el extremo de la última fila.
-    const last = platforms[2];
-
-    return {
-        platforms,
-        hazardSlots: [hazardOn(300, FLOOR_TOP, 110), hazardOn(700, FLOOR_TOP, 110), ...slots],
-        powerSlots: powers,
-        spawn: { x: 110, y: 684 },
-        goal: { x: last.x + (last.x < 512 ? last.w / 2 - 60 : -last.w / 2 + 60), y: 440 - 36 }
-    };
-}
-
-// --- Nivel 5: portales + combinación -----------------------------------------
-
-// Torre central con rutas laterales: se sortea qué filas de escalones son frágiles
-// (la fila alta lleva los portales de destino y siempre es segura) y a dónde llevan
-// los portales. El trampolín queda entre el portal y las rutas, con el pasillo libre.
-const TOWER_PATTERNS = [
-    { fragileRows: [1], crossPortals: false },
-    { fragileRows: [1], crossPortals: true },
-    { fragileRows: [0], crossPortals: false },
-    { fragileRows: [0, 1], crossPortals: true }
-];
-
-function portalTower(rng) {
-    const pattern = rng.pick(TOWER_PATTERNS);
-    const rows = [580, 470, 360];
-    const xs = [366, 658];
-    const platforms = [
-        { x: 512, y: 740, w: 1024, h: 56, color: PLATFORM_COLOR },
-        ...frame().slice(1),
-        tower(512, 288, 60),
-        plat(512, 266, 200),
-        plat(512, 166, 170)
-    ];
-    const fragiles = [];
-
-    rows.forEach((top, r) => {
-        for (const x of xs) {
-            if (pattern.fragileRows.includes(r)) fragiles.push(fragile(x, top, 140));
-            else platforms.push(plat(x, top, 140));
+                if (x === undefined) break;
+                taken.push({ x });
+                cfg.portals.push({ x, y: FLOOR_TOP - 24 }, { x: d.x, y: d.top - 24 });
+            }
         }
-    });
 
-    const [pl, pr] = [{ x: 170, y: 688 }, { x: 854, y: 688 }];
-    const [dl, dr] = [{ x: xs[0], y: 360 }, { x: xs[1], y: 360 }];
+        const floorXs = pickFloor(rng, layout, 3, 260, taken);
+        const onPlat = shuffle(rng, safe.filter((p) => p !== goalItem && !p.tower && p.w >= 140)).slice(0, 3);
+        const powered = shuffle(rng, safe.filter((p) => p !== goalItem && !p.tower)).slice(0, 3);
 
-    return {
-        platforms,
-        fragilePlatforms: fragiles,
-        trampolines: [rng.pick([{ x: 240, y: 706, w: 56 }, { x: 784, y: 706, w: 56 }])],
-        hazardSlots: [hazardOn(360, FLOOR_TOP, 100), hazardOn(790, FLOOR_TOP, 100), hazardOn(680, FLOOR_TOP, 70)],
-        powerSlots: [{ x: 450, y: 688 }, { x: 610, y: 688 }],
-        portals: pattern.crossPortals ? [pl, dr, pr, dl] : [pl, dl, pr, dr],
-        spawn: { x: 110, y: 684 },
-        goal: { x: 512, y: 230 }
-    };
+        cfg.hazardSlots = [...floorXs.map((x) => hazardOn(x, FLOOR_TOP, 100)), ...onPlat.map((p) => hazardOn(p.x, p.top, p.w - 50))];
+        cfg.powerSlots = powered.map((p) => powerOn(p.x, p.top));
+    }
+
+    return cfg;
 }
 
-// Escaleras dobles con portales: una escalera segura y otra frágil, un portal del
-// piso al último escalón seguro y pinchos al piso.
-function portalStairs(rng) {
-    const tops = [620, 530, 440, 350];
-    const left = chain(rng, 60, 1, tops, 100, 120);
-    const right = chain(rng, 964, -1, tops, 100, 120);
-    const goalX = 512 + rng.int(-20, 20);
+// --- Mecánicas de niveles anteriores ------------------------------------------
 
-    return {
-        platforms: [...left.map((s) => plat(s.x, s.top, s.w)), plat(goalX, 260, 130), plat(goalX, 160, 100)],
-        fragilePlatforms: right.map((s) => fragile(s.x, s.top, s.w)),
-        hazardSlots: [hazardOn(440, FLOOR_TOP, 100), hazardOn(620, FLOOR_TOP, 100), hazardOn(800, FLOOR_TOP, 100)],
-        powerSlots: [{ x: 530, y: 688 }, { x: 710, y: 688 }],
-        portals: [{ x: 300, y: 688 }, { x: left[3].x, y: left[3].top }],
-        spawn: { x: 110, y: 684 },
-        goal: { x: goalX, y: 260 - 36 }
-    };
+function floatingSurfaces(cfg) {
+    return cfg.platforms.filter((p) => p.h <= 26 && p.w < 1000 && p.y < FLOOR_TOP - 40)
+        .concat((cfg.fragilePlatforms ?? []).map((f) => ({ ...f, h: 20 })));
 }
 
-export const LEVEL_SHAPES = {
-    1: { base: null, terrazas: terraces, 'escalera-doble': stairsN1, piramide: pyramid },
-    3: { base: null, zigzag: fragileZigzag, 'doble-escalera': fragileDoubleStairs, puente: fragileBridge },
-    4: { base: null, 'escaleras-y-pinchos': hazardStairs, serpiente: hazardSnake },
-    5: { base: null, 'torre-portales': portalTower, 'escaleras-portales': portalStairs }
-};
+// Escalones frágiles a un lado de una plataforma segura (con hueco y respetando el espacio libre).
+function addFragileLedges(rng, cfg, count, ctx) {
+    const added = [];
+    const asItem = (p) => ({ x: p.x, top: p.y - p.h / 2, w: p.w });
+
+    for (const base of shuffle(rng, floatingSurfaces(cfg))) {
+        if (added.length >= count) break;
+
+        const w = rng.int(100, 130);
+        const items = floatingSurfaces(cfg).concat(added.map((f) => ({ ...f, h: 20 }))).map(asItem);
+
+        for (const [side, rise] of shuffle(rng, [[1, 0], [-1, 0], [1, -60], [-1, -60], [1, 60], [-1, 60]])) {
+            const x = Math.round(base.x + side * (base.w / 2 + rng.int(100, 115) + w / 2));
+            const top = base.y - base.h / 2 + rise;
+            const apart = [cfg.spawn, cfg.goal, ...(cfg.hazardSlots ?? []), ...(cfg.powerSlots ?? []), ...(cfg.portals ?? [])]
+                .every((o) => Math.hypot(x - o.x, top - o.y) > 90);
+
+            if (apart && fitsLayout({ x, top, w }, items, ctx)) {
+                added.push(fragile(x, top, w));
+                break;
+            }
+        }
+    }
+
+    cfg.fragilePlatforms = [...(cfg.fragilePlatforms ?? []), ...added];
+}
+
+// El N4 conserva dos escalones frágiles del N3.
+function addCarryover(rng, levelId, cfg, ctx) {
+    if (levelId === 4 && !cfg.fragilePlatforms?.length) addFragileLedges(rng, cfg, 2, ctx);
+}
 
 // --- Spots, gemas y mecánicas -------------------------------------------------
 
-const SPOT_NN = 85;
+const SPOT_NN = 170;
 const SPOT_COUNT = 12;
 const HEADROOM = 30;
 
+const keyOf = (x, top) => `${Math.round(x)},${Math.round(top)}`;
+
+// regionKeys: plataformas que solo se alcanzan pisando una frágil (N3); bonusKeys: la repisa de la
+// torre de wall jump. Los dos son temporales (los pone layoutToConfig y los borra generateShapedLevel).
 function surfaces(cfg) {
     const list = [];
+    const region = new Set(cfg.regionKeys ?? []);
+    const bonus = new Set(cfg.bonusKeys ?? []);
+    const mark = (x, top) => ({ region: region.has(keyOf(x, top)), bonus: bonus.has(keyOf(x, top)) });
 
     for (const p of cfg.platforms) {
-        if (p.h <= 26 && p.w >= 60 && p.y < FLOOR_TOP - 40) list.push({ x: p.x, top: p.y - p.h / 2, w: p.w });
+        if (p.h <= 26 && p.w >= 60 && p.y < FLOOR_TOP - 40) list.push({ x: p.x, top: p.y - p.h / 2, w: p.w, ...mark(p.x, p.y - p.h / 2) });
     }
 
-    for (const f of cfg.fragilePlatforms ?? []) list.push({ x: f.x, top: f.y - 10, w: f.w });
+    for (const f of cfg.fragilePlatforms ?? []) list.push({ x: f.x, top: f.y - 10, w: f.w, fragile: true, region: true });
 
     return list;
 }
@@ -318,10 +163,10 @@ function spotCandidates(cfg) {
     for (const s of surfaces(cfg)) {
         const offsets = s.w >= 200 ? [0, -s.w * 0.42, -s.w * 0.21, s.w * 0.21, s.w * 0.42] : s.w >= 100 ? [0, -s.w * 0.3, s.w * 0.3] : [0];
 
-        for (const dx of offsets) out.push({ x: Math.round(s.x + dx), y: Math.round(s.top - 24) });
+        for (const dx of offsets) out.push({ x: Math.round(s.x + dx), y: Math.round(s.top - 24), fragile: Boolean(s.fragile || s.region), bonus: Boolean(s.bonus) });
     }
 
-    for (let x = 100; x <= 924; x += 60) out.push({ x, y: FLOOR_TOP - 24 });
+    for (let x = 100; x <= WORLD.width - 100; x += 30) out.push({ x, y: FLOOR_TOP - 24 });
 
     const above = (c) => cfg.platforms.concat(cfg.fragilePlatforms ?? []).some((p) => {
         const h = p.h ?? 20;
@@ -343,22 +188,32 @@ function spotCandidates(cfg) {
     return out.filter((c) => c.x > 70 && c.x < WORLD.width - 70 && !above(c) && !buried(c) && !nearAny(c));
 }
 
-function shuffle(rng, list) {
-    const a = list.slice();
+// N3: la mecánica de las frágiles es el centro del diseño, así que la mayoría de los spots (y la gema)
+// quedan sobre ellas o sobre lo que solo se alcanza por ellas: recolectar obliga a pisarlas.
+const FRAGILE_SPOTS = 8;
+// Spots que premian la torre de wall jump.
+const BONUS_SPOTS = 2;
 
-    for (let i = a.length - 1; i > 0; i--) {
-        const j = rng.int(0, i);
-        [a[i], a[j]] = [a[j], a[i]];
-    }
-
-    return a;
-}
-
-function placeSpots(rng, cfg) {
+// El N2 tiene menos lugar (los carriles de los trampolines): admite spots algo más juntos al final.
+function placeSpots(rng, cfg, preferFragile = false, tight = false) {
     const pool = shuffle(rng, spotCandidates(cfg));
     const picked = [];
 
-    for (const nn of [SPOT_NN, 65, 50, 42]) {
+    for (const c of pool.filter((o) => o.bonus)) {
+        if (picked.length >= BONUS_SPOTS) break;
+        if (picked.every((p) => Math.hypot(p.x - c.x, p.y - c.y) >= 110)) picked.push(c);
+    }
+
+    if (preferFragile) {
+        for (const nn of [SPOT_NN, 130, 100]) {
+            for (const c of pool.filter((o) => o.fragile)) {
+                if (picked.length >= FRAGILE_SPOTS) break;
+                if (picked.every((p) => Math.hypot(p.x - c.x, p.y - c.y) >= nn)) picked.push(c);
+            }
+        }
+    }
+
+    for (const nn of tight ? [SPOT_NN, 140, 115, 95, 80, 65] : [SPOT_NN, 140, 115, 95, 80]) {
         for (const c of pool) {
             if (picked.length >= SPOT_COUNT) break;
             if (picked.every((p) => Math.hypot(p.x - c.x, p.y - c.y) >= nn)) picked.push(c);
@@ -369,8 +224,9 @@ function placeSpots(rng, cfg) {
 }
 
 // Una gema a 52 px sobre una superficie (se alcanza con un salto normal) lejos de los spots.
-function placeGem(rng, cfg) {
-    const list = shuffle(rng, surfaces(cfg).filter((s) => s.w >= 100 && s.top < FLOOR_TOP - 150));
+function placeGem(rng, cfg, preferFragile = false) {
+    const list = shuffle(rng, surfaces(cfg).filter((s) => s.w >= 100 && s.top < FLOOR_TOP - 150))
+        .sort((a, b) => Number(Boolean(b.bonus)) - Number(Boolean(a.bonus)) || (preferFragile ? Number(Boolean(b.fragile)) - Number(Boolean(a.fragile)) : 0));
 
     for (const s of list) {
         for (const rise of [52, 62, 44]) {
@@ -401,10 +257,13 @@ function lowCeiling(cfg, h) {
 // Mutación de las mecánicas propias de cada nivel.
 function mutateMechanics(rng, levelId, cfg, hazardCap = Infinity) {
     if (cfg.fragilePlatforms?.length) {
-        const shakeMs = rng.pick([600, 650, 700, 750, 800]);
-        const respawnMs = rng.pick([2500, 3000, 3500]);
+        const shakeMs = rng.pick([400, 450, 500, 550]);
+        const respawnMs = rng.pick([3200, 3600, 4000, 4200]);
 
-        cfg.fragilePlatforms = cfg.fragilePlatforms.map((f) => ({ ...f, shakeMs, respawnMs }));
+        // N3 es el nivel de las frágiles: cada una varía un poco su aviso y su regreso.
+        const jitter = (ms, step) => (levelId === 3 ? ms + rng.pick([-step, 0, step]) : ms);
+
+        cfg.fragilePlatforms = cfg.fragilePlatforms.map((f) => ({ ...f, shakeMs: jitter(shakeMs, 50), respawnMs: jitter(respawnMs, 250) }));
     }
 
     if (cfg.hazardSlots) {
@@ -459,26 +318,32 @@ function mirror(cfg) {
     }
 }
 
-// Arma el nivel `levelId` (3-5) de una semilla: elige una forma (o el diseño base),
-// muta sus mecánicas, reparte spots y gema, y a veces la espeja. `baseConfig` aporta
-// el nombre, la quota, el tiempo y los proyectiles.
+// Arma el nivel `levelId` (1-5) de una semilla: elige un estilo (o el diseño base si ninguno
+// cumple las reglas), suma sus mecánicas, reparte spots y gema, y a veces lo espeja.
+// `baseConfig` aporta el nombre, la quota, el tiempo y los proyectiles.
 export function generateShapedLevel(rng, levelId, baseConfig, forceShape = null) {
-    const shapes = LEVEL_SHAPES[levelId];
-    const names = Object.keys(shapes);
-    const picked = rng.pick(names);
-    const name = forceShape ?? picked;
+    const styles = Object.keys(LEVEL_SHAPES[levelId]);
+    const picked = forceShape ?? rng.pick(styles);
     const clone = (obj) => JSON.parse(JSON.stringify(obj));
     const cfg = clone(baseConfig);
+    // Si el estilo sorteado no logra cumplir las reglas de espacio se prueba con los demás.
+    let name = picked;
+    let layout = null;
 
-    if (shapes[name]) {
-        const built = shapes[name](rng);
+    for (const style of [picked, ...shuffle(rng, styles.filter((n) => n !== picked))]) {
+        layout = buildLayout(rng, levelId, style);
+        if (layout) { name = style; break; }
+        if (forceShape) break;
+    }
 
+    let ctx = { reserved: [], spawn: cfg.spawn };
+
+    if (layout) {
         for (const key of ['platforms', 'fragilePlatforms', 'trampolines', 'hazards', 'powerUps', 'portals', 'gems', 'pointSpots', 'hazardSlots', 'powerSlots']) {
             delete cfg[key];
         }
-        // Piso y paredes siempre presentes (las formas solo describen lo flotante).
-        built.platforms = [...frame(), ...built.platforms.filter((p) => p.w < 1000 && p.h < 700)];
-        Object.assign(cfg, built);
+        Object.assign(cfg, layoutToConfig(rng, levelId, layout));
+        ctx = layout.ctx;
     } else {
         // Diseño base: sus pinchos y escudos pasan a ser "slots" para mutarlos igual.
         delete cfg.gems;
@@ -488,12 +353,13 @@ export function generateShapedLevel(rng, levelId, baseConfig, forceShape = null)
         delete cfg.powerUps;
     }
 
-    cfg.shape = shapes[name] ? name : 'base';
+    cfg.shape = layout ? name : 'base';
+    addCarryover(rng, levelId, cfg, ctx);
 
     // Si con todos los pinchos no entran los 12 spots, se baja la cantidad de pinchos.
     for (let cap = Infinity; ; cap = (cfg.hazards?.length ?? 0) - 1) {
         mutateMechanics(rng, levelId, cfg, cap);
-        cfg.pointSpots = placeSpots(rng, cfg);
+        cfg.pointSpots = placeSpots(rng, cfg, levelId === 3, levelId === 2);
 
         if (cfg.pointSpots.length >= SPOT_COUNT || (cfg.hazards?.length ?? 0) <= 1) break;
     }
@@ -502,8 +368,10 @@ export function generateShapedLevel(rng, levelId, baseConfig, forceShape = null)
     delete cfg.powerSlots;
 
     // Gemas desde el nivel 3 (el 1 no lleva).
-    const gem = levelId >= 3 ? placeGem(rng, cfg) : null;
+    const gem = levelId >= 3 ? placeGem(rng, cfg, levelId === 3) : null;
     if (gem) cfg.gems = [gem];
+    delete cfg.regionKeys;
+    delete cfg.bonusKeys;
 
     if (rng.chance(0.5)) mirror(cfg);
 

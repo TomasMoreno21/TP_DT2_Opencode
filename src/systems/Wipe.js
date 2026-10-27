@@ -1,6 +1,7 @@
+import { WORLD } from '../assets/levels';
 import { Settings } from './Settings';
 
-const W = 1024;
+const W = WORLD.width;
 const H = 768;
 const SLANT = 220;
 

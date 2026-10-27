@@ -2,9 +2,9 @@ export const FRAGILE_CONFIG = {
     height: 20,
     width: 120,
     // Pisada -> caida: temblor de aviso (G4) y la plataforma se desmorona.
-    shakeMs: 700,
+    shakeMs: 500,
     // Tiempo caida antes de volver, y parte final en que se ve transluida (aviso).
-    respawnMs: 3000,
+    respawnMs: 3600,
     ghostMs: 500,
     color: 0x6b4a5e,
     edgeColor: 0xffaa44,

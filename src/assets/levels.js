@@ -1,10 +1,11 @@
 export const WORLD = {
-    width: 1024,
+    width: 1366,
     height: 768,
     floorTop: 712
 };
 
-export const ALL_LEVELS = [
+export const BASE_WIDTH = 1024;
+const BASE_LEVELS = [
     {
         id: 1,
         name: 'Arranque',
@@ -141,7 +142,7 @@ export const ALL_LEVELS = [
             { x: 520, y: 270, w: 170, h: 20, color: 0x3a3a5c },
             { x: 880, y: 270, w: 190, h: 20, color: 0x3a3a5c }
         ],
-        // Ruta rapida (a la derecha): cada una cae 0,7 s despues de pisarla y vuelve a los 3 s.
+        // Ruta rapida (a la derecha): cada una cae 0,5 s despues de pisarla y vuelve a los 3,6 s.
         fragilePlatforms: [
             { x: 560, y: 630, w: 150 },
             { x: 740, y: 540, w: 140 },
@@ -315,5 +316,31 @@ export const ALL_LEVELS = [
 ];
 
 // Campaña completa de 5 niveles (N3 frágiles, N4 pinchos y escudo, N5 portales y combinación).
+// Las plantillas están en coordenadas de BASE_WIDTH: se estiran en x (las paredes de
+// borde quedan a 40 px) y se conserva la altura. Anchos y alturas no cambian, salvo el piso.
+const WALL = 40;
+export const SX = (WORLD.width - 2 * WALL) / (BASE_WIDTH - 2 * WALL);
+export const stretchX = (x) => Math.round(WALL + (x - WALL) * SX);
+export const unstretchX = (x) => WALL + (x - WALL) / SX;
+
+// Estira un nivel (o la salida de una forma) diseñado en BASE_WIDTH: toda lista u objeto con `x`.
+export function widen(level) {
+    const out = { ...level };
+    for (const [key, val] of Object.entries(level)) {
+        const widenItem = (o) => {
+            if (!o || typeof o.x !== 'number') return o;
+            const n = { ...o, x: stretchX(o.x) };
+            if (n.w >= BASE_WIDTH) n.w = WORLD.width;
+            if (n.axis === 'x' && n.distance) n.distance = Math.round(n.distance * SX);
+            return n;
+        };
+        if (Array.isArray(val)) out[key] = val.map(widenItem);
+        else if (val && typeof val === 'object') out[key] = widenItem(val);
+    }
+    return out;
+}
+
+export const ALL_LEVELS = BASE_LEVELS.map(widen);
+
 export const ACTIVE_LEVELS = 5;
 export const LEVELS = ALL_LEVELS.slice(0, ACTIVE_LEVELS);

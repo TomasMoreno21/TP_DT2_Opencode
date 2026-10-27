@@ -1,4 +1,4 @@
-import { WORLD } from '../assets/levels.js';
+import { WORLD, BASE_WIDTH, SX, unstretchX, widen } from '../assets/levels.js';
 
 // Formas "macro" del nivel 2: cada una arma toda la estructura flotante del
 // escenario con parámetros al azar. Son builders puros: reciben el rng del
@@ -16,7 +16,8 @@ import { WORLD } from '../assets/levels.js';
 const FLOOR_TOP = WORLD.floorTop;
 const PLATFORM_COLOR = 0x3a3a5c;
 const COLUMN_COLOR = 0x4a4270;
-const WALL_INNER_RIGHT = WORLD.width - 52;
+// Las formas se arman en coordenadas de BASE_WIDTH y buildShape las estira al ancho del mundo.
+const WALL_INNER_RIGHT = BASE_WIDTH - 52;
 const STEP_RISE_MIN = 84;
 const STEP_RISE_MAX = 92;       // el salto sube ~117 px: se deja margen
 const TRAMPOLINE_TOP_OFFSET = 6; // y del trampolín = tope de lo que lo sostiene - 6
@@ -27,6 +28,12 @@ const TRAMPOLINE_TOP_OFFSET = 6; // y del trampolín = tope de lo que lo sostien
 // (el empuje del salto de pared es de ~66 px y el jugador mide 38 corriendo).
 export const CHANNEL_MIN = 110;
 export const CHANNEL_MAX = 170;
+
+// El estirado en x agranda el hueco entre dos pilares (de 28 px) o entre un pilar y la pared por SX:
+// el canal de diseño se achica para que, ya estirado, mida entre CHANNEL_MIN y CHANNEL_MAX.
+const designGap = (g) => Math.round((g - 28 * (SX - 1)) / SX);
+const GAP_LO = designGap(CHANNEL_MIN + 10);
+const GAP_HI = designGap(CHANNEL_MAX - 10);
 
 // Zona alrededor del spawn que ninguna forma puede ocupar (el jugador aparece
 // ahí: el spawn base está en x = 360 y, espejado, en x = 664).
@@ -114,7 +121,7 @@ const SHAPES = {
     // pie ayuda a arrancar. Arriba, un remate hacia afuera (el canal queda abierto) y
     // dos plataformas a la izquierda del pilar.
     pozo(rng) {
-        const width = rng.int(CHANNEL_MIN + 10, CHANNEL_MAX - 10);
+        const width = rng.int(GAP_LO, GAP_HI);
         const px = WALL_INNER_RIGHT - width - 14;
         const top = FLOOR_TOP - rng.int(420, 440);
         const bottom = FLOOR_TOP - DOOR;
@@ -134,8 +141,8 @@ const SHAPES = {
     // segunda y la pared quedan dos canales de wall jump. Remates angostos para
     // no tapar las bocas de los canales.
     'torres-gemelas'(rng) {
-        const g2 = rng.int(CHANNEL_MIN + 10, CHANNEL_MAX - 10);   // canal torre-pared
-        const g1 = rng.int(CHANNEL_MIN + 10, CHANNEL_MAX - 10);   // canal entre torres
+        const g2 = rng.int(GAP_LO, GAP_HI);   // canal torre-pared
+        const g1 = rng.int(GAP_LO, GAP_HI);   // canal entre torres
         const x2 = WALL_INNER_RIGHT - g2 - 14;
         const x1 = x2 - 28 - g1;
         const h1 = rng.int(440, 470);
@@ -190,7 +197,7 @@ export const MACRO_SHAPE_NAMES = Object.keys(SHAPES);
 export function shapeIsSane(shape, spawnX) {
     const boxes = shape.platforms.map((p) => ({ x1: leftOf(p), x2: rightOf(p), y1: p.y - p.h / 2, y2: p.y + p.h / 2 }));
     for (const b of boxes) {
-        if (b.x1 < 60 || b.x2 > WORLD.width - 60 || b.y1 < 110) return false;
+        if (b.x1 < 60 || b.x2 > BASE_WIDTH - 60 || b.y1 < 110) return false;
         if (spawnX !== undefined && b.x2 > spawnX - SPAWN_CLEAR_HALF && b.x1 < spawnX + SPAWN_CLEAR_HALF && b.y2 > SPAWN_CLEAR_TOP) return false;
     }
     for (let i = 0; i < boxes.length; i++) {
@@ -208,9 +215,15 @@ export function shapeIsSane(shape, spawnX) {
 export function buildShape(name, rng, spawnX) {
     const build = SHAPES[name];
     if (!build) return null;
+    // spawnX llega en coordenadas del mundo: la forma se arma en las de BASE_WIDTH.
+    const designSpawn = spawnX === undefined ? undefined : unstretchX(spawnX);
     for (let i = 0; i < 12; i++) {
-        const shape = build(rng, spawnX);
-        if (shapeIsSane(shape, spawnX)) return shape;
+        const shape = build(rng, designSpawn);
+        if (shapeIsSane(shape, designSpawn)) {
+            const wide = widen(shape);
+            for (const c of wide.channels) c.width = Math.round(c.width * SX + 28 * (SX - 1));
+            return wide;
+        }
     }
     return null;
 }

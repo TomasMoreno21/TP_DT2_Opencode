@@ -1,3 +1,4 @@
+import { WORLD } from '../assets/levels';
 import { Lang } from './Texts';
 import { Audio } from './Audio';
 
@@ -100,7 +101,7 @@ export class TutorialManager {
         }
 
         // Entra deslizandose desde abajo.
-        this.root = scene.add.container(512, PANEL_Y + 70).setScrollFactor(0).setDepth(50);
+        this.root = scene.add.container((WORLD.width / 2), PANEL_Y + 70).setScrollFactor(0).setDepth(50);
         this.bg = scene.add.graphics().setScrollFactor(0);
         this.dots = scene.add.graphics().setScrollFactor(0);
         this.content = scene.add.container(0, 0).setScrollFactor(0);
@@ -183,7 +184,7 @@ export class TutorialManager {
 
     finish() {
         this.active = false;
-        this.scene.floatingText.showBanner(512, 200, Lang.t('tutDone'), '#66ff88', 26);
+        this.scene.floatingText.showBanner((WORLD.width / 2), 200, Lang.t('tutDone'), '#66ff88', 26);
         this.hide();
     }
 

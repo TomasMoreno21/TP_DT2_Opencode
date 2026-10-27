@@ -12,21 +12,21 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1792016945.7392695,
-    "seen": 1792244623.8403342,
-    "ast_hash": "a3cf4159226114cdfe4dcf9c6c2f27fa",
+    "mtime": 1793104035.7353559,
+    "seen": 1793117049.1488426,
+    "ast_hash": "b1e81266765100d50cb2a9fad41424f9",
     "semantic_hash": ""
   },
   "src/assets/levelBaselines.js": {
-    "mtime": 1792722201.4187658,
-    "seen": 1792722443.3485591,
-    "ast_hash": "18d130844c25d5aed7eeb73022d3a025",
+    "mtime": 1793120213.3502016,
+    "seen": 1793122890.7174282,
+    "ast_hash": "52394eae955246f050b829edf8c217dd",
     "semantic_hash": ""
   },
   "src/assets/levels.js": {
-    "mtime": 1792722316.413229,
-    "seen": 1792722443.3485608,
-    "ast_hash": "4d1609bcd25c4e2741f85130f6e5c7c4",
+    "mtime": 1793118625.6893384,
+    "seen": 1793118837.6286638,
+    "ast_hash": "956a94b1dd1c33e93771fc43eab237f8",
     "semantic_hash": ""
   },
   "src/entities/Gem.js": {
@@ -36,15 +36,15 @@
     "semantic_hash": ""
   },
   "src/entities/Goal.js": {
-    "mtime": 1792016281.3418894,
-    "seen": 1792244623.8403385,
-    "ast_hash": "73bb7877322c02d788cdeedbeef02221",
+    "mtime": 1793104035.7648304,
+    "seen": 1793117049.1488636,
+    "ast_hash": "c6c932f98e6fa5b4b97513555ec87c7c",
     "semantic_hash": ""
   },
   "src/entities/Hazard.js": {
-    "mtime": 1792016281.3418894,
-    "seen": 1792244623.8403394,
-    "ast_hash": "f144959af2ce5ea4ffe30d0f7b18a6d5",
+    "mtime": 1793104035.766829,
+    "seen": 1793117049.1488655,
+    "ast_hash": "dfffa342c13e8b24b106255ca634e1cf",
     "semantic_hash": ""
   },
   "src/entities/MovingPlatform.js": {
@@ -54,15 +54,15 @@
     "semantic_hash": ""
   },
   "src/entities/Player.js": {
-    "mtime": 1792552278.4868057,
-    "seen": 1792552907.7620385,
-    "ast_hash": "2f1a9c2bb7586e9256447ba2828fbcd7",
+    "mtime": 1793122809.0307617,
+    "seen": 1793122890.7174397,
+    "ast_hash": "6e0b91b1a77727825bcddce28c601b1d",
     "semantic_hash": ""
   },
   "src/entities/Point.js": {
-    "mtime": 1792016281.3438895,
-    "seen": 1792244623.8403418,
-    "ast_hash": "3555d0b397b918e79536e833578ffd07",
+    "mtime": 1793104035.78142,
+    "seen": 1793117049.148874,
+    "ast_hash": "c655893b9869e23972b02238a85af45b",
     "semantic_hash": ""
   },
   "src/entities/Portal.js": {
@@ -78,27 +78,27 @@
     "semantic_hash": ""
   },
   "src/entities/Projectile.js": {
-    "mtime": 1792507036.2351713,
-    "seen": 1792509170.2303174,
-    "ast_hash": "8168fdb3e5b3eeb3e6e0fa735beab122",
+    "mtime": 1793104035.783421,
+    "seen": 1793117049.1488798,
+    "ast_hash": "f82b8552b03526af77446df3be5484f2",
     "semantic_hash": ""
   },
   "src/entities/Trampoline.js": {
-    "mtime": 1792507036.2366781,
-    "seen": 1792509170.2303188,
-    "ast_hash": "e8f95e59f148127ef2efbcdbebe94cb0",
+    "mtime": 1793104035.7844193,
+    "seen": 1793117049.1488817,
+    "ast_hash": "d6e67d633301858e217383fa37490271",
     "semantic_hash": ""
   },
   "src/main.js": {
-    "mtime": 1792722402.5937061,
-    "seen": 1792722443.3485749,
-    "ast_hash": "8513a5eaa4aeb399d1b4f9e3e6490508",
+    "mtime": 1793116438.2060142,
+    "seen": 1793117049.1488838,
+    "ast_hash": "287533cbf00b0b44fe16853358f9641c",
     "semantic_hash": ""
   },
   "src/patterns/EntityFactory.js": {
-    "mtime": 1792016281.346891,
-    "seen": 1792244623.8403468,
-    "ast_hash": "2d66d9598725d33e277b70793133f842",
+    "mtime": 1793104035.787935,
+    "seen": 1793117049.1488855,
+    "ast_hash": "2e86bfe381594400c13f31184c7b9956",
     "semantic_hash": ""
   },
   "src/scenes/Boot.js": {
@@ -108,33 +108,33 @@
     "semantic_hash": ""
   },
   "src/scenes/Game.js": {
-    "mtime": 1792722214.358568,
-    "seen": 1792722443.3485792,
-    "ast_hash": "285603bcb84f14fc31235c961ba91dd1",
+    "mtime": 1793123812.2606952,
+    "seen": 1793124749.2812853,
+    "ast_hash": "0501fccbf8e3c2ccdc8e523bb5145b16",
     "semantic_hash": ""
   },
   "src/scenes/GameOver.js": {
-    "mtime": 1792037776.35424,
-    "seen": 1792244623.8403494,
-    "ast_hash": "e1b4b6b2a9db2b7d5e2bfe9554df3bb5",
+    "mtime": 1793122957.4466887,
+    "seen": 1793123215.4321592,
+    "ast_hash": "8b4607f96dd25bffae6290e37b8e1c9b",
     "semantic_hash": ""
   },
   "src/scenes/MainMenu.js": {
-    "mtime": 1792722231.5749004,
-    "seen": 1792722443.3485813,
-    "ast_hash": "b95bf84265098fc835ef1780aa3fb65f",
+    "mtime": 1793122783.0600717,
+    "seen": 1793122890.7174535,
+    "ast_hash": "bf3c8c386f67930e2bae5a9d3ee1eb57",
     "semantic_hash": ""
   },
   "src/scenes/Preloader.js": {
-    "mtime": 1792016281.3498902,
-    "seen": 1792244623.8403513,
-    "ast_hash": "99c67595c6597aff8118cb48ec83d487",
+    "mtime": 1793116413.9892862,
+    "seen": 1793117049.148899,
+    "ast_hash": "e84d029656e6706ff5c13eceafb5482a",
     "semantic_hash": ""
   },
   "src/systems/Audio.js": {
-    "mtime": 1792016281.350889,
-    "seen": 1792244623.8403523,
-    "ast_hash": "88a4dd2a54ad9ee5df4be293b9bb98b6",
+    "mtime": 1793122794.5890791,
+    "seen": 1793122890.7174618,
+    "ast_hash": "592d2cf1ba8b6cad4f7fa57d9b14480a",
     "semantic_hash": ""
   },
   "src/systems/CampaignBuilder.js": {
@@ -156,9 +156,9 @@
     "semantic_hash": ""
   },
   "src/systems/GameTimer.js": {
-    "mtime": 1792016281.3528883,
-    "seen": 1792244623.8403556,
-    "ast_hash": "be6b9c8fbfd82ff478c67ed38c8c78b6",
+    "mtime": 1792727364.2524064,
+    "seen": 1793117049.1489294,
+    "ast_hash": "72b50add3b4e825db5e74e7cc1c431fd",
     "semantic_hash": ""
   },
   "src/systems/HighScore.js": {
@@ -168,51 +168,51 @@
     "semantic_hash": ""
   },
   "src/systems/Hud.js": {
-    "mtime": 1792016281.35389,
-    "seen": 1792244623.840357,
-    "ast_hash": "34f706b5a504600b0671dc9de1d89110",
+    "mtime": 1793116857.0083938,
+    "seen": 1793117049.148934,
+    "ast_hash": "6d27076f35500c4deb0d85654daa325d",
     "semantic_hash": ""
   },
   "src/systems/Level.js": {
-    "mtime": 1792016281.35389,
-    "seen": 1792244623.8403578,
-    "ast_hash": "fef1e6a967094d5e94a7f9266845c90f",
+    "mtime": 1793104035.859368,
+    "seen": 1793117049.1489384,
+    "ast_hash": "c4f84cdc1b327520bfedf2e04a1cd276",
     "semantic_hash": ""
   },
   "src/systems/LevelGenerator.js": {
-    "mtime": 1792551961.0398693,
-    "seen": 1792552907.7620678,
-    "ast_hash": "1c6751bc6badec60f3e1b1acce7fe18e",
+    "mtime": 1793122372.1584997,
+    "seen": 1793122890.7174811,
+    "ast_hash": "41d61f492b83d4f6a4320d6b8dc722dc",
     "semantic_hash": ""
   },
   "src/systems/LevelValidator.js": {
-    "mtime": 1792722160.103623,
-    "seen": 1792722443.3485947,
-    "ast_hash": "6b9078e50f5dbe77b48fa44e328ac755",
+    "mtime": 1793104035.883395,
+    "seen": 1793117049.1489458,
+    "ast_hash": "f967ef506a14e95c5b2f227bebaea96f",
     "semantic_hash": ""
   },
   "src/systems/PointSpawner.js": {
-    "mtime": 1792016281.3558905,
-    "seen": 1792244623.8403604,
-    "ast_hash": "3d55cc1a6ed46f5368fea353c97e7745",
+    "mtime": 1793123821.2878437,
+    "seen": 1793124749.281332,
+    "ast_hash": "249ffb8e48a938bca3d8e8dc98aed55e",
     "semantic_hash": ""
   },
   "src/systems/ProjectileManager.js": {
-    "mtime": 1792721725.2387676,
-    "seen": 1792722011.8903458,
-    "ast_hash": "8a6711be7bc5aa58425a1555bfa6da7a",
+    "mtime": 1793104035.9379196,
+    "seen": 1793117049.1489654,
+    "ast_hash": "d7980e4d848a331f2d8a33507e70d41d",
     "semantic_hash": ""
   },
   "src/systems/ScoreManager.js": {
-    "mtime": 1792016281.3568892,
-    "seen": 1792244623.8403623,
-    "ast_hash": "fb40b01a613ed97befbfe7fda7321e57",
+    "mtime": 1793104035.9494512,
+    "seen": 1793117049.1489713,
+    "ast_hash": "0a54f8e468169c14c7c11666e396ae46",
     "semantic_hash": ""
   },
   "src/systems/Texts.js": {
-    "mtime": 1792722316.8905697,
-    "seen": 1792722443.3485987,
-    "ast_hash": "33de3f1aa9baa7f84f1b3478e31a93bb",
+    "mtime": 1793122861.457583,
+    "seen": 1793122890.717573,
+    "ast_hash": "8e435b4b56fbecb5e9c45da8889c947a",
     "semantic_hash": ""
   },
   "src/workers/campaignWorker.js": {
@@ -240,9 +240,9 @@
     "semantic_hash": ""
   },
   "tools/test-levels.mjs": {
-    "mtime": 1792722194.4149249,
-    "seen": 1792722443.3486052,
-    "ast_hash": "a44c0cc98b4207799a9917f49314a320",
+    "mtime": 1793104035.9741678,
+    "seen": 1793117049.1489995,
+    "ast_hash": "72316679c6a5dfeb8af4fac715be421d",
     "semantic_hash": ""
   },
   "vite.config.js": {
@@ -264,9 +264,9 @@
     "semantic_hash": ""
   },
   "docs/PLAN.md": {
-    "mtime": 1792721887.3663003,
-    "seen": 1792722011.8903599,
-    "ast_hash": "2c98a076a8bcb1290e3ebaef3e607c23",
+    "mtime": 1793117038.7711308,
+    "seen": 1793117049.149022,
+    "ast_hash": "ab2d8a0636d6da0923f572cb0c168570",
     "semantic_hash": ""
   },
   "index.html": {
@@ -276,9 +276,9 @@
     "semantic_hash": ""
   },
   "docs/GDD.pdf": {
-    "mtime": 1792016281.3258915,
-    "seen": 1792244623.840373,
-    "ast_hash": "da6d04f41b0bdf5bc2da43a6a661f000",
+    "mtime": 1792728655.4376247,
+    "seen": 1793117049.1490405,
+    "ast_hash": "67d5f843f23c00c7e6c43579c1b4523a",
     "semantic_hash": ""
   },
   "public/assets/bg.png": {
@@ -306,27 +306,339 @@
     "semantic_hash": ""
   },
   "src/assets/practice.js": {
-    "mtime": 1792546977.3293016,
-    "seen": 1792552907.7620304,
-    "ast_hash": "80596b60f2a4d1db80b3ca0bb9c26e0b",
+    "mtime": 1793106952.8603785,
+    "seen": 1793117049.1488547,
+    "ast_hash": "6c7b28e420b9ce8b4fb94da24c0df4fa",
     "semantic_hash": ""
   },
   "src/systems/Badges.js": {
-    "mtime": 1792722316.7280245,
-    "seen": 1792722443.3485844,
-    "ast_hash": "8ebd325c06c9809ff614c598a0cc3037",
+    "mtime": 1793104035.819088,
+    "seen": 1793117049.148913,
+    "ast_hash": "18df1dd54a8d4e56589afc82904d92a6",
     "semantic_hash": ""
   },
   "src/systems/TutorialManager.js": {
-    "mtime": 1792721708.2315617,
-    "seen": 1792722011.890349,
-    "ast_hash": "844469e7fa75424f3ac7155e2dceb10a",
+    "mtime": 1793116414.6776435,
+    "seen": 1793117049.1489782,
+    "ast_hash": "2e50096a520342337b5191af4ea72cd9",
     "semantic_hash": ""
   },
   "docs/GDD.md": {
-    "mtime": 1792722326.1195629,
-    "seen": 1792722443.3486092,
-    "ast_hash": "6a257e65f6c9a2c7feffb861bd0a1b65",
+    "mtime": 1792728611.2468011,
+    "seen": 1793117049.1490207,
+    "ast_hash": "504909bebf2514bf5559416ac4dfdfba",
+    "semantic_hash": ""
+  },
+  "src/assets/feel.js": {
+    "mtime": 1793104035.7363617,
+    "seen": 1793117049.148847,
+    "ast_hash": "67ad6f2bc6aa46208a6e462e51683de5",
+    "semantic_hash": ""
+  },
+  "src/assets/themes.js": {
+    "mtime": 1793122825.1065812,
+    "seen": 1793122890.717433,
+    "ast_hash": "bb20515382d6711af7aed66270fa52d1",
+    "semantic_hash": ""
+  },
+  "src/entities/FragilePlatform.js": {
+    "mtime": 1793106771.9830952,
+    "seen": 1793117049.1488588,
+    "ast_hash": "71bd4deab5b428b7d0fed6bf50157bfa",
+    "semantic_hash": ""
+  },
+  "src/entities/PlayerFx.js": {
+    "mtime": 1793122795.0737612,
+    "seen": 1793122890.7174408,
+    "ast_hash": "f5088f93af14f5d9170371ae204aa35b",
+    "semantic_hash": ""
+  },
+  "src/scenes/Pause.js": {
+    "mtime": 1793116704.3593628,
+    "seen": 1793117049.1488967,
+    "ast_hash": "fe2216e65000c522484ebca2600beb7b",
+    "semantic_hash": ""
+  },
+  "src/scenes/Ranking.js": {
+    "mtime": 1793116989.0371852,
+    "seen": 1793117049.1489005,
+    "ast_hash": "c83a533f4f0b8a611227acf5be0b2b9d",
+    "semantic_hash": ""
+  },
+  "src/systems/AchievementToast.js": {
+    "mtime": 1793104035.8034744,
+    "seen": 1793117049.1489027,
+    "ast_hash": "5f9239e516cd5e4f7e2ab19d0ffbf900",
+    "semantic_hash": ""
+  },
+  "src/systems/Achievements.js": {
+    "mtime": 1793104035.804476,
+    "seen": 1793117049.148904,
+    "ast_hash": "01e9901a2e1ad0cdb98f95960d8e0739",
+    "semantic_hash": ""
+  },
+  "src/systems/AudioBus.js": {
+    "mtime": 1793104035.8069801,
+    "seen": 1793117049.1489089,
+    "ast_hash": "66ef4de5b33e92961ff9f5d80e9e7953",
+    "semantic_hash": ""
+  },
+  "src/systems/Backdrop.js": {
+    "mtime": 1793122837.4220994,
+    "seen": 1793122890.717464,
+    "ast_hash": "f4be282ea7855147299430c67138d05b",
+    "semantic_hash": ""
+  },
+  "src/systems/CameraFx.js": {
+    "mtime": 1793104035.8203375,
+    "seen": 1793117049.1489143,
+    "ast_hash": "2fa48700887105d8211aa592de4abf47",
+    "semantic_hash": ""
+  },
+  "src/systems/CollectFx.js": {
+    "mtime": 1793116436.9071038,
+    "seen": 1793117049.148919,
+    "ast_hash": "98bc0f0600d8871ee7ba6abf6285841b",
+    "semantic_hash": ""
+  },
+  "src/systems/DebugOverlay.js": {
+    "mtime": 1793104035.833285,
+    "seen": 1793117049.148921,
+    "ast_hash": "8833a27ca8d2d134e5af50a0b95344b2",
+    "semantic_hash": ""
+  },
+  "src/systems/Fx.js": {
+    "mtime": 1793104035.8448267,
+    "seen": 1793117049.148925,
+    "ast_hash": "6985f08f0145c421b194c920193e4317",
+    "semantic_hash": ""
+  },
+  "src/systems/Leaderboard.js": {
+    "mtime": 1793116826.188996,
+    "seen": 1793117049.1489365,
+    "ast_hash": "942723a128961e09d3c736f14d8197e6",
+    "semantic_hash": ""
+  },
+  "src/systems/LevelIntro.js": {
+    "mtime": 1793116872.2746048,
+    "seen": 1793117049.1489427,
+    "ast_hash": "51f33c04b6dc8f3b12fc36adf790af25",
+    "semantic_hash": ""
+  },
+  "src/systems/LevelShapes.js": {
+    "mtime": 1793125044.30572,
+    "seen": 1793125258.0901384,
+    "ast_hash": "fddca47765d7cc05783449abd62005d3",
+    "semantic_hash": ""
+  },
+  "src/systems/MacroShapes.js": {
+    "mtime": 1793118851.0079255,
+    "seen": 1793122890.7174878,
+    "ast_hash": "9cc3e5e1d13813402ca4bdfb130ae6dc",
+    "semantic_hash": ""
+  },
+  "src/systems/MenuBackground.js": {
+    "mtime": 1793116704.3618734,
+    "seen": 1793117049.148949,
+    "ast_hash": "df9ddac2278a0c14f323fa4cfc6ab752",
+    "semantic_hash": ""
+  },
+  "src/systems/MenuButton.js": {
+    "mtime": 1793104035.896974,
+    "seen": 1793117049.1489508,
+    "ast_hash": "c70cc63f271ab0e2043df9bcea404078",
+    "semantic_hash": ""
+  },
+  "src/systems/Metrics.js": {
+    "mtime": 1793104035.9090056,
+    "seen": 1793117049.1489525,
+    "ast_hash": "d716e7022b55bc79eddca3f86d2a72b4",
+    "semantic_hash": ""
+  },
+  "src/systems/Modifiers.js": {
+    "mtime": 1793116801.1663573,
+    "seen": 1793117049.1489542,
+    "ast_hash": "d5fcbbf6861a731e28c94ad5f31ef9a2",
+    "semantic_hash": ""
+  },
+  "src/systems/Music.js": {
+    "mtime": 1793122776.3769732,
+    "seen": 1793122890.7174933,
+    "ast_hash": "da05994f02f3891c297bc2dbc01ec8d8",
+    "semantic_hash": ""
+  },
+  "src/systems/NameEntry.js": {
+    "mtime": 1793104035.9105089,
+    "seen": 1793117049.1489575,
+    "ast_hash": "8470e958a3bea294edd03c6b6aeb7c9c",
+    "semantic_hash": ""
+  },
+  "src/systems/PlatformGlow.js": {
+    "mtime": 1793116437.663771,
+    "seen": 1793117049.14896,
+    "ast_hash": "63d5a4d6f52f146201af3d6f64cd553f",
+    "semantic_hash": ""
+  },
+  "src/systems/Playtest.js": {
+    "mtime": 1793104035.9115162,
+    "seen": 1793117049.1489613,
+    "ast_hash": "815d7ae0846f6f527ca42b60e8e7e754",
+    "semantic_hash": ""
+  },
+  "src/systems/Rank.js": {
+    "mtime": 1792724210.5098224,
+    "seen": 1793117049.1489673,
+    "ast_hash": "39fce2a6a66091c69cd5b845b816a550",
+    "semantic_hash": ""
+  },
+  "src/systems/RankingTable.js": {
+    "mtime": 1793104035.9389262,
+    "seen": 1793117049.1489692,
+    "ast_hash": "a334bad112feac3da85947911be21667",
+    "semantic_hash": ""
+  },
+  "src/systems/Settings.js": {
+    "mtime": 1793116826.173962,
+    "seen": 1793117049.1489725,
+    "ast_hash": "67a5ffdf3f4cb23d706e20d1f482b9c0",
+    "semantic_hash": ""
+  },
+  "src/systems/TensionDirector.js": {
+    "mtime": 1793104035.9514573,
+    "seen": 1793117049.148974,
+    "ast_hash": "fc271509c71b160db59f5b142494fd54",
+    "semantic_hash": ""
+  },
+  "src/systems/Wipe.js": {
+    "mtime": 1793116437.431914,
+    "seen": 1793117049.14898,
+    "ast_hash": "4b19eba1a5358e53e87ec1848d45ef33",
+    "semantic_hash": ""
+  },
+  "tools/audit-fairness.mjs": {
+    "mtime": 1793104035.9632144,
+    "seen": 1793117049.148988,
+    "ast_hash": "299c18a63660134fb3b2cce6468c4e3e",
+    "semantic_hash": ""
+  },
+  "tools/test-achievements.mjs": {
+    "mtime": 1793104035.9632144,
+    "seen": 1793117049.148997,
+    "ast_hash": "d375b60e77e4cad6e0f6f1c0b05fcdb9",
+    "semantic_hash": ""
+  },
+  "tools/test-models.mjs": {
+    "mtime": 1793104035.975174,
+    "seen": 1793117049.149001,
+    "ast_hash": "a43a2092e94021ea403c5085882a07e0",
+    "semantic_hash": ""
+  },
+  "tools/test-modifiers.mjs": {
+    "mtime": 1793116815.0820925,
+    "seen": 1793117049.1490026,
+    "ast_hash": "7bb781290268b3df138b2993df34d0c2",
+    "semantic_hash": ""
+  },
+  "tools/test-rank.mjs": {
+    "mtime": 1792724210.631493,
+    "seen": 1793117049.1490037,
+    "ast_hash": "6ad5193ddb3ecefcb7a58bdfae7f3fc0",
+    "semantic_hash": ""
+  },
+  "tools/test-shapes.mjs": {
+    "mtime": 1793104035.984693,
+    "seen": 1793117049.149006,
+    "ast_hash": "912e9e065f57e7d730c054deedc40b20",
+    "semantic_hash": ""
+  },
+  "tools/test-timer-pause.mjs": {
+    "mtime": 1792727387.833911,
+    "seen": 1793117049.149007,
+    "ast_hash": "4ed2ade659c7f1e51062364e3c0bcb52",
+    "semantic_hash": ""
+  },
+  "tools/test-variety.mjs": {
+    "mtime": 1793104035.9856977,
+    "seen": 1793117049.1490088,
+    "ast_hash": "3bbc120e141939e11654a258ba782b91",
+    "semantic_hash": ""
+  },
+  "tools/variety-baseline.json": {
+    "mtime": 1793104035.9856977,
+    "seen": 1793117049.1490104,
+    "ast_hash": "e5a925b9743899df6814d3b7c4fa8843",
+    "semantic_hash": ""
+  },
+  "docs/PLAN_FEEL.md": {
+    "mtime": 1793104035.6978252,
+    "seen": 1793117049.149024,
+    "ast_hash": "a8a40a72dd05ff92e1fcf473c46f216a",
+    "semantic_hash": ""
+  },
+  "docs/PLAYTEST_1.md": {
+    "mtime": 1793104035.6993318,
+    "seen": 1793117049.1490262,
+    "ast_hash": "a6dae54bbccc2963ae8fd3f33f685266",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-10-24-variedad-generador-niveles.md": {
+    "mtime": 1793104035.7113657,
+    "seen": 1793117049.149028,
+    "ast_hash": "40fb5d6a0c708e7ed3c9bf00860ea421",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-10-26-logros-medallas.md": {
+    "mtime": 1793104035.7123654,
+    "seen": 1793117049.1490302,
+    "ast_hash": "9271393f66250b1310deb2050e1a1c76",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-10-24-variedad-generador-niveles-design.md": {
+    "mtime": 1793104035.7223866,
+    "seen": 1793117049.1490316,
+    "ast_hash": "f1093be5c579acbfbebaca836acb4a57",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-10-26-logros-medallas-design.md": {
+    "mtime": 1793104035.72339,
+    "seen": 1793117049.1490333,
+    "ast_hash": "421bb7c05efcdab81437e888f3adf996",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-10-26-niveles-3-a-5-design.md": {
+    "mtime": 1793104035.7338512,
+    "seen": 1793117049.1490343,
+    "ast_hash": "f6789125dd64aade4e74f5182bb5fb38",
+    "semantic_hash": ""
+  },
+  "graphify-out/converted/GDD_b5443b99.md": {
+    "mtime": 1793117041.0465567,
+    "seen": 1793117049.149036,
+    "ast_hash": "60fb8128e6799041d8234a08eb6521fb",
+    "semantic_hash": ""
+  },
+  "src/systems/LevelSummary.js": {
+    "mtime": 1793121850.330983,
+    "seen": 1793122890.717486,
+    "ast_hash": "10f38e143ed1c0109c737486e5ca381b",
+    "semantic_hash": ""
+  },
+  "src/systems/AmbientParticles.js": {
+    "mtime": 1793122825.282031,
+    "seen": 1793122890.7174604,
+    "ast_hash": "4bea65fd684e64f77a889a63065c1da2",
+    "semantic_hash": ""
+  },
+  "src/systems/CampaignSummary.js": {
+    "mtime": 1793122860.6217792,
+    "seen": 1793122890.7174687,
+    "ast_hash": "0c75b05f90374147f645810954282036",
+    "semantic_hash": ""
+  },
+  "src/systems/LevelLayout.js": {
+    "mtime": 1793124987.562135,
+    "seen": 1793125258.0901358,
+    "ast_hash": "86f6b11fbc1f070a3a4cf8035cfd8a4f",
     "semantic_hash": ""
   }
 }

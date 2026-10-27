@@ -2,13 +2,16 @@ import { Math as PhaserMath } from 'phaser';
 import { EntityFactory } from '../patterns/EntityFactory';
 
 export const POINT_SPAWN_CONFIG = {
-    initialActive: 2
+    initialActive: 2,
+    // Distancia mínima entre un punto nuevo y los que ya están activos (si no hay ninguno tan lejos, el más lejano).
+    minGap: 320
 };
 
 export class PointSpawner {
     // `deferred`: no activa orbes hasta llamar a begin() (el tutorial los espera).
-    constructor(scene, spots, deferred = false) {
+    constructor(scene, spots, deferred = false, initialActive = POINT_SPAWN_CONFIG.initialActive) {
         this.scene = scene;
+        this.initialActive = initialActive;
         this.points = EntityFactory.createPoints(scene, spots);
 
         if (!deferred) {
@@ -17,7 +20,7 @@ export class PointSpawner {
     }
 
     begin() {
-        for (let i = 0; i < POINT_SPAWN_CONFIG.initialActive; i++) {
+        for (let i = 0; i < this.initialActive; i++) {
             this.activateAnother();
         }
     }
@@ -29,7 +32,11 @@ export class PointSpawner {
             return null;
         }
 
-        const next = inactive[PhaserMath.Between(0, inactive.length - 1)];
+        const active = this.points.filter((point) => point.circle.active);
+        const gapTo = (point) => Math.min(Infinity, ...active.map((a) => PhaserMath.Distance.Between(a.circle.x, a.circle.y, point.circle.x, point.circle.y)));
+        const far = inactive.filter((point) => gapTo(point) >= POINT_SPAWN_CONFIG.minGap);
+        const pool = far.length ? far : [inactive.reduce((best, point) => (gapTo(point) > gapTo(best) ? point : best))];
+        const next = pool[PhaserMath.Between(0, pool.length - 1)];
         next.activate();
 
         return next;

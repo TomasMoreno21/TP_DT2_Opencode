@@ -1,3 +1,4 @@
+import { WORLD } from '../assets/levels';
 import { Scene } from 'phaser';
 import { Audio } from '../systems/Audio';
 import { Lang } from '../systems/Texts';
@@ -18,13 +19,13 @@ export class Pause extends Scene
 
     create ()
     {
-        this.add.rectangle(512, 384, 1024, 768, 0x05040d, 0.65);
+        this.add.rectangle((WORLD.width / 2), 384, WORLD.width, 768, 0x05040d, 0.65);
 
         const panel = this.add.graphics();
-        panel.fillStyle(0x1b1836, 1).fillRoundedRect(332, 190, 360, 380, 18);
-        panel.lineStyle(2, 0x00d1b2, 1).strokeRoundedRect(332, 190, 360, 380, 18);
+        panel.fillStyle(0x1b1836, 1).fillRoundedRect((WORLD.width / 2 + -180), 190, 360, 380, 18);
+        panel.lineStyle(2, 0x00d1b2, 1).strokeRoundedRect((WORLD.width / 2 + -180), 190, 360, 380, 18);
 
-        this.add.text(512, 240, Lang.t('pauseTitle'), {
+        this.add.text((WORLD.width / 2), 240, Lang.t('pauseTitle'), {
             fontFamily: 'Arial Black', fontSize: 34, color: '#00d1b2', stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
 
@@ -36,11 +37,50 @@ export class Pause extends Scene
 
         this.createButton(482, Lang.t('pauseMenu'), 0x1b1836, '#cccccc', () => this.toMenu(), 0x9a94c8);
 
-        this.add.text(512, 540, Lang.t('pauseHint'), {
+        this.add.text((WORLD.width / 2), 540, Lang.t('pauseHint'), {
             fontFamily: 'Arial', fontSize: 14, color: '#9aa4c7'
         }).setOrigin(0.5);
 
+        // Solo desarrollo (Vite lo quita del build): saltar a cualquier nivel con un mapa nuevo.
+        if (import.meta.env.DEV && this.gameScene.canRegenerate) {
+            this.createDevLevelPicker();
+        }
+
         this.input.keyboard.on('keydown-ESC', () => this.resume());
+    }
+
+    createDevLevelPicker ()
+    {
+        const total = this.gameScene.campaign.length;
+        let picked = this.gameScene.levelIndex;
+
+        this.add.graphics()
+            .fillStyle(0x1b1836, 1).fillRoundedRect((WORLD.width / 2 + -180), 572, 360, 100, { bl: 18, br: 18, tl: 0, tr: 0 })
+            .lineStyle(2, 0x00d1b2, 1).strokeRoundedRect((WORLD.width / 2 + -180), 572, 360, 100, { bl: 18, br: 18, tl: 0, tr: 0 });
+        this.add.text((WORLD.width / 2), 586, 'DEV', { fontFamily: 'Arial Black', fontSize: 12, color: '#ffdd44' }).setOrigin(0.5);
+
+        const go = this.createButton(630, '', 0x1b1836, '#ffdd44', () => this.goTo(picked), 0xffdd44);
+        const refresh = () => go.setText(`IR AL NIVEL ${picked + 1}`);
+        const arrow = (x, label, step) => this.add.text(x, 630, label, { fontFamily: 'Arial Black', fontSize: 30, color: '#ffdd44' })
+            .setOrigin(0.5).setPadding(10).setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => {
+                picked = (picked + step + total) % total;
+                refresh();
+            });
+
+        arrow(352, '◀', -1);
+        arrow(672, '▶', 1);
+        refresh();
+    }
+
+    goTo (levelIndex)
+    {
+        if (this.busy) {
+            return;
+        }
+
+        this.busy = true;
+        this.gameScene.regenerateLevel(levelIndex).then(() => this.scene.stop());
     }
 
     resume ()
@@ -87,8 +127,8 @@ export class Pause extends Scene
             g.destroy();
         }
 
-        const btn = this.add.image(512, y, key).setInteractive({ useHandCursor: true });
-        const label = this.add.text(512, y, text, {
+        const btn = this.add.image((WORLD.width / 2), y, key).setInteractive({ useHandCursor: true });
+        const label = this.add.text((WORLD.width / 2), y, text, {
             fontFamily: 'Arial Black', fontSize: 22, color: textColor
         }).setOrigin(0.5);
 

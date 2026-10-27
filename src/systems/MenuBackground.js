@@ -1,6 +1,7 @@
+import { WORLD } from '../assets/levels';
 import { Settings } from './Settings';
 
-const W = 1024;
+const W = WORLD.width;
 const GROUND_Y = 704;
 
 // Capas de ciudad: color, alto mínimo/máximo de los edificios, ancho, cantidad de ventanas
@@ -47,8 +48,8 @@ export class MenuBackground
         g.fillGradientStyle(0x2b2657, 0x2b2657, 0x141026, 0x141026, 1);
         g.fillRect(0, 0, W, 768);
         // Resplandor del horizonte detrás de la ciudad.
-        g.fillStyle(0x00d1b2, 0.05).fillEllipse(512, GROUND_Y, 1100, 360);
-        g.fillStyle(0x6a4cff, 0.05).fillEllipse(512, GROUND_Y, 800, 220);
+        g.fillStyle(0x00d1b2, 0.05).fillEllipse((WORLD.width / 2), GROUND_Y, 1100, 360);
+        g.fillStyle(0x6a4cff, 0.05).fillEllipse((WORLD.width / 2), GROUND_Y, 800, 220);
     }
 
     drawMoon ()
@@ -135,16 +136,16 @@ export class MenuBackground
 
         ground.fillStyle(0x0f0d1e, 1).fillRect(0, GROUND_Y, W, 64);
         ground.fillStyle(0x1b1836, 1);
-        ground.fillRect(120, 678, 220, 26);
-        ground.fillRect(684, 678, 220, 26);
-        ground.fillRect(462, 678, 100, 26);
+        ground.fillRect((WORLD.width / 2 + -392), 678, 220, 26);
+        ground.fillRect((WORLD.width / 2 + 172), 678, 220, 26);
+        ground.fillRect((WORLD.width / 2 + -50), 678, 100, 26);
         // Filo de luz sobre las plataformas.
         ground.fillStyle(0x00d1b2, 0.35);
-        ground.fillRect(120, 678, 220, 2);
-        ground.fillRect(684, 678, 220, 2);
-        ground.fillRect(462, 678, 100, 2);
+        ground.fillRect((WORLD.width / 2 + -392), 678, 220, 2);
+        ground.fillRect((WORLD.width / 2 + 172), 678, 220, 2);
+        ground.fillRect((WORLD.width / 2 + -50), 678, 100, 2);
 
-        [[200, 650], [824, 650], [512, 650], [120, 650], [904, 650]].forEach(([x, y]) => {
+        [[(WORLD.width / 2 + -312), 650], [(WORLD.width / 2 + 312), 650], [(WORLD.width / 2), 650], [(WORLD.width / 2 + -392), 650], [(WORLD.width / 2 + 392), 650]].forEach(([x, y]) => {
             const glow = this.scene.add.circle(x, y, 22, 0x00d1b2, 0.1);
             const dot = this.scene.add.circle(x, y, 12, 0x00d1b2, 0.45);
 

@@ -125,7 +125,7 @@ export const GENERATION_COMFORT = 1;
 // tope del presupuesto de tiempo (quota x frames medios a un spot / timer; N1 y N2 estan en ~30 %).
 export const SHAPED_ATTEMPTS = 4;
 export const SHAPED_TIME_LIMIT_MS = 3500;
-export const SHAPED_MAX_BUDGET = { 1: 0.45, 3: 0.5, 4: 0.55, 5: 0.55 };
+export const SHAPED_MAX_BUDGET = { 1: 0.45, 2: 0.45, 3: 0.5, 4: 0.55, 5: 0.55 };
 
 // Banda de dificultad aceptada: el esfuerzo del candidato (frames del peor
 // objetivo) respecto del nivel base. Fuera de la banda el mapa se descarta por
@@ -137,21 +137,9 @@ export const DIFFICULTY_BAND = { min: 0.7, max: 1.4 };
 // salida respecto del diseño base. N1 es un nivel de arranque: menos mutación,
 // salida baja y banda más indulgente. N3 exige más variedad y más esfuerzo.
 export const LEVEL_TUNING = {
-    // N1, N3, N4 y N5 se arman con formas de referencia (LevelShapes.js); el N2 con sus formas
-    // macro y la mutación de plataformas.
+    // Los cinco niveles se arman con el generador de estructura (LevelLayout.js + LevelShapes.js).
     1: { shaped: true },
-    2: {
-        maxIntensity: 0.95,
-        minNovelty: 8,
-        difficulty: { min: 0.7, max: 1.25 },
-        goalYTolerance: 130,
-        // N2 es el nivel de los rebotes: la cantidad de trampolines varía (y pueden
-        // ir sobre plataformas), y la estructura central puede tomar distintas
-        // formas (ver MacroShapes.js). Lista vacía = solo el diseño base.
-        trampolines: { min: 2, max: 4 },
-        candidatePool: 2,
-        shapes: ['escalera-doble', 'terrazas', 'pozo', 'escalera-torre', 'torres-gemelas']
-    },
+    2: { shaped: true },
     // N3-N5 (frágiles, pinchos y portales): varias formas por nivel y mecánicas mutadas
     // (ver LevelShapes.js); sin mutación de plataformas ni BFS al jugar.
     3: { shaped: true },
@@ -513,7 +501,9 @@ export class LevelGenerator {
                 break;
             }
 
-            if (!spawnClear(candidate)) continue;
+            // Las mismas reglas de espacio que el resto del generador: carril libre sobre los trampolines y nada amontonado.
+            const solid = { ...candidate, platforms: [...candidate.platforms, ...(candidate.fragilePlatforms ?? []).map((f) => ({ ...f, h: 20 }))] };
+            if (!spawnClear(candidate) || !this._trampolinesUsable(solid) || this._crowdedPlatforms(solid, this._frameKeys(solid)) > 0) continue;
 
             const check = this.validator.validate(candidate);
             validations++;
@@ -545,6 +535,11 @@ export class LevelGenerator {
             rejected: { layout: 0, structure: 0, unreachable: 0, difficulty: Math.max(0, attempts - (usedBase ? 0 : 1)) },
             difficulty: 1, quality: this._quality(config, assist), assist
         };
+    }
+
+    // Claves del piso, las paredes y las columnas (no cuentan como plataformas "tocadas").
+    _frameKeys(cfg) {
+        return new Set(cfg.platforms.filter((p) => !this._isPlayPlatform(p)).map((p) => this._platformKey(p)));
     }
 
     // Filtros baratos (sin BFS). Devuelve el motivo del rechazo o null.

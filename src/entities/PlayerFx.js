@@ -328,6 +328,7 @@ export class PlayerFx {
         if (grounded && speedK > FEEL.player.runDustMinK && now >= this.nextRunDust) {
             this.nextRunDust = now + FEEL.player.runDustEveryMs;
             fx.dustSide(rect.x - Math.sign(vx) * 10, feetY, -Math.sign(vx), 2);
+            this.scene.events.emit('player-step');
         }
 
         // Derrape al invertir la dirección corriendo.

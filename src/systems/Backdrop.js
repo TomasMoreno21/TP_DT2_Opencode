@@ -1,6 +1,8 @@
-const W = 1024;
+import { WORLD } from '../assets/levels';
+import { AmbientParticles } from './AmbientParticles';
+const W = WORLD.width;
 const FLOOR_TOP = 712;
-const TEX_W = 1152; // más ancho que la pantalla para poder desplazarlo con el parallax
+const TEX_W = WORLD.width + 128; // más ancho que la pantalla para poder desplazarlo con el parallax
 
 // Generador pseudoaleatorio con semilla: las siluetas son siempre las mismas por tema.
 function rng(seed) {
@@ -96,9 +98,12 @@ export class Backdrop {
             sg.destroy();
         }
 
-        this.stars = scene.add.tileSprite(512, 384, W, 768, 'neon-star')
+        this.stars = scene.add.tileSprite((WORLD.width / 2), 384, W, 768, 'neon-star')
             .setScrollFactor(0).setDepth(-9).setAlpha(0.85);
         scene.tweens.add({ targets: this.stars, alpha: 0.55, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+        this.ambient = theme.ambient ? new AmbientParticles(scene, theme.ambient) : null;
+        this.lastTime = 0;
     }
 
     skyline(layer, theme, draw, seed) {
@@ -113,18 +118,24 @@ export class Backdrop {
             g.destroy();
         }
 
-        return scene.add.image(512, FLOOR_TOP, key).setOrigin(0.5, 1).setScrollFactor(0);
+        return scene.add.image((WORLD.width / 2), FLOOR_TOP, key).setOrigin(0.5, 1).setScrollFactor(0);
     }
 
     // playerX: posición del jugador; pulse: latido de la música (0..1).
     update(time, playerX, pulse) {
-        const offset = playerX - 512;
+        const offset = playerX - (WORLD.width / 2);
         const still = this.scene.camFx?.reduceMotion;
 
-        this.far.x = 512 - (still ? 0 : offset * 0.04);
-        this.mid.x = 512 - (still ? 0 : offset * 0.07);
+        this.far.x = (WORLD.width / 2) - (still ? 0 : offset * 0.04);
+        this.mid.x = (WORLD.width / 2) - (still ? 0 : offset * 0.07);
         this.stars.tilePositionX = (still ? 0 : offset * 0.1);
         this.stars.tilePositionY = time * 0.006;
         this.grid.setAlpha(0.06 + 0.1 * pulse);
+
+        // El delta se acota: tras una pausa o una pestaña dormida las motas no deben saltar.
+        const delta = Math.min(time - this.lastTime, 50);
+
+        this.lastTime = time;
+        this.ambient?.update(time, delta, still);
     }
 }

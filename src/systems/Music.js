@@ -14,6 +14,9 @@ const lerp = (a, b, k) => a + (b - a) * k;
 // tonic: nota MIDI de la tónica; prog: desplazamientos de la fundamental por compás.
 const TRACKS = {
     menu: { tonic: 57, bpm: [92, 92], prog: [0, 8, 3, 7], calm: true },
+    // Tema principal: todas las capas encendidas desde el primer compás (drive), rápido y con
+    // un riser cada 4 compases. Suena en el menú y en la victoria.
+    main: { tonic: 57, bpm: [146, 146], prog: [0, 8, 3, 7], calm: false, drive: true },
     level0: { tonic: 57, bpm: [108, 124], prog: [0, 8, 3, 10], calm: false }, // La menor
     level1: { tonic: 62, bpm: [120, 138], prog: [0, 5, 8, 7], calm: false } // Re menor
 };
@@ -37,12 +40,13 @@ function stepDuration(track) {
 function applyLayers(track) {
     const { def, tension, mult, frenzy, pressure } = track;
     const calm = def.calm;
+    const drive = def.drive;
 
     track.on = {
         base: true,
-        rhythm: !calm && (tension > 0.25 || mult >= 2),
-        arp: !calm && mult >= 3,
-        lead: !calm && frenzy,
+        rhythm: drive || (!calm && (tension > 0.25 || mult >= 2)),
+        arp: drive || (!calm && mult >= 3),
+        lead: drive || (!calm && frenzy),
         pressure: !calm && pressure
     };
 
@@ -62,7 +66,9 @@ function applyLayers(track) {
 // Agenda las notas del paso `step` del compás `bar` a la hora de audio `t`.
 function scheduleStep(track, t) {
     const ctx = bus.context;
-    const { def, step, bar, on, tension } = track;
+    const { def, step, bar, on } = track;
+    // El tema principal suena siempre como si la tensión estuviera al máximo.
+    const tension = def.drive ? 1 : track.tension;
     const sd = stepDuration(track);
     const delay = Math.max(t - ctx.currentTime, 0);
     const root = def.tonic + def.prog[bar % 4];
@@ -121,6 +127,16 @@ function scheduleStep(track, t) {
 
             tone({ freq: midi(note), type: 'square', duration: sd * 2.2, volume: 0.06, delay, wet: 0.3, filter: { type: 'lowpass', freq: 4200 }, dest: dest('lead') });
             tone({ freq: midi(note) * 1.004, type: 'sawtooth', duration: sd * 2.2, volume: 0.035, delay, wet: 0.3, dest: dest('lead') });
+        }
+    }
+
+    // Tema principal: riser de ruido en el último compás de cada ciclo y platillo al volver al uno.
+    if (def.drive) {
+        if (bar % 4 === 3 && step === 0) {
+            noise({ duration: sd * 16, volume: 0.1, delay, attack: sd * 15, filter: { type: 'highpass', freq: 400, endFreq: 9000 }, dest: dest('rhythm') });
+        }
+        if (bar % 4 === 0 && step === 0) {
+            noise({ duration: sd * 6, volume: 0.12, delay, filter: { type: 'highpass', freq: 5000 }, dest: dest('rhythm') });
         }
     }
 

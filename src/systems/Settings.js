@@ -6,6 +6,8 @@ const KEY = 'fast-move-options';
 export const Settings = {
     reduceFlash: false,
     reduceMotion: false,
+    // Modo modificadores (GDD §9): cada nivel sortea modificadores y el ranking es aparte.
+    modifiers: false,
 
     load() {
         try {
@@ -14,6 +16,7 @@ export const Settings = {
             if (saved) {
                 this.reduceFlash = Boolean(saved.reduceFlash);
                 this.reduceMotion = Boolean(saved.reduceMotion);
+                this.modifiers = Boolean(saved.modifiers);
             }
         } catch {
             // Sin almacenamiento o dato dañado: se usan los valores por defecto.
@@ -24,7 +27,7 @@ export const Settings = {
         this[name] = value;
 
         try {
-            localStorage.setItem(KEY, JSON.stringify({ reduceFlash: this.reduceFlash, reduceMotion: this.reduceMotion }));
+            localStorage.setItem(KEY, JSON.stringify({ reduceFlash: this.reduceFlash, reduceMotion: this.reduceMotion, modifiers: this.modifiers }));
         } catch {
             // Las opciones valen solo para esta sesión.
         }
