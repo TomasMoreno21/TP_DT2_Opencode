@@ -190,43 +190,113 @@ function spotCandidates(cfg) {
 
 // N3: la mecánica de las frágiles es el centro del diseño, así que la mayoría de los spots (y la gema)
 // quedan sobre ellas o sobre lo que solo se alcanza por ellas: recolectar obliga a pisarlas.
+// N4-N5: distribución más uniforme en franjas alturas.
 const FRAGILE_SPOTS = 8;
 // Spots que premian la torre de wall jump.
 const BONUS_SPOTS = 2;
+// Distribución objetivo de spots por franja de altura (índices: 0=baja, 1=media, 2=alta)
+const SPOT_TARGET_DISTRIBUTION = [4, 4, 4]; // Igual para N3-N5, se ajusta en placeSpots
 
 // El N2 tiene menos lugar (los carriles de los trampolines): admite spots algo más juntos al final.
 function placeSpots(rng, cfg, preferFragile = false, tight = false) {
     const pool = shuffle(rng, spotCandidates(cfg));
     const picked = [];
 
+    // Primero tomar spots bonus (sobre torres)
     for (const c of pool.filter((o) => o.bonus)) {
         if (picked.length >= BONUS_SPOTS) break;
         if (picked.every((p) => Math.hypot(p.x - c.x, p.y - c.y) >= 110)) picked.push(c);
     }
 
-    if (preferFragile) {
-        for (const nn of [SPOT_NN, 130, 100]) {
-            for (const c of pool.filter((o) => o.fragile)) {
-                if (picked.length >= FRAGILE_SPOTS) break;
-                if (picked.every((p) => Math.hypot(p.x - c.x, p.y - c.y) >= nn)) picked.push(c);
+    // Distribución de spots por franja de altura:
+    // Índices: 0 = baja (y >= 520), 1 = media (340-519), 2 = alta (<340)
+    // El objetivo es tener spots representados en las 3 franjas, priorizando frágiles en N3
+    const spotCounts = preferFragile ? FRAGILE_SPOTS : SPOT_COUNT;
+    const nnValues = tight ? [SPOT_NN, 140, 115, 95, 80, 65] : [SPOT_NN, 140, 115, 95, 80];
+
+    // Contador de spots por franja
+    const bandCounts = { 0: 0, 1: 0, 2: 0 };
+
+    // Primero asegurar al menos 1 spot en cada franja si hay suficientes candidatos
+    const minPerBand = 1; // mínimo por franja
+
+    // Intentar cubrir franjas con spots no frágiles primero, luego frágiles
+    const nonFragilePool = pool.filter((o) => !o.fragile && !o.bonus);
+    const fragilePool = pool.filter((o) => o.fragile);
+
+    // Intentar distribuir en franjas no frágiles primero
+    for (const nn of nnValues) {
+        if (picked.length >= spotCounts) break;
+
+        for (const c of nonFragilePool) {
+            if (picked.length >= spotCounts) break;
+
+            // Determinar franja de la plataforma
+            const pTop = c.top;
+            let band = 1; // media por defecto
+            if (pTop >= 520) band = 0; // baja
+            else if (pTop >= 340) band = 2; // alta
+
+            // Agregar si no tenemos suficientes en esta franja o si ya cubrimos las otras
+            const otherBandsFilled = bandCounts[0] > 0 && bandCounts[2] > 0;
+            if (bandCounts[band] < 4 && (bandCounts[band] < minPerBand || otherBandsFilled)) {
+                if (picked.every((p) => Math.hypot(p.x - c.x, p.y - c.y) >= nn)) {
+                    picked.push(c);
+                    bandCounts[band]++;
+                    break;
+                }
             }
         }
     }
 
-    for (const nn of tight ? [SPOT_NN, 140, 115, 95, 80, 65] : [SPOT_NN, 140, 115, 95, 80]) {
+    // Si aún no hemos cubierto todas las franjas, agregar spots frágiles o del pool restante
+    if (bandCounts[0] === 0 || bandCounts[1] === 0 || bandCounts[2] === 0) {
+        // Asegurar al menos 1 por franja
+        for (const c of fragilePool.concat(nonFragilePool)) {
+            if (picked.length >= spotCounts) break;
+
+            const pTop = c.top;
+            let band = 1;
+            if (pTop >= 520) band = 0;
+            else if (pTop >= 340) band = 2;
+
+            if (bandCounts[band] === 0 && picked.length < spotCounts) {
+                if (picked.every((p) => Math.hypot(p.x - c.x, p.y - c.y >= 110))) {
+                    picked.push(c);
+                    bandCounts[band]++;
+                }
+            }
+        }
+    }
+
+    // Continuar con el algoritmo normal para completar el resto
+    for (const nn of nnValues) {
         for (const c of pool) {
-            if (picked.length >= SPOT_COUNT) break;
+            if (picked.length >= spotCounts) break;
             if (picked.every((p) => Math.hypot(p.x - c.x, p.y - c.y) >= nn)) picked.push(c);
         }
     }
 
-    return picked.slice(0, SPOT_COUNT);
+    return picked.slice(0, spotCounts);
 }
 
 // Una gema a 52 px sobre una superficie (se alcanza con un salto normal) lejos de los spots.
 function placeGem(rng, cfg, preferFragile = false) {
+    // N3: priorizar gemas sobre frágiles (la mecánica central)
+    // N4-N5: distribución más variada
+    const giveFragilePreference = preferFragile || cfg.levelId === 3;
+
     const list = shuffle(rng, surfaces(cfg).filter((s) => s.w >= 100 && s.top < FLOOR_TOP - 150))
-        .sort((a, b) => Number(Boolean(b.bonus)) - Number(Boolean(a.bonus)) || (preferFragile ? Number(Boolean(b.fragile)) - Number(Boolean(a.fragile)) : 0));
+        .sort((a, b) => {
+            // En N3, las frágiles primero; en otros niveles, las que no son bonus
+            const aIsFragile = a.fragile || a.bonus;
+            const bIsFragile = b.fragile || b.bonus;
+            if (giveFragilePreference) {
+                if (aIsFragile && !bIsFragile) return -1;
+                if (!aIsFragile && bIsFragile) return 1;
+            }
+            return Number(Boolean(b.bonus)) - Number(Boolean(a.bonus));
+        });
 
     for (const s of list) {
         for (const rise of [52, 62, 44]) {

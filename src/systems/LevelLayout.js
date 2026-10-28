@@ -78,13 +78,17 @@ export const LAYOUT_STYLES = {
     archipielago: { seeds: 3, mode: 'tree', dir: 'rand', rise: [-60, 95], w: [110, 190] },
     serpentina: { seeds: 2, mode: 'chain', dir: 'same', rise: [-45, 96], w: [140, 200] },
     cumbres: { seeds: 2, mode: 'tree', dir: 'alt', rise: [88, 96], w: [120, 160] },
-    ramas: { seeds: 2, mode: 'tree', dir: 'rand', rise: [0, 95], w: [110, 170] }
+    ramas: { seeds: 2, mode: 'tree', dir: 'rand', rise: [0, 95], w: [110, 170] },
+    // Nuevo estilo: pasajes estrechos y paredes laterales (foco en wall jump)
+    cavern: { seeds: 2, mode: 'chain', dir: 'alt', rise: [60, 100], w: [80, 130] },
+    // Nuevo estilo: plataforma central grande, acceso desde los 4 lados
+    open_plateau: { seeds: 4, mode: 'tree', dir: 'rand', rise: [-30, 70], w: [150, 220] }
 };
 
 // Trampolines por nivel: N1 no lleva, N2 (rebotes) se arma aparte en buildBounce con 2 o 3 y el resto uno.
 const TRAMPOLINES = { 1: [0, 0], 3: [1, 1], 4: [1, 1], 5: [1, 1] };
 // Probabilidad de que el nivel tenga una torre de wall jump (opcional: sube a una repisa con premios).
-const TOWER_CHANCE = { 1: 0, 3: 0.65, 4: 0.65, 5: 0.65 };
+const TOWER_CHANCE = { 1: 0, 2: 0.1, 3: 0.75, 4: 0.65, 5: 0.8 };
 const COUNT = [8, 11];
 const SPAWN_X = [110, 200];
 const COLUMNS = 5;
@@ -97,11 +101,38 @@ function reserveTrampolines(rng, levelId, spawn, relax, tower) {
     const xMax = tower ? tower.zone.lo - 160 : WORLD.width - 240;
     const out = [];
 
-    // Con dos carriles se reparten en bandas separadas: así queda un tramo central amplio para las plataformas.
-    const bands = want === 2 ? [[WORLD.width * 0.2, WORLD.width * 0.34], [WORLD.width * 0.64, Math.min(WORLD.width * 0.78, xMax)]] : [[240, xMax]];
+    // Con carriles múltiples se reparten en bandas separadas: así queda un tramo central amplio para las plataformas.
+    // N1: 0 trampolines (tutorial), N2: 2-3 con bandas separadas, N3-N5: 1-2 con distribución adaptativa
+    const isN1 = levelId === 1;
+    const isN2 = levelId === 2;
+    const isN3or5 = levelId === 3 || levelId === 5;
+    const isN4 = levelId === 4;
+
+    // Distribución de bandas por nivel
+    let bands;
+    if (isN2) {
+        // N2: dos bandas separadas para el mecanismo de rebotes
+        bands = [[WORLD.width * 0.2, WORLD.width * 0.34], [WORLD.width * 0.64, Math.min(WORLD.width * 0.78, xMax)]];
+    } else if (isN3or5) {
+        // N3 y N5: una banda principal más ancho, o dos si hay torre
+        if (tower) {
+            bands = [[WORLD.width * 0.15, WORLD.width * 0.3], [WORLD.width * 0.65, Math.min(WORLD.width * 0.85, xMax)]];
+        } else {
+            // Una banda central amplia
+            bands = [[WORLD.width * 0.2, Math.min(WORLD.width * 0.7, xMax)]];
+        }
+    } else if (isN4) {
+        // N4: una banda, menos trampolines, focus en hazards y pinchos
+        bands = [[240, xMax]];
+    } else {
+        // N1: ninguno
+        bands = [];
+    }
 
     for (let tries = 0; out.length < want && tries < 60; tries++) {
-        const [lo, hi] = bands[Math.min(out.length, bands.length - 1)];
+        const band = bands[Math.min(out.length, bands.length - 1)];
+        if (!band) break;
+        const [lo, hi] = band;
         const t = { x: Math.round(rng.range(lo, hi)), y: 706, w: rng.pick([56, 64, 72]) };
 
         if (Math.abs(t.x - spawn.x) < 170) continue;
