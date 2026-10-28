@@ -138,13 +138,56 @@ export const DIFFICULTY_BAND = { min: 0.7, max: 1.4 };
 // salida baja y banda más indulgente. N3 exige más variedad y más esfuerzo.
 export const LEVEL_TUNING = {
     // Los cinco niveles se arman con el generador de estructura (LevelLayout.js + LevelShapes.js).
-    1: { shaped: true },
-    2: { shaped: true },
+    1: { 
+        shaped: true,
+        // N1: priorizar calidad sobre variedad (temp baja = elección más determinista del mejor candidato)
+        selectionTemperature: 0.3,
+        maxIntensity: 0.5,
+        minNovelty: 3,
+        candidatePool: 3
+    },
+    2: { 
+        shaped: true,
+        // N2: balance calidad-variedad (el N2 tiene rebotes, necesita buena distribución)
+        selectionTemperature: 0.35,
+        maxIntensity: 0.6,
+        minNovelty: 4,
+        candidatePool: 4
+    },
     // N3-N5 (frágiles, pinchos y portales): varias formas por nivel y mecánicas mutadas
     // (ver LevelShapes.js); sin mutación de plataformas ni BFS al jugar.
-    3: { shaped: true },
-    4: { shaped: true },
-    5: { shaped: true }
+    3: { 
+        shaped: true,
+        // N3: foco en móviles y frágiles, exigir más novedad pero permitir más intensidad
+        selectionTemperature: 0.5,
+        maxIntensity: 0.8,
+        minNovelty: 5,
+        candidatePool: 5,
+        requireMovingPlatform: true,
+        minMovingPlatforms: 2,
+        maxStaticPlatforms: 7,
+        trampolines: [1, 2]
+    },
+    4: { 
+        shaped: true,
+        // N4: pinchos y escudos, mayor variedad de diseño y mecánicas
+        selectionTemperature: 0.55,
+        maxIntensity: 0.9,
+        minNovelty: 6,
+        candidatePool: 6
+    },
+    5: { 
+        shaped: true,
+        // N5: portales y combinaciones, máxima variedad y combinaciones complejas
+        selectionTemperature: 0.6,
+        maxIntensity: 1.0,
+        minNovelty: 7,
+        candidatePool: 7,
+        requireMovingPlatform: true,
+        minMovingPlatforms: 2,
+        maxStaticPlatforms: 5,
+        trampolines: [1, 2]
+    }
 };
 
 // El timer parte del timer diseñado del nivel y se escala (amortiguado) con el
@@ -338,23 +381,25 @@ export class LevelGenerator {
         const variedBase = this._preMutateBase(rng, clone(baseConfig));
         const base = this.baseline(variedBase);
 
-        // Ajuste específico por nivel (N1-N3 pulidos): la mutación de N1 es más
-        // suave, la salida se mantiene baja y la banda de dificultad es más
-        // indulgente para no frustrar al jugador nuevo.
-        const tuning = LEVEL_TUNING[levelId] ?? { maxIntensity: 1, minNovelty: MIN_NOVELTY, difficulty: DIFFICULTY_BAND, goalYTolerance: GOAL_Y_TOLERANCE };
+        // Ajuste específico por nivel: cada nivel tiene su propia configuración de
+        // generación para balancear calidad vs variedad. N1 busca la mejor jugabilidad,
+        // N5 busca la máxima variedad de diseños.
+        const tuning = LEVEL_TUNING[levelId] ?? {
+            maxIntensity: 1, minNovelty: MIN_NOVELTY, difficulty: DIFFICULTY_BAND,
+            goalYTolerance: GOAL_Y_TOLERANCE, selectionTemperature: 0.45,
+            candidatePool: CANDIDATE_POOL
+        };
         this.maxIntensity = tuning.maxIntensity;
         this.minNovelty = tuning.minNovelty;
         this.goalYTolerance = tuning.goalYTolerance;
+        this.selectionTemperature = tuning.selectionTemperature ?? SELECTION_TEMPERATURE;
+        this.candidatePool = tuning.candidatePool ?? CANDIDATE_POOL;
         this.requireMovingPlatform = tuning.requireMovingPlatform ?? false;
         this.movingPlatformMinRise = tuning.movingPlatformMinRise ?? 60;
         this.movingPlatformMaxRise = tuning.movingPlatformMaxRise ?? 260;
         this.maxStaticPlatforms = tuning.maxStaticPlatforms ?? Infinity;
         this.minMovingPlatforms = tuning.minMovingPlatforms ?? 0;
         this.trampolineRange = tuning.trampolines ?? null;
-        // Candidatos que se juntan por ronda antes de validar (BFS): las formas con wall
-        // jump validan en ~1,5 s cada una y casi todos los candidatos pasan, así que se
-        // juntan menos para entrar en el timeout del worker.
-        const poolSize = tuning.candidatePool ?? CANDIDATE_POOL;
         this.shapes = tuning.shapes ?? [];
         // La forma se sortea una vez por semilla (no por candidato): así cada forma
         // aparece en la misma proporción entre semillas y no gana siempre la que más
