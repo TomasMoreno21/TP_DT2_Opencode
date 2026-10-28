@@ -140,11 +140,16 @@ export const LEVEL_TUNING = {
     // Los cinco niveles se arman con el generador de estructura (LevelLayout.js + LevelShapes.js).
     1: { 
         shaped: true,
-        // N1: priorizar calidad sobre variedad (temp baja = elección más determinista del mejor candidato)
-        selectionTemperature: 0.3,
-        maxIntensity: 0.5,
-        minNovelty: 3,
-        candidatePool: 3
+        // N1: nivel tutorial - máxima consistencia y predictibilidad
+        selectionTemperature: 0.2,   // aún más determinista
+        maxIntensity: 0.3,           // mutaciones muy suaves
+        minNovelty: 1,               // casi ningún cambio obligatorio
+        candidatePool: 2,            // solo 2 candidatos, el mejor siempre gana
+        // N1 especial: sin mutaciones de trampolines ni móviles
+        requireMovingPlatform: false,
+        maxStaticPlatforms: Infinity,
+        minMovingPlatforms: 0,
+        trampolines: null
     },
     2: { 
         shaped: true,
