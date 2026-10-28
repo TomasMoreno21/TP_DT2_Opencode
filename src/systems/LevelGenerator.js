@@ -157,7 +157,10 @@ export const LEVEL_TUNING = {
         selectionTemperature: 0.35,
         maxIntensity: 0.6,
         minNovelty: 4,
-        candidatePool: 4
+        candidatePool: 4,
+        // N2 mejoras: priorizar layout de rebotes y clearance de trampolines
+        bounceLayoutPriority: true,
+        trampolineClearance: true
     },
     // N3-N5 (frágiles, pinchos y portales): varias formas por nivel y mecánicas mutadas
     // (ver LevelShapes.js); sin mutación de plataformas ni BFS al jugar.
