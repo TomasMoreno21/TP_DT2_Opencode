@@ -44,11 +44,12 @@ function drawArc (g, cx, cy, radius, width, fraction, color, alpha = 1) {
 // rango (derecha), con las habilidades abajo a la izquierda. Todo se dibuja con
 // Graphics, como el resto del proyecto.
 export class Hud {
-    constructor (scene) {
+    constructor (scene, theme) {
         this.scene = scene;
-        this.normalColor = '#ffffff';
-        this.lowColor = '#ffdd44';
-        this.criticalColor = '#ff4455';
+        this.theme = theme || { accent: 0x00d1b2, normalColor: '#ffffff', lowColor: '#ffdd44', criticalColor: '#ff4455' };
+        this.normalColor = this.theme.normalColor ?? '#ffffff';
+        this.lowColor = this.theme.lowColor ?? '#ffdd44';
+        this.criticalColor = this.theme.criticalColor ?? '#ff4455';
         this.lastMult = 1;
         this.timerTotal = 60;
         this.quotaMet = false;

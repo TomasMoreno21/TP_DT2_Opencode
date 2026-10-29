@@ -22,7 +22,7 @@ export class Level {
             }
         }
 
-        this.goal = EntityFactory.createGoal(scene, config.goal.x, config.goal.y);
+        this.goal = EntityFactory.createGoal(scene, config.goal.x, config.goal.y, this.theme?.accent);
 
         this.materializeTrampolines();
         this.materializeMovingPlatforms();
@@ -30,7 +30,6 @@ export class Level {
         this.materializeHazards();
         this.materializePowerUps();
         this.materializePortals();
-        this.materializeGems();
     }
 
     // Libera los tweens y timers de las entidades del nivel. Se invoca al reiniciar
@@ -45,10 +44,6 @@ export class Level {
 
         for (const fragile of this.fragileList) {
             fragile.destroy();
-        }
-
-        for (const gem of this.gemList) {
-            gem.destroy();
         }
 
         for (const powerUp of this.powerUpList) {
@@ -125,26 +120,8 @@ export class Level {
         const portalData = this.config.portals ?? [];
         const paired = portalData.length - (portalData.length % 2);
 
-        for (let i = 0; i < paired; i++) {
-            const portal = EntityFactory.createPortal(this.scene, portalData[i]);
-            this.portals.add(portal.sensor);
-            this.portalList.push(portal);
-        }
-
         for (let i = 0; i + 1 < this.portalList.length; i += 2) {
             this.portalList[i].linked = this.portalList[i + 1];
             this.portalList[i + 1].linked = this.portalList[i];
         }
     }
-
-    materializeGems() {
-        this.gems = this.scene.physics.add.group();
-        this.gemList = [];
-
-        for (const g of this.config.gems ?? []) {
-            const gem = EntityFactory.createGem(this.scene, g.x, g.y);
-            this.gems.add(gem.circle);
-            this.gemList.push(gem);
-        }
-    }
-}

@@ -68,22 +68,6 @@ export class CollectFx {
         }
     }
 
-    // Una gema: onda verde y orbe que vuela al reloj (+tiempo).
-    gem({ x, y, color, gained }) {
-        const { fx, hud, floatingText, pace } = this.scene;
-
-        pace.hitstop(FEEL.hitstop.gem);
-        fx.ring(x, y, color, 52, FEEL.fx.ringMs);
-        fx.spark(x, y, color, 10);
-
-        const target = hud.timerAnchor;
-        fx.orb(x, y, target.x, target.y, color, {
-            onArrive: () => fx.ring(target.x, target.y, color, 34, 220)
-        });
-
-        floatingText.show(x, y - 24, `+${gained}`, hex(color), 22);
-    }
-
     // Se llama cada frame: dibuja la ruta (se apaga con la ventana del combo) y avisa
     // con un tic suave cuando al combo le queda poco.
     update(remaining, multiplier) {

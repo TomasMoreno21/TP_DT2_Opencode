@@ -64,11 +64,6 @@ export class ScoreManager {
         return this.addValue(value, now, true, airborne);
     }
 
-    // Las gemas (M5) no cuentan para la quota: suman puntos y dan tiempo extra.
-    scoreGem(value, now, { airborne = false } = {}) {
-        return this.addValue(value, now, false, airborne);
-    }
-
     // Puntos que no pasan por el combo (p. ej. el bono de tiempo al salir).
     addBonus(points) {
         this.score += points;

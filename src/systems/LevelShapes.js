@@ -280,39 +280,6 @@ function placeSpots(rng, cfg, preferFragile = false, tight = false) {
     return picked.slice(0, spotCounts);
 }
 
-// Una gema a 52 px sobre una superficie (se alcanza con un salto normal) lejos de los spots.
-function placeGem(rng, cfg, preferFragile = false) {
-    // N3: priorizar gemas sobre frágiles (la mecánica central)
-    // N4-N5: distribución más variada
-    const giveFragilePreference = preferFragile || cfg.levelId === 3;
-
-    const list = shuffle(rng, surfaces(cfg).filter((s) => s.w >= 100 && s.top < FLOOR_TOP - 150))
-        .sort((a, b) => {
-            // En N3, las frágiles primero; en otros niveles, las que no son bonus
-            const aIsFragile = a.fragile || a.bonus;
-            const bIsFragile = b.fragile || b.bonus;
-            if (giveFragilePreference) {
-                if (aIsFragile && !bIsFragile) return -1;
-                if (!aIsFragile && bIsFragile) return 1;
-            }
-            return Number(Boolean(b.bonus)) - Number(Boolean(a.bonus));
-        });
-
-    for (const s of list) {
-        for (const rise of [52, 62, 44]) {
-            for (const dx of [0, -s.w * 0.25, s.w * 0.25]) {
-                const gem = { x: Math.round(s.x + dx), y: Math.round(s.top - rise) };
-                const clear = cfg.pointSpots.every((p) => Math.hypot(p.x - gem.x, p.y - gem.y) >= 45) &&
-                    cfg.platforms.every((p) => !(Math.abs(gem.x - p.x) < p.w / 2 + 10 && Math.abs(gem.y - p.y) < p.h / 2 + 12));
-
-                if (clear) return gem;
-            }
-        }
-    }
-
-    return null;
-}
-
 // Pinchos con techo encima (no se pueden saltar por encima): se cruzan con la fase
 // retraída, así que su reposo no puede ser corto.
 function lowCeiling(cfg, h) {
@@ -383,7 +350,7 @@ function mirror(cfg) {
     flip(cfg.spawn);
     flip(cfg.goal);
 
-    for (const key of ['platforms', 'fragilePlatforms', 'pointSpots', 'gems', 'trampolines', 'hazards', 'powerUps', 'portals']) {
+    for (const key of ['platforms', 'fragilePlatforms', 'pointSpots', 'trampolines', 'hazards', 'powerUps', 'portals']) {
         for (const e of cfg[key] ?? []) flip(e);
     }
 }
@@ -416,7 +383,6 @@ export function generateShapedLevel(rng, levelId, baseConfig, forceShape = null)
         ctx = layout.ctx;
     } else {
         // Diseño base: sus pinchos y escudos pasan a ser "slots" para mutarlos igual.
-        delete cfg.gems;
         cfg.hazardSlots = (baseConfig.hazards ?? []).map(({ x, y, w }) => ({ x, y, w }));
         cfg.powerSlots = (baseConfig.powerUps ?? []).map(({ x, y }) => ({ x, y }));
         delete cfg.hazards;
@@ -437,9 +403,6 @@ export function generateShapedLevel(rng, levelId, baseConfig, forceShape = null)
     delete cfg.hazardSlots;
     delete cfg.powerSlots;
 
-    // Gemas desde el nivel 3 (el 1 no lleva).
-    const gem = levelId >= 3 ? placeGem(rng, cfg, levelId === 3) : null;
-    if (gem) cfg.gems = [gem];
     delete cfg.regionKeys;
     delete cfg.bonusKeys;
 

@@ -417,7 +417,7 @@ export class PlayerFx {
         }
     }
 
-    // Cara feliz y pulso de antena al recoger un punto o gema.
+    // Cara feliz y pulso de antena al recoger un punto.
     onCollect() {
         this.happyUntil = this.scene.time.now + FEEL.player.happyMs;
         this.antPulse = 1.7;

@@ -38,12 +38,6 @@ const EVENTS = {
         if (combo >= 4) tone({ freq: f * 3, type: 'triangle', duration: 0.12, volume: 0.07, pan, wet: 0.2 });
         noise({ duration: 0.02, volume: 0.05, pan, filter: { type: 'highpass', freq: 4500 } });
     },
-    gem: ({ x } = {}) => {
-        const pan = panFor(x);
-
-        tone({ freq: 880, endFreq: 1760, type: 'sine', duration: 0.2, volume: 0.22, pan, wet: 0.2 });
-        tone({ freq: 1320, endFreq: 2640, type: 'triangle', duration: 0.18, volume: 0.1, delay: 0.05, pan, wet: 0.3 });
-    },
     bounce: () => tone({ freq: 150, endFreq: 90, type: 'sine', duration: 0.14, volume: 0.3 }),
     perfect: () => {
         tone({ freq: 320, endFreq: 120, type: 'sine', duration: 0.18, volume: 0.32 });

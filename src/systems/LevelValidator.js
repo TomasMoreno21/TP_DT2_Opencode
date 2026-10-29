@@ -277,9 +277,6 @@ export class LevelValidator {
             if (inside(s.x, s.y, 2)) issues.push(`spot ${i} dentro de una plataforma`);
             if (s.x < 60 || s.x > WORLD.width - 60) issues.push(`spot ${i} contra la pared`);
         });
-        (config.gems || []).forEach((g, i) => {
-            if (inside(g.x, g.y, 2)) issues.push(`gema ${i} dentro de una plataforma`);
-        });
         (config.powerUps || []).forEach((p, i) => {
             if (inside(p.x, p.y, 2)) issues.push(`power-up ${i} dentro de una plataforma`);
         });
@@ -562,7 +559,6 @@ export class LevelValidator {
         // Tolerancias de recogida: radio del punto (12) + media caja del jugador,
         // con un margen chico a favor de la seguridad.
         const spots = mk(config.pointSpots, PICKUP_DX, PICKUP_DY);
-        const gems = mk(config.gems, PICKUP_DX, PICKUP_DY);
         const goalTarget = { x: config.goal.x, y: config.goal.y, dx: GOAL_DX, dy: GOAL_DY, frames: Infinity };
 
         const onlyPlatforms = Array.isArray(opts.platformTargets) ? new Set(opts.platformTargets) : null;
@@ -581,11 +577,10 @@ export class LevelValidator {
                 }))
             : [];
 
-        const visitedCount = this.explore(config, [...spots, ...gems, goalTarget, ...platformTargets], { timed: opts.timed });
+        const visitedCount = this.explore(config, [...spots, goalTarget, ...platformTargets], { timed: opts.timed });
 
         const reachableSpots = spots.filter((s) => Number.isFinite(s.frames));
         const badSpots = spots.filter((s) => !Number.isFinite(s.frames));
-        const badGems = gems.filter((g) => !Number.isFinite(g.frames));
         const goal = goalTarget.frames;
 
         const worstFrames = reachableSpots.length ? Math.max(...reachableSpots.map((s) => s.frames)) : 0;
@@ -596,15 +591,13 @@ export class LevelValidator {
         const safeRoute = this.hasSafeRoute(config);
 
         return {
-            ok: Number.isFinite(goal) && badSpots.length === 0 && badGems.length === 0 && layoutIssues.length === 0 && safeRoute,
+            ok: Number.isFinite(goal) && badSpots.length === 0 && layoutIssues.length === 0 && safeRoute,
             safeRoute,
             goalOk: Number.isFinite(goal),
             goalFrames: goal,
             spotsTotal: spots.length,
             spotsOk: reachableSpots.length,
             spotsBad: badSpots,
-            gemsTotal: gems.length,
-            gemsBad: badGems,
             layoutIssues,
             isolatedPlatforms: platformTargets.filter((t) => !Number.isFinite(t.frames)).map((t) => t.index),
             pathLengthFrames: worstFrames,

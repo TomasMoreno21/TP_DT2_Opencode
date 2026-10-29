@@ -7,7 +7,6 @@ import { FragilePlatform } from '../entities/FragilePlatform';
 import { Hazard } from '../entities/Hazard';
 import { PowerUp } from '../entities/PowerUp';
 import { Portal } from '../entities/Portal';
-import { Gem } from '../entities/Gem';
 
 export class EntityFactory {
     static createPoint(scene, x, y) {
@@ -22,8 +21,8 @@ export class EntityFactory {
         return new Projectile(scene, x, y, target, speedMultiplier, variant);
     }
 
-    static createGoal(scene, x, y) {
-        return new Goal(scene, x, y);
+    static createGoal(scene, x, y, themeColor) {
+        return new Goal(scene, x, y, themeColor);
     }
 
     static createTrampoline(scene, data) {
@@ -48,9 +47,5 @@ export class EntityFactory {
 
     static createPortal(scene, data) {
         return new Portal(scene, data);
-    }
-
-    static createGem(scene, x, y) {
-        return new Gem(scene, x, y);
     }
 }

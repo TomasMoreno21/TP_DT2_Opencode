@@ -187,6 +187,7 @@ export class Game extends Scene
         // Fondo en capas con parallax y paleta propia del nivel (sin assets externos).
         this.theme = themeFor(this.levelIndex);
         this.backdrop = new Backdrop(this, this.theme);
+        this.parallax = new ParallaxBackground(this, WORLD.width, this.player);
 
         // Modo modificadores: se sortea en cada create, así que reintentar vuelve a sortear.
         const baseConfig = this.resolveLevelConfig();
@@ -282,7 +283,7 @@ export class Game extends Scene
             this.scoreManager.comboWindowMs = 1800;
         }
         this.timer = new GameTimer(this, () => this.onTimeUp(), levelConfig.durationSeconds);
-        this.hud = new Hud(this);
+        this.hud = new Hud(this, this.theme);
         this.floatingText = new FloatingText(this);
         this.achToast = new AchievementToast(this);
         this.metrics = new Metrics(this.levelIndex + 1);
@@ -687,6 +688,7 @@ export class Game extends Scene
         this.trackCombo();
         this.tension.update(delta);
         this.updateCollect();
+        this.parallax.update();
 
         if (!this.gameEnded && this.scoreManager.multiplier > this.maxMult) {
             this.maxMult = this.scoreManager.multiplier;

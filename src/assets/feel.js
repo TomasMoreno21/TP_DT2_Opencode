@@ -5,7 +5,7 @@ export const FEEL = {
     // Congelación del mundo (ms).
     // Hitstop del punto por multiplicador x1..x5: a combo alto se acorta y en x5 lo
     // reemplaza un punch de zoom (el juego fluye en vez de ir a golpes).
-    hitstop: { point: [34, 28, 22, 14, 0], gem: 30, death: 80 },
+    hitstop: { point: [34, 28, 22, 14, 0], death: 80 },
 
     // Cámara lenta [duración ms, factor de tiempo].
     slowmo: { death: { ms: 700, factor: 0.35 } },

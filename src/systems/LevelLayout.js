@@ -145,7 +145,7 @@ function reserveTrampolines(rng, levelId, spawn, relax, tower) {
 
 // Torre de wall jump pegada a la pared derecha (el espejado la pasa a la izquierda): un pilar deja
 // con la pared un canal de 125-155 px; se sube pegándose a las caras y se cae sobre la repisa de
-// arriba, que queda sola (sin otras plataformas cerca) con spots y la gema. El pilar no llega al
+// arriba, que queda sola (sin otras plataformas cerca) con spots. El pilar no llega al
 // piso (puerta de 130 px) para no partirlo. Nunca es obligatoria: el resto del nivel se recorre igual.
 function makeTower(rng) {
     const gap = rng.int(125, 155);

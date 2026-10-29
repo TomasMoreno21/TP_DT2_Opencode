@@ -157,7 +157,8 @@ export class MainMenu extends Scene
         const secondary = [
             [Lang.t('achievementsBtn'), () => this.toggleAchievements()],
             [Lang.t('rankingBtn'), () => this.scene.start('Ranking', { campaignSeed: this.campaignSeed })],
-            [Lang.t('optionsBtn'), () => this.toggleOptions()]
+            [Lang.t('optionsBtn'), () => this.toggleOptions()],
+            [Lang.t('continueBtn'), () => this.continueCampaign()]
         ];
         const spacing = 220;
         const startX = (WORLD.width / 2) - ((secondary.length - 1) * spacing) / 2;
@@ -272,6 +273,12 @@ export class MainMenu extends Scene
         }).setOrigin(0, 0.5);
     }
 
+    continueCampaign () {
+        const lastLevel = localStorage.getItem('fastMoveLastLevel');
+        const levelIndex = lastLevel ? Math.max(0, Math.min(LEVELS.length - 1, Number(lastLevel) - 1)) : 0;
+        this.startGame({ levelIndex });
+    }
+
     // Pide la campaña en segundo plano (Web Worker) apenas se abre el menú: la
     // validación de los mapas tarda unos segundos y no debe congelar la pantalla.
     // Se conserva para toda la partida (sin re-roll por nivel); la semilla queda
@@ -307,7 +314,7 @@ export class MainMenu extends Scene
 
     // Arranca la partida con la campaña lista; si todavía se está generando,
     // espera mostrando un aviso en el botón.
-    startGame (label)
+    startGame (label, levelIndex)
     {
         if (this.starting) {
             return;
@@ -318,7 +325,7 @@ export class MainMenu extends Scene
         this.registry.remove('runEntry');
         this.registry.remove('lastIntro');
         const launch = () => Wipe.cover(this, 0x16132a, 380, () => this.scene.start('Game', {
-            levelIndex: this.startLevel,
+            levelIndex: levelIndex ?? this.startLevel,
             completedScore: 0,
             campaignSeed: this.campaignSeed,
             campaign: this.campaign

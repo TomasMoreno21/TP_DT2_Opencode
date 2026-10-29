@@ -5,7 +5,7 @@ export const GOAL_CONFIG = {
     lockedColor: 0x9a94c8,
     lockedLabel: 'SALIDA',
     lockedLabelColor: '#c9c4e8',
-    openColor: 0x00ff88,
+    openColor: 0x00d1b2, // color por defecto (punto)
     openLabel: 'SALIENDO',
     openLabelColor: '#00ff88',
     arms: 3,
@@ -24,12 +24,18 @@ const lerpColor = (a, b, k) => {
 // Salida del nivel: un portal con vórtice. Cerrada gira lento y apagada; al cumplirse
 // la meta se enciende en verde, gira rápido y absorbe puntos de luz hacia el centro.
 export class Goal {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, themeColor) {
         this.scene = scene;
         this.x = x;
         this.y = y;
         this.isOpen = false;
         this.pulse = null;
+
+        // Usar color del tema si se proporciona, sino el por defecto
+        const goalOpenColor = themeColor || GOAL_CONFIG.openColor;
+        const goalOpenLabelColor = themeColor 
+            ? '#00ff88'  // texto blanco sobre color oscuro
+            : '#00ff88';
 
         // El cuerpo físico (estático) solo detecta el overlap con el jugador; no se ve.
         this.frame = scene.add.rectangle(x, y, GOAL_CONFIG.width, GOAL_CONFIG.height, 0xffffff, 0);
@@ -45,7 +51,8 @@ export class Goal {
         this.speed = GOAL_CONFIG.lockedSpin;
         this.openK = 0;
         this.lastTime = null;
-    }
+        this.openColor = goalOpenColor;
+        this.openLabelColor = goalOpenLabelColor;
 
     // Se llama cada frame desde Game.update: avanza el giro y vuelve a dibujar el vórtice.
     update(time) {
@@ -59,7 +66,7 @@ export class Goal {
         this.openK += ((this.isOpen ? 1 : 0) - this.openK) * 0.08;
         this.angle += this.speed * dt;
 
-        const color = lerpColor(GOAL_CONFIG.lockedColor, GOAL_CONFIG.openColor, this.openK);
+        const color = lerpColor(this.openColor, GOAL_CONFIG.openColor, this.openK);
         const strength = 0.55 + 0.45 * this.openK;
         const g = this.swirl.clear();
 
@@ -110,7 +117,7 @@ export class Goal {
         }
 
         this.isOpen = true;
-        this.label.setColor(GOAL_CONFIG.openLabelColor).setText(GOAL_CONFIG.openLabel);
+        this.label.setColor(this.openLabelColor).setText(GOAL_CONFIG.openLabel);
 
         // Onda expansiva al encenderse.
         const wave = this.scene.add.circle(this.x, this.y, GOAL_CONFIG.radius).setFillStyle(0xffffff, 0);
