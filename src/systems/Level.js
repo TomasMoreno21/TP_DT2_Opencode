@@ -120,8 +120,26 @@ export class Level {
         const portalData = this.config.portals ?? [];
         const paired = portalData.length - (portalData.length % 2);
 
+        for (let i = 0; i < paired; i++) {
+            const portal = EntityFactory.createPortal(this.scene, portalData[i]);
+            this.portals.add(portal.sensor);
+            this.portalList.push(portal);
+        }
+
         for (let i = 0; i + 1 < this.portalList.length; i += 2) {
             this.portalList[i].linked = this.portalList[i + 1];
             this.portalList[i + 1].linked = this.portalList[i];
+
+            // Hilo tenue entre el par para leer a dónde lleva cada portal.
+            const [a, b] = [this.portalList[i], this.portalList[i + 1]];
+            const line = this.scene.add.graphics().setDepth(0.1).lineStyle(2, a.ring.fillColor, 0.18);
+            const len = Math.hypot(b.x - a.x, b.y - a.y);
+
+            for (let d = 0; d < len; d += 16) {
+                const t0 = d / len;
+                const t1 = Math.min(d + 7, len) / len;
+                line.lineBetween(a.x + (b.x - a.x) * t0, a.y + (b.y - a.y) * t0, a.x + (b.x - a.x) * t1, a.y + (b.y - a.y) * t1);
+            }
         }
     }
+}

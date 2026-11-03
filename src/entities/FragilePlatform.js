@@ -134,6 +134,11 @@ export class FragilePlatform {
             onComplete: () => dust.destroy()
         });
 
+        // Migas con gravedad repartidas a lo largo de la plataforma.
+        for (const dx of [-this.width / 3, 0, this.width / 3]) {
+            this.scene.fx?.shatter(this.x + dx, this.y, FRAGILE_CONFIG.color, 3);
+        }
+
         for (const part of parts) {
             part.setVisible(false);
         }

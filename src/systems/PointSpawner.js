@@ -26,7 +26,13 @@ export class PointSpawner {
     }
 
     activateAnother() {
-        const inactive = this.points.filter((point) => !point.circle.active);
+        // Con el Vacío en juego, los spots que ya quedaron bajo su borde no se usan.
+        // En la torre solo salen orbes dentro de la pantalla.
+        // Y nunca debajo del jugador: siempre se sale hacia arriba.
+        const tower = this.scene.risingVoid;
+        const lowest = tower ? Math.min(tower.top - 60, this.scene.player.rect.y + 10) : Infinity;
+        const highest = tower ? tower.viewTop - 80 : -Infinity;
+        const inactive = this.points.filter((point) => !point.circle.active && point.circle.y < lowest && point.circle.y > highest);
 
         if (inactive.length === 0) {
             return null;

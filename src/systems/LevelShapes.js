@@ -65,21 +65,6 @@ function layoutToConfig(rng, levelId, layout) {
     if (levelId >= 4) {
         const taken = [];
 
-        // N5: portales primero (pares piso -> plataforma), así los pinchos se reparten alrededor.
-        if (levelId === 5) {
-            const dests = shuffle(rng, safe.filter((p) => p !== goalItem && !p.tower && p.top <= 520 && p.w >= 110)).slice(0, rng.int(1, 2));
-
-            cfg.portals = [];
-
-            for (const d of dests) {
-                const x = pickFloor(rng, layout, 1, 0, taken)[0];
-
-                if (x === undefined) break;
-                taken.push({ x });
-                cfg.portals.push({ x, y: FLOOR_TOP - 24 }, { x: d.x, y: d.top - 24 });
-            }
-        }
-
         const floorXs = pickFloor(rng, layout, 3, 260, taken);
         const onPlat = shuffle(rng, safe.filter((p) => p !== goalItem && !p.tower && p.w >= 140)).slice(0, 3);
         const powered = shuffle(rng, safe.filter((p) => p !== goalItem && !p.tower)).slice(0, 3);

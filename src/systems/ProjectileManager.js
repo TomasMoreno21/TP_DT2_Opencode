@@ -57,7 +57,9 @@ export class ProjectileManager {
         }
 
         const side = PhaserMath.RND.pick(['left', 'right']);
-        const y = PhaserMath.Between(140, 700);
+        // La vista puede estar scrolleada (torre): el alto se mide desde su borde superior.
+        const view = this.scene.cameras.main.worldView;
+        const y = view.y + PhaserMath.Between(140, 700);
         const x = side === 'left'
             ? this.config.wallGapX
             : this.scene.scale.width - this.config.wallGapX;
@@ -75,7 +77,7 @@ export class ProjectileManager {
             ease: 'Sine.easeInOut'
         });
         // Flecha en el borde de la pantalla y tic de aviso, para quien mira otra cosa.
-        this.scene.fx.arrow(side === 'left' ? 12 : this.scene.scale.width - 34, y - 11, side === 'left' ? 1 : -1);
+        this.scene.fx.arrow(side === 'left' ? 12 : this.scene.scale.width - 34, y - view.y - 11, side === 'left' ? 1 : -1);
         Audio.play('warn', { x });
         this.scene.time.delayedCall(WARN_MS, () => {
             warn.destroy();
@@ -107,7 +109,7 @@ export class ProjectileManager {
                     const { x, y } = projectile.circle;
                     const { width, height } = this.scene.scale;
 
-                    this.scene.fx.spark(Math.min(Math.max(x, 8), width - 8), Math.min(Math.max(y, 8), height - 8), 0xff4455, 4);
+                    this.scene.fx.spark(Math.min(Math.max(x, 8), width - 8), Math.min(Math.max(y, this.scene.cameras.main.worldView.y + 8), this.scene.cameras.main.worldView.y + height - 8), 0xff4455, 4);
                 }
 
                 projectile.destroy();

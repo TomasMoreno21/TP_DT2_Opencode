@@ -61,15 +61,15 @@ export class Pause extends Scene
 
         const go = this.createButton(630, '', 0x1b1836, '#ffdd44', () => this.goTo(picked), 0xffdd44);
         const refresh = () => go.setText(`IR AL NIVEL ${picked + 1}`);
-        const arrow = (x, label, step) => this.add.text(x, 630, label, { fontFamily: 'Arial Black', fontSize: 30, color: '#ffdd44' })
-            .setOrigin(0.5).setPadding(10).setInteractive({ useHandCursor: true })
+        const arrow = (x, label, step) => this.add.text(x, 630, label, { fontFamily: 'Arial Black', fontSize: 26, color: '#ffdd44' })
+            .setOrigin(0.5).setPadding(4).setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
                 picked = (picked + step + total) % total;
                 refresh();
             });
 
-        arrow(352, '◀', -1);
-        arrow(672, '▶', 1);
+        arrow(WORLD.width / 2 - 162, '◀', -1);
+        arrow(WORLD.width / 2 + 162, '▶', 1);
         refresh();
     }
 

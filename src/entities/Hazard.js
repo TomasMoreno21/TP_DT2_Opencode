@@ -77,35 +77,79 @@ export class Hazard {
 
     draw(phase) {
         const g = this.graphics.clear();
+        const cfg = HAZARD_CONFIG;
         const half = this.width / 2;
-        const baseY = this.y - HAZARD_CONFIG.height / 2;
-        const step = this.width / HAZARD_CONFIG.spikeCount;
+        const baseY = this.y - cfg.height / 2;
+        const step = this.width / cfg.spikeCount;
+        const stub = 6;
+        const full = cfg.spikeHeight;
+        const p = phase.name === 'warn' ? Math.min(phase.t / this.warnMs, 1) : 0;
 
-        g.fillStyle(HAZARD_CONFIG.plateColor, 1);
-        g.fillRect(this.x - half, baseY, this.width, HAZARD_CONFIG.height);
+        let h = stub;
+        let tone = cfg.safeColor;
+        let light = 0x8a7a92;
+        let tremble = 0;
 
-        for (let i = 0; i < HAZARD_CONFIG.spikeCount; i++) {
-            const cx = this.x - half + step * (i + 0.5);
-            let topY = baseY - 6;
-            let color = HAZARD_CONFIG.safeColor;
-            let tremble = 0;
+        if (phase.name === 'rest' && phase.t < 160) {
+            // Retracción suave tras el golpe en lugar de desaparecer de golpe.
+            const k = 1 - phase.t / 160;
+            h = stub + (full - stub) * k * k;
+            tone = mix(cfg.safeColor, cfg.dangerColor, k);
+            light = mix(light, 0xff8a94, k);
+        } else if (phase.name === 'warn') {
+            h = stub + (full * 0.55 - stub) * (1 - (1 - p) * (1 - p));
+            const pulse = 0.5 + 0.5 * Math.sin(phase.t * (0.02 + 0.07 * p));
+            tone = mix(cfg.safeColor, cfg.warnColor, Math.min(1, 0.35 + 0.65 * p) * (0.7 + 0.3 * pulse));
+            light = mix(0xb8a8c0, 0xffffff, pulse * p);
+            tremble = Math.sin(phase.t / 40) * 3 * p;
+        } else if (phase.name === 'active') {
+            // Golpe con rebote: sobrepasa un poco la altura y se asienta.
+            h = full * (1 + 0.2 * Math.sin(Math.PI * Math.min(phase.t / 140, 1)));
+            tone = cfg.dangerColor;
+            light = 0xff8a94;
+        }
+
+        g.fillStyle(cfg.plateColor, 1);
+        g.fillRect(this.x - half, baseY, this.width, cfg.height);
+
+        if (phase.name === 'warn') {
+            // Barra de carga en la placa + silueta fantasma del alcance real.
+            g.fillStyle(cfg.warnColor, 0.9);
+            g.fillRect(this.x - half, baseY + 2, this.width * p, cfg.height - 4);
+            g.fillStyle(cfg.warnColor, 0.08 + 0.12 * p);
+            g.fillRect(this.x - half, baseY - stub - full, this.width, stub + full);
+        } else if (phase.name === 'active') {
+            g.fillStyle(cfg.dangerColor, 0.9);
+            g.fillRect(this.x - half, baseY + 2, this.width, cfg.height - 4);
+            g.fillStyle(cfg.dangerColor, 0.14);
+            g.fillRect(this.x - half, baseY - stub - full, this.width, stub + full);
+        }
+
+        for (let i = 0; i < cfg.spikeCount; i++) {
+            const cx = this.x - half + step * (i + 0.5) + tremble;
+            const topY = baseY - h;
+            const w = 7;
 
             if (phase.name === 'warn') {
-                const grow = 0.35 + 0.65 * Math.min(phase.t / this.warnMs, 1);
-                topY = baseY - 6 - HAZARD_CONFIG.spikeHeight * grow;
-                // Aviso gritón: parpadeo blanco/naranja que se acelera al final.
-                const blinkRate = phase.t > this.warnMs * 0.6 ? 60 : 110;
-                color = Math.sin(phase.t / blinkRate) > 0 ? 0xffffff : HAZARD_CONFIG.warnColor;
-                // Oscilación derivada del tiempo de fase, no aleatoria: el aviso
-                // debe verse igual en cada frame en lugar de parpadear al azar.
-                tremble = Math.sin(phase.t / 45) * 4 * Math.min(phase.t / this.warnMs, 1);
-            } else if (phase.name === 'active') {
-                topY = baseY - 6 - HAZARD_CONFIG.spikeHeight;
-                color = HAZARD_CONFIG.dangerColor;
+                g.lineStyle(1, cfg.warnColor, 0.25 + 0.45 * p);
+                g.strokeTriangle(cx - w, baseY, cx + w, baseY, cx, baseY - stub - full);
             }
 
-            g.fillStyle(color, 1);
-            g.fillTriangle(cx - 6 + tremble, baseY, cx + 6 + tremble, baseY, cx + tremble, topY);
+            // Dos tonos: cara iluminada a la izquierda, sombra a la derecha.
+            g.fillStyle(light, 1);
+            g.fillTriangle(cx - w, baseY, cx, baseY, cx, topY);
+            g.fillStyle(tone, 1);
+            g.fillTriangle(cx, baseY, cx + w, baseY, cx, topY);
+
+            if (phase.name === 'active') {
+                g.fillStyle(0xffffff, 0.9);
+                g.fillCircle(cx, topY + 2, 1.5);
+            }
         }
     }
+}
+
+function mix(a, b, t) {
+    const ch = (s) => Math.round(((a >> s) & 255) * (1 - t) + ((b >> s) & 255) * t);
+    return (ch(16) << 16) | (ch(8) << 8) | ch(0);
 }

@@ -2,6 +2,8 @@ import { Scene } from 'phaser';
 import { Level } from '../systems/Level';
 import { Player, PLAYER_CONFIG } from '../entities/Player';
 import { PORTAL_CONFIG } from '../entities/Portal';
+import { RisingVoid } from '../entities/RisingVoid';
+import { buildTower } from '../systems/TowerLevel';
 import { PointSpawner } from '../systems/PointSpawner';
 import { ScoreManager } from '../systems/ScoreManager';
 import { RANK_COLORS, RankStore, TIME_BONUS_PER_SECOND, rankFor, rankThresholds } from '../systems/Rank';
@@ -26,6 +28,7 @@ import { CameraFx } from '../systems/CameraFx';
 import { Metrics } from '../systems/Metrics';
 import { Music } from '../systems/Music';
 import { CollectFx } from '../systems/CollectFx';
+import { ParallaxBackground } from '../systems/ParallaxBackground';
 import { Backdrop } from '../systems/Backdrop';
 import { PlatformGlow } from '../systems/PlatformGlow';
 import { themeFor } from '../assets/themes';
@@ -139,6 +142,11 @@ export class Game extends Scene
                 this.campaign.map((e) => `N${e.config.id}=${e.config.durationSeconds}s${e.ok ? (e.mutated ? '' : '(base)') : '(inválido)'}`).join(' '));
         }
 
+        // Nivel final: torre procedural (cada reintento arma otra).
+        if (this.levelIndex === 4) {
+            return buildTower(this.campaignSeed + this.deaths * 7919, LEVELS[4], this.deaths);
+        }
+
         const entry = this.campaign[this.levelIndex];
         if (entry && entry.config) {
             return entry.config;
@@ -162,7 +170,6 @@ export class Game extends Scene
         this.lastSecond = null;
         this.warned5s = false;
         this.maxMult = 1;
-        this.gemsCollected = 0;
         this.intro = null;
         this.restarting = false;
 
@@ -187,7 +194,6 @@ export class Game extends Scene
         // Fondo en capas con parallax y paleta propia del nivel (sin assets externos).
         this.theme = themeFor(this.levelIndex);
         this.backdrop = new Backdrop(this, this.theme);
-        this.parallax = new ParallaxBackground(this, WORLD.width, this.player);
 
         // Modo modificadores: se sortea en cada create, así que reintentar vuelve a sortear.
         const baseConfig = this.resolveLevelConfig();
@@ -204,6 +210,7 @@ export class Game extends Scene
         this.level = new Level(this, levelConfig, this.theme);
         this.platformGlow = new PlatformGlow(this, this.level, this.theme);
         this.player = new Player(this, levelConfig.spawn.x, levelConfig.spawn.y);
+        this.parallax = new ParallaxBackground(this, WORLD.width, this.player);
 
         if (this.modifiers.includes('slowDash')) {
             this.player.dashCooldownMs *= 2;
@@ -211,7 +218,10 @@ export class Game extends Scene
 
         this.physics.add.collider(this.player.rect, this.level.platforms);
 
-        this.cameras.main.setBounds(0, 0, WORLD.width, 768);
+        const worldHeight = levelConfig.worldHeight ?? WORLD.height;
+
+        this.physics.world.setBounds(0, 0, WORLD.width, worldHeight);
+        this.cameras.main.setBounds(0, 0, WORLD.width, worldHeight);
         this.cameras.main.startFollow(this.player.rect, true, 0.12, 0.12);
         this.cameras.main.setDeadzone(80, 120);
 
@@ -226,7 +236,12 @@ export class Game extends Scene
                 if (trampoline && !this.player.isDashing && player.body.velocity.y > -30) {
                     const perfect = trampoline.bounce(this.player.rect);
                     Audio.play(perfect ? 'perfect' : 'bounce');
-                    if (perfect) this.unlockBadge('perfect');
+                    if (perfect) {
+                        this.unlockBadge('perfect');
+                        this.pace.hitstop(FEEL.hitstop.perfect);
+                        this.camFx.shake('perfect');
+                        this.camFx.flash(120, 255, 221, 68);
+                    }
                 }
             });
         }
@@ -333,8 +348,15 @@ export class Game extends Scene
         this.listen('player-dash', () => this.camFx.shake('dash'));
         this.listen('player-jump', (kind) => Audio.play('jump', { kind }));
         this.listen('player-jump', (kind) => kind === 'wall' && this.unlockBadge('wallJump'));
+        // Wall jump con peso: un tic de hitstop y una sacudida corta al despegar.
+        this.listen('player-jump', (kind) => {
+            if (kind !== 'wall') return;
+            this.pace.hitstop(FEEL.hitstop.wall);
+            this.camFx.shake('wall');
+        });
         this.listen('player-dash', () => this.unlockBadge('dash'));
         this.listen('player-land', (vy) => vy > FEEL.player.landMinVy && Audio.play('land', { vy }));
+        this.listen('player-land', (vy) => vy > 560 && this.camFx.shake('land'));
         this.listen('player-skid', () => Audio.play('skid'));
         this.listen('player-step', () => Audio.play('step'));
         this.listen('player-wallgrab', () => Audio.play('wallGrab'));
@@ -352,7 +374,10 @@ export class Game extends Scene
         this.listen('frenzy-end', () => { Music.setFrenzy(false); this.hud.setFrenzy(false); });
         this.listen('combo-up', (level) => Music.setCombo(level));
         this.listen('combo-lost', () => Music.setCombo(1));
-        this.listen('tension', (value) => Music.setTension(value));
+        this.listen('tension', (value) => {
+            Music.setTension(value);
+            this.camFx.setVignette(value);
+        });
         // Últimos 10 s: tic-tac; últimos 5 s: latido y borde que late cada segundo.
         this.listen('time-tick', (seconds) => {
             Music.setPressure(seconds <= 10);
@@ -376,6 +401,15 @@ export class Game extends Scene
 
         // Durante el tutorial el reloj está en pausa y no hay orbes: aparecen al terminar.
         this.pointsPending = Boolean(this.tutorial?.active);
+        // Nivel final: el Vacío sube desde abajo (ver entities/RisingVoid.js).
+        this.risingVoid = this.levelIndex === 4 && !this.practice ? new RisingVoid(this, levelConfig) : null;
+        this.isTower = Boolean(this.risingVoid);
+
+        // En la torre la vista la lleva el Vacío, no el jugador.
+        if (this.isTower) {
+            this.cameras.main.stopFollow();
+            this.cameras.main.centerOn(WORLD.width / 2, this.risingVoid.viewTop + WORLD.height / 2);
+        }
         this.pointSpawner = new PointSpawner(this, levelConfig.pointSpots, this.pointsPending, this.modifiers.includes('singlePoint') ? 1 : undefined);
         this.projectileManager = new ProjectileManager(this, this.timer.durationMs, levelConfig.projectiles);
 
@@ -421,47 +455,6 @@ export class Game extends Scene
             }
         });
 
-        if (this.level.gemList.length) {
-            this.physics.add.overlap(this.player.rect, this.level.gems, (player, circle) => {
-                const gem = this.level.gemList.find((g) => g.circle === circle);
-
-                if (!gem || !gem.active) {
-                    return;
-                }
-
-                const airborne = !this.player.body.blocked.down;
-                const { gained, airBonus } = this.scoreManager.scoreGem(gem.value, this.time.now, { airborne });
-                this.metrics.collect(this.time.now, this.scoreManager.multiplier);
-                this.events.emit('point-collected');
-                this.gemsCollected++;
-                this.timer.addSeconds(gem.bonusSeconds);
-                this.hud.setScore(this.scoreManager.score);
-                this.hud.setMultiplier(this.scoreManager.multiplier);
-                this.hud.setAirStreak(this.scoreManager.airStreak);
-                this.player.setMultiplier(this.scoreManager.multiplier);
-                this.applyComboZoom();
-
-                if (this.scoreManager.airStreak >= AIR_STREAK_TARGET) {
-                    this.unlockAchievement('airborne');
-                }
-
-                Audio.play('gem', { x: gem.x });
-                this.unlockBadge('gem');
-                this.burstAt(gem.x, gem.y, gem.color);
-                this.collectFx.gem({ x: gem.x, y: gem.y, color: gem.color, gained });
-
-                if (airBonus > 0) {
-                    this.floatingText.show(gem.x, gem.y - 44, `VOLANDO +${airBonus}`, '#66ff88', 14);
-                }
-
-                if (this.scoreManager.quotaMet) {
-                    this.onQuotaMet();
-                }
-
-                gem.deactivate();
-            });
-        }
-
         this.physics.add.overlap(this.player.rect, this.projectileManager.group, (player, circle) => this.onHit(circle));
 
         if (this.level.hazardList.length) {
@@ -495,7 +488,7 @@ export class Game extends Scene
             this.registry.set('lastIntro', this.levelIndex);
             this.physics.world.pause();
             // Los niveles 3 a 5 presentan su mecánica nueva en la tarjeta (ya no hay prácticas previas).
-            const tip = { 2: 'introTipFragile', 3: 'introTipHazard', 4: 'introTipPortal' }[this.levelIndex];
+            const tip = { 2: 'introTipFragile', 3: 'introTipHazard', 4: 'introTipVoid' }[this.levelIndex];
             this.intro = new LevelIntro(this, { name: LEVELS[this.levelIndex]?.name, theme: this.theme, short, tip: tip ? Lang.t(tip) : null, mods: this.modifiersLabel() || null });
             this.intro.start(() => this.physics.world.resume());
         }
@@ -536,17 +529,71 @@ export class Game extends Scene
     }
 
     // Cada frame: ruta luminosa, aviso de combo por vencer y urgencia de los puntos.
-    updateCollect ()
+    updateCollect (delta)
     {
         const sm = this.scoreManager;
         const remaining = sm.comboRemaining(this.time.now);
 
         this.collectFx.update(remaining, sm.multiplier);
+        this.magnetize(delta);
+        this.checkGraze();
 
         const urgent = remaining > 0 && remaining < 0.35;
 
         for (const point of this.pointSpawner.points) {
             point.setUrgent(urgent && point.circle.active);
+        }
+    }
+
+    // Con combo alto los puntos activos cercanos se acercan al jugador (recompensa el flow).
+    magnetize (delta)
+    {
+        const sm = this.scoreManager;
+        const { minMult, range, speed } = FEEL.magnet;
+
+        if (sm.multiplier < minMult || sm.comboRemaining(this.time.now) <= 0 || this.gameEnded) {
+            return;
+        }
+
+        const { x: px, y: py } = this.player.rect;
+
+        for (const point of this.pointSpawner.points) {
+            if (!point.circle.active) continue;
+
+            const dx = px - point.circle.x;
+            const dy = py - point.circle.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < range && dist > 1) {
+                const step = Math.min(speed * delta / 1000, dist);
+                point.pull(dx / dist * step, dy / dist * step);
+            }
+        }
+    }
+
+    // Graze: un proyectil que pasa rozando (sin tocar) rellena parte de la ventana del combo.
+    checkGraze ()
+    {
+        const sm = this.scoreManager;
+
+        if (this.gameEnded || sm.comboRemaining(this.time.now) <= 0) return;
+
+        const r = this.player.rect;
+        const hw = r.width / 2;
+        const hh = r.height / 2;
+
+        for (const p of this.projectileManager.projectiles) {
+            if (p.grazed || !p.circle.active) continue;
+
+            const d = Math.hypot(Math.max(Math.abs(p.circle.x - r.x) - hw, 0), Math.max(Math.abs(p.circle.y - r.y) - hh, 0));
+
+            if (d > 0 && d < FEEL.graze.distance) {
+                p.grazed = true;
+                sm.lastCollectionTime = Math.min(this.time.now, sm.lastCollectionTime + sm.comboWindowMs * FEEL.graze.refill);
+                this.fx.spark(p.circle.x, p.circle.y, 0xffffff, 5);
+                this.floatingText.show(r.x, r.y - 40, 'CERCA', '#ffffff', 14);
+                Audio.play('graze');
+            }
         }
     }
 
@@ -687,7 +734,7 @@ export class Game extends Scene
         this.hud.setComboTimer(this.scoreManager.comboRemaining(this.time.now));
         this.trackCombo();
         this.tension.update(delta);
-        this.updateCollect();
+        this.updateCollect(delta);
         this.parallax.update();
 
         if (!this.gameEnded && this.scoreManager.multiplier > this.maxMult) {
@@ -696,6 +743,7 @@ export class Game extends Scene
 
         this.updateAirStreak();
         this.updatePortals();
+        this.updateVoid(delta);
     }
 
     // Detiene todo el nivel (física, proyectiles, pinchos, plataformas y reloj) al cruzar la salida.
@@ -737,6 +785,74 @@ export class Game extends Scene
             this.player.setMultiplier(this.scoreManager.multiplier);
             this.hud.setAirStreak(0);
             this.hud.setMultiplier(this.scoreManager.multiplier);
+        }
+    }
+
+    // El escenario sube solo: la vista la lleva el Vacío, que mata al tocarlo (el escudo no lo frena).
+    // Los orbes que se traga se reubican para que la cuota siga siendo alcanzable.
+    updateVoid(delta)
+    {
+        const v = this.risingVoid;
+
+        if (!v || this.gameEnded || this.physics.world.isPaused) {
+            return;
+        }
+
+        const cam = this.cameras.main;
+
+        // Alto visible calculado a mano: cam.worldView vale 0 hasta el primer render (al reintentar el
+        // juego arranca sin cuenta y el primer update ya corre con ese 0, lo que mataba al instante).
+        const viewH = cam.height / cam.zoom;
+
+        v.update(delta, this.player.rect.y, viewH);
+        cam.centerOn(WORLD.width / 2, v.viewTop + viewH / 2);
+
+        for (const point of this.pointSpawner.points) {
+            if (point.circle.active && point.circle.y > v.top - 30) {
+                point.deactivate();
+                this.pointSpawner.activateAnother();
+            }
+        }
+
+        // Si no quedó ningún orbe arriba del jugador, se reintenta (el próximo aparece al subir).
+        if (this.pointSpawner.points.filter((point) => point.circle.active).length < 2) {
+            this.pointSpawner.activateAnother();
+        }
+
+        const gap = v.gapTo(this.player.rect.y + this.player.rect.height / 2);
+
+        if (gap < 0) {
+            this.onHit(null, true);
+        } else if (gap < 120 && this.time.now - (this.lastVoidRumble ?? 0) > 700) {
+            this.lastVoidRumble = this.time.now;
+            this.camFx.shake('shield');
+        }
+    }
+
+    // Cuota cumplida en la torre: el escenario se detiene, el Vacío desaparece y la salida aparece
+    // sobre la plataforma visible más cercana a más de 250 px del jugador (para no regalarla).
+    stopTower()
+    {
+        // Un orbe tomado después de cumplir la cuota vuelve a llamar acá: la torre ya está detenida.
+        if (!this.risingVoid) {
+            return;
+        }
+
+        const cam = this.cameras.main;
+        const { x, y } = this.player.rect;
+        const view = { y: this.risingVoid.viewTop, bottom: this.risingVoid.viewTop + cam.height / cam.zoom };
+
+        const near = this.level.config.platforms.slice(1)
+            .filter((p) => p.y > view.y + 120 && p.y < view.bottom - 160 && Math.hypot(p.x - x, p.y - y) > 250)
+            .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
+
+        this.risingVoid.destroy();
+        this.risingVoid = null;
+        cam.startFollow(this.player.rect, true, 0.12, 0.12);
+        cam.setDeadzone(80, 120);
+
+        if (near) {
+            this.level.goal.moveTo(near.x, near.y - near.h / 2 - 36);
         }
     }
 
@@ -852,6 +968,10 @@ export class Game extends Scene
             return;
         }
 
+        if (this.isTower) {
+            this.stopTower();
+        }
+
         this.level.goal.open();
         this.hud.showExitMarker(this.level.goal.x, this.level.goal.y);
         Audio.play('goalOpen');
@@ -882,6 +1002,10 @@ export class Game extends Scene
         this.levelComplete = true;
         this.gameEnded = true;
         this.metrics.finish(this.time.now, 'nivel superado');
+
+        if (this.isTower) {
+            this.unlockBadge('void');
+        }
         Coach.reset();
         Audio.play('goalReached');
 
@@ -960,7 +1084,6 @@ export class Game extends Scene
             { label: Lang.t('sumTime'), value: `+${timeBonus}`, color: '#66ccff' },
             ...(modBonus > 0 ? [{ label: Lang.t('sumMods'), value: `+${modBonus}`, color: '#ffdd44' }] : []),
             { label: Lang.t('sumCombo'), value: `x${this.maxMult}` },
-            { label: Lang.t('sumGems'), value: this.gemsCollected },
             { label: Lang.t('sumDeaths'), value: this.deaths }
         ];
 
@@ -1024,7 +1147,7 @@ export class Game extends Scene
         });
     }
 
-    onHit (projectileCircle = null)
+    onHit (projectileCircle = null, lethal = false)
     {
         if (this.gameEnded) {
             return;
@@ -1045,7 +1168,7 @@ export class Game extends Scene
         }
 
         // Vida infinita (código secreto): el golpe no mata.
-        if (this.registry.get('infiniteLife') && !this.player.hasShield) {
+        if (this.registry.get('infiniteLife') && (lethal || !this.player.hasShield)) {
             if (projectileCircle) {
                 this.projectileManager.absorbCircle(projectileCircle);
             }
@@ -1055,7 +1178,7 @@ export class Game extends Scene
             return;
         }
 
-        if (this.player.hasShield) {
+        if (this.player.hasShield && !lethal) {
             if (projectileCircle) {
                 this.projectileManager.absorbCircle(projectileCircle);
             }
@@ -1071,9 +1194,9 @@ export class Game extends Scene
         }
 
         this.gameEnded = true;
-        Coach.record(projectileCircle ? 'projectile' : 'hazard');
+        Coach.record(lethal ? 'void' : projectileCircle ? 'projectile' : 'hazard');
         Music.die();
-        this.metrics.finish(this.time.now, projectileCircle ? 'muerte: proyectil' : 'muerte: pincho');
+        this.metrics.finish(this.time.now, lethal ? 'muerte: vacío' : projectileCircle ? 'muerte: proyectil' : 'muerte: pincho');
         this.pace.hitstop(FEEL.hitstop.death);
         this.pace.slowmo(FEEL.slowmo.death.ms, FEEL.slowmo.death.factor);
         Audio.play('hit');

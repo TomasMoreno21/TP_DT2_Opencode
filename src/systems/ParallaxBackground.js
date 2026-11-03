@@ -69,9 +69,6 @@ export class ParallaxBackground {
                 }
             } else if (gfx === this.layer3) {
                 // Capa 3: puntos de estrella parpadeantes
-                gfx.fillStyle(0xffffff, 0.3);
-                gfx.fillRect(0, 0, this.worldWidth, 768);
-
                 // Algunas estrellas fugaces
                 gfx.fillStyle(0xffdd44, 0.5);
                 for (let i = 0; i < 8; i++) {

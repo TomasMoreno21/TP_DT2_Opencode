@@ -389,7 +389,8 @@ export class PlayerFx {
 
         if (kind === 'wall') {
             const side = this.player.wallSide === 'left' ? -1 : 1;
-            fx.spark(rect.x + side * 16, rect.y, 0x00ff88, 6, { min: side > 0 ? 150 : -30, max: side > 0 ? 210 : 30 });
+            fx.spark(rect.x + side * 16, rect.y, 0x00ff88, 10, { min: side > 0 ? 150 : -30, max: side > 0 ? 210 : 30 });
+            fx.ring(rect.x - side * 16, rect.y, 0x00ff88, 44, 200);
             return;
         }
 

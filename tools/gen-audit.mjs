@@ -8,5 +8,5 @@ for (const level of LEVELS) {
     const res = validator.validate(level);
     const dt = (performance.now() - t0).toFixed(0);
     console.log(`N${level.id} ${level.name}: ok=${res.ok} spots=${res.spotsOk}/${res.spotsTotal} goal=${res.goalFrames} worst=${res.pathLengthFrames} visited=${res.visitedCount} ${dt}ms`,
-        res.layoutIssues.length ? res.layoutIssues : '', res.gemsBad.length ? `gemasMal=${res.gemsBad.map((g) => g.index)}` : '', res.spotsBad.map((s) => s.index));
+        res.layoutIssues.length ? res.layoutIssues : '', res.gemsBad?.length ? `gemasMal=${res.gemsBad?.map((g) => g.index)}` : '', res.spotsBad.map((s) => s.index));
 }

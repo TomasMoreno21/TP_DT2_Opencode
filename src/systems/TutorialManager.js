@@ -47,7 +47,7 @@ export const Tutorial = {
 // Coach al fallar: cuenta las derrotas seguidas por causa (vive mientras dure la
 // pestaña, no se guarda) y, al repetirse una dos veces, sugiere qué hacer en el
 // siguiente intento. Se reinicia al superar un nivel.
-const COACH_HINTS = { hazard: 'coachHazard', projectile: 'coachProjectile', timeout: 'coachTime' };
+const COACH_HINTS = { hazard: 'coachHazard', projectile: 'coachProjectile', void: 'coachVoid', timeout: 'coachTime' };
 const coachState = { counts: {}, shownAt: {} };
 
 export const Coach = {

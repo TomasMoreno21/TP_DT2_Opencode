@@ -12,16 +12,22 @@ export const PLAYER_CONFIG = {
     decel: 1500,
     airDecel: 800,
     fallGravityMult: 1.35,
+    hangGravityMult: 0.6,
+    hangVy: 60,
     maxFallSpeed: 1000,
     cornerForgiveness: 10,
-    ledgeForgiveness: 10,
+    ledgeForgiveness: 18,
+    wallStickMs: 140,
+    wallSlideSpeed: 50,
+    wallBrakeRate: 7000,
+    wallJumpLockMs: 150,
     dashRefundMs: 450,
     turnAccel: 3600,
     jumpVelocity: -500,
     jumpCutVelocity: -150,
     coyoteTime: 140,
     jumpBufferTime: 170,
-    wallJumpXVelocity: 300,
+    wallJumpXVelocity: 360,
     wallJumpYVelocity: -500,
     wallJumpCooldown: 220,
     wallCoyoteTime: 180,
@@ -62,6 +68,8 @@ export class Player {
         this.platformVelocity = null;
         this.wallGrabbing = false;
         this.lastWallJumpTime = 0;
+        this.wallJumpLockUntil = 0;
+        this.wallGrabAt = 0;
         this.multiplier = 1;
         this.onFloor = false;
         this.lastOnFloorTime = -Infinity;
@@ -183,9 +191,13 @@ export class Player {
 
         // Caída más pesada que la subida: el salto se siente más rápido y firme.
         const falling = !this.onFloor && this.body.velocity.y > 0 && !this.isDashing && !this.wallGrabbing;
-        this.body.setGravityY(falling ? this.scene.physics.world.gravity.y * (PLAYER_CONFIG.fallGravityMult - 1) : 0);
+        // Hang time: en el ápice del salto con la tecla apretada la gravedad baja, para colocar el salto con precisión.
+        const hanging = jumpNow && !this.onFloor && Math.abs(this.body.velocity.y) < PLAYER_CONFIG.hangVy && !this.isDashing && !this.wallGrabbing;
+        const g = this.scene.physics.world.gravity.y;
+        this.body.setGravityY(hanging ? g * (PLAYER_CONFIG.hangGravityMult - 1) : falling ? g * (PLAYER_CONFIG.fallGravityMult - 1) : 0);
 
-        if (!this.isDashing && !this.wallGrabbing) {
+        // También colgado de la pared: así el borde se sube sin soltarse.
+        if (!this.isDashing) {
             this.forgive(left, right, dtSec);
         }
 
@@ -263,13 +275,19 @@ export class Player {
 
         if (touchingWall && holdingToward && !this.isDashing) {
             if (!this.wallGrabbing) {
+                this.wallGrabAt = now;
+                this.squashBounce(0.85, 1.12);
                 this.scene.events.emit('player-wallgrab');
             }
 
             this.wallGrabbing = true;
             this.rect.setFillStyle(PLAYER_CONFIG.wallGrabColor);
             this.body.setAllowGravity(false);
-            this.body.setVelocity(0, 0);
+            // Frena la caída/subida con rapidez (no en seco) y, tras un instante de agarre firme, resbala despacio.
+            const slide = now - this.wallGrabAt < PLAYER_CONFIG.wallStickMs ? 0 : PLAYER_CONFIG.wallSlideSpeed;
+            const vy = this.body.velocity.y;
+            const step = PLAYER_CONFIG.wallBrakeRate * dtSec;
+            this.body.setVelocity(0, Math.abs(slide - vy) <= step ? slide : vy + Math.sign(slide - vy) * step);
         } else if (this.wallGrabbing) {
             this.wallGrabbing = false;
             this.rect.setFillStyle(MULTIPLIER_COLORS[this.multiplier] ?? PLAYER_CONFIG.color);
@@ -298,6 +316,8 @@ export class Player {
             this.body.setVelocityX(dir * PLAYER_CONFIG.wallJumpXVelocity);
             this.body.setVelocityY(PLAYER_CONFIG.wallJumpYVelocity);
             this.lastWallJumpTime = now;
+            this.wallJumpLockUntil = now + PLAYER_CONFIG.wallJumpLockMs;
+            this.facing = dir;
             this.jumpBufferUntil = 0;
             this.squashBounce(1.15, 0.85);
             this.scene.events.emit('player-jump', 'wall');
@@ -318,6 +338,8 @@ export class Player {
 
         if (this.isDashing) {
             this.body.setVelocityX(this.dashDir * PLAYER_CONFIG.dashSpeed);
+        } else if (now < this.wallJumpLockUntil) {
+            // Tras el wall jump se conserva el impulso: no se vuelve a la pared apretando hacia ella.
         } else {
             // Inercia: acelera hacia la dirección y desliza al soltar.
             const dt = Math.min(deltaMs, 50) / 1000;
@@ -419,6 +441,7 @@ export class Player {
                 b.position.y -= step + 0.5;
                 b.prev.y -= step + 0.5;
                 b.setVelocityY(0);
+                this.squashBounce(1.12, 0.9);
                 b.setVelocityX(Math.max(Math.abs(this.prevVx), PLAYER_CONFIG.speed * 0.6) * dir);
                 return;
             }

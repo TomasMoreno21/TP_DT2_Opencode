@@ -5,22 +5,33 @@ export const FEEL = {
     // Congelación del mundo (ms).
     // Hitstop del punto por multiplicador x1..x5: a combo alto se acorta y en x5 lo
     // reemplaza un punch de zoom (el juego fluye en vez de ir a golpes).
-    hitstop: { point: [34, 28, 22, 14, 0], death: 80 },
+    hitstop: { point: [34, 28, 22, 14, 0], death: 80, wall: 25, perfect: 40 },
 
     // Cámara lenta [duración ms, factor de tiempo].
     slowmo: { death: { ms: 700, factor: 0.35 } },
 
     // Sacudidas de cámara [duración ms, intensidad].
     shake: {
-        dash: [90, 0.0035],
+        dash: [90, 0.0035, 'x'],
+        land: [110, 0.005, 'y'],
         shield: [160, 0.008],
         death: [400, 0.02],
         goal: [150, 0.006],
-        combo: [70, 0.002]
+        combo: [70, 0.002],
+        wall: [90, 0.004],
+        perfect: [140, 0.007]
     },
 
     // Zoom por combo.
     zoom: { comboHigh: 1.03, comboMultiplier: 4, ms: 300, punch: 1.018, punchMs: 80 },
+
+    // Imán: con combo alto los puntos cercanos se acercan al jugador. Graze: pasar rozando
+    // un proyectil rellena una parte de la ventana del combo.
+    magnet: { minMult: 3, range: 52, speed: 140 },
+    graze: { distance: 30, refill: 0.25 },
+
+    // Viñeta que se cierra con la tensión (0..1).
+    vignette: { maxStrength: 0.55, minRadius: 0.6, maxRadius: 1 },
 
     // Dash: ventana de buffer (ms) para no perder un Shift apretado un instante antes de tiempo.
     dash: { bufferMs: 120 },

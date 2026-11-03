@@ -73,6 +73,17 @@ export class Point {
         }
     }
 
+    // Imán: corre el punto (y su halo y brillo) hacia el jugador; el cuerpo es estático, se resincroniza.
+    pull(dx, dy) {
+        this.circle.x += dx;
+        this.circle.y += dy;
+        this.halo.x += dx;
+        this.halo.y += dy;
+        this.shine.x += dx;
+        this.shine.y += dy;
+        this.circle.body.updateFromGameObject();
+    }
+
     // Cerca de perder el combo el halo late más rápido: urgencia visible.
     setUrgent(urgent) {
         if (this.urgent === urgent || !this.pulseTween) {

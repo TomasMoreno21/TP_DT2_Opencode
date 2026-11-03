@@ -53,6 +53,16 @@ export class Goal {
         this.lastTime = null;
         this.openColor = goalOpenColor;
         this.openLabelColor = goalOpenLabelColor;
+    }
+
+    // La salida de la torre se coloca al cumplir la cuota, donde se detiene el nivel.
+    moveTo(x, y) {
+        this.x = x;
+        this.y = y;
+        this.frame.setPosition(x, y);
+        this.frame.body.updateFromGameObject();
+        this.label.setPosition(x, y + GOAL_CONFIG.radius + 14);
+    }
 
     // Se llama cada frame desde Game.update: avanza el giro y vuelve a dibujar el vórtice.
     update(time) {
@@ -66,7 +76,7 @@ export class Goal {
         this.openK += ((this.isOpen ? 1 : 0) - this.openK) * 0.08;
         this.angle += this.speed * dt;
 
-        const color = lerpColor(this.openColor, GOAL_CONFIG.openColor, this.openK);
+        const color = lerpColor(GOAL_CONFIG.lockedColor, this.openColor, this.openK);
         const strength = 0.55 + 0.45 * this.openK;
         const g = this.swirl.clear();
 

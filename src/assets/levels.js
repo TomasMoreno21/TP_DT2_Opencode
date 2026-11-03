@@ -289,14 +289,6 @@ const BASE_LEVELS = [
             { x: 340, y: 708, w: 100 },
             { x: 774, y: 708, w: 100, offsetMs: 800 }
         ],
-        portals: [
-            // Par izquierdo: piso -> ruta lateral alta (ahorro de recorrido)
-            { x: 200, y: 688 },
-            { x: 340, y: 360 },
-            // Par derecho: piso -> ruta lateral alta
-            { x: 824, y: 688 },
-            { x: 684, y: 360 }
-        ],
         pointSpots: [
             { x: 200, y: 688 },
             { x: 820, y: 688 },

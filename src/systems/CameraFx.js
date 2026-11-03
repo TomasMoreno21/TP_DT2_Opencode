@@ -1,4 +1,4 @@
-import { Actions } from 'phaser';
+import { Actions, Math as PhaserMath } from 'phaser';
 import { FEEL } from '../assets/feel';
 import { Settings } from './Settings';
 
@@ -16,13 +16,28 @@ export class CameraFx {
         this.gray = null;
     }
 
-    // Sacudida por nombre: ver FEEL.shake.
+    // Sacudida por nombre: ver FEEL.shake. Un tercer valor ('x' o 'y') la limita a ese eje.
     shake(name) {
         if (this.reduceMotion) {
             return;
         }
 
-        this.camera.shake(...FEEL.shake[name]);
+        const [ms, k, axis] = FEEL.shake[name];
+
+        this.camera.shake(ms, axis ? new PhaserMath.Vector2(axis === 'x' ? k : 0, axis === 'y' ? k : 0) : k);
+    }
+
+    // Viñeta que se cierra con la tensión t (0..1); se arma al primer uso y se apaga en calma.
+    setVignette(t) {
+        if (this.reduceFlash || (!this.vignette && t < 0.2)) {
+            return;
+        }
+
+        const { maxStrength, minRadius, maxRadius } = FEEL.vignette;
+
+        this.vignette ??= this.camera.filters.external.addVignette(0.5, 0.5, maxRadius, 0);
+        this.vignette.strength = maxStrength * t * t;
+        this.vignette.radius = maxRadius - (maxRadius - minRadius) * t;
     }
 
     flash(ms, r, g, b) {

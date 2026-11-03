@@ -43,6 +43,11 @@ export class Trampoline {
 
         g.clear();
 
+        // Haz de luz: marca el carril libre sobre el trampolín (se apaga hacia arriba).
+        for (let i = 0; i < 8; i++) {
+            g.fillStyle(accentColor, 0.09 * (1 - i / 8) * (0.6 + 0.4 * glow)).fillRect(left + 6, top - 4 - (i + 1) * 56, w - 12, 56);
+        }
+
         // Halo en tres capas, como el de las plataformas.
         g.fillStyle(accentColor, 0.05 + 0.04 * glow).fillRect(left - 4, top - 14, w + 8, 14);
         g.fillStyle(accentColor, 0.09 + 0.05 * glow).fillRect(left - 2, top - 8, w + 4, 8);

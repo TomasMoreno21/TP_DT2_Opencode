@@ -42,13 +42,15 @@ const EVENTS = {
     perfect: () => {
         tone({ freq: 320, endFreq: 120, type: 'sine', duration: 0.18, volume: 0.32 });
         tone({ freq: 950, endFreq: 1500, type: 'triangle', duration: 0.14, volume: 0.18, delay: 0.04 });
+        tone({ freq: 1500, endFreq: 2250, type: 'sine', duration: 0.22, volume: 0.12, delay: 0.1 });
     },
     // El salto al suelo suena más grave que el wall jump; ambos con un soplido de aire.
     jump: ({ kind = 'ground' } = {}) => {
         noise({ duration: 0.06, volume: 0.05, priority: 0, filter: { type: 'highpass', freq: 1500 } });
 
         return kind === 'wall'
-            ? tone({ freq: 420, endFreq: 660, type: 'square', duration: 0.09, volume: 0.11 })
+            ? (noise({ duration: 0.1, volume: 0.1, priority: 1, filter: { type: 'bandpass', freq: 900, endFreq: 2400, q: 1.5 } }),
+                tone({ freq: 420, endFreq: 840, type: 'square', duration: 0.12, volume: 0.12 }))
             : tone({ freq: 300, endFreq: 480, type: 'square', duration: 0.08, volume: 0.1 });
     },
     // Aterrizaje: golpe grave más fuerte cuanto más rápida fue la caída (vy en px/s).
@@ -58,6 +60,8 @@ const EVENTS = {
         tone({ freq: 120, endFreq: 48, type: 'sine', duration: 0.12 + 0.1 * k, volume: 0.12 + 0.25 * k, priority: 0 });
         noise({ duration: 0.08 + 0.06 * k, volume: 0.1 * k + 0.03, priority: 0, filter: { type: 'lowpass', freq: 700, endFreq: 180 } });
     },
+    // Graze: chasquido agudo corto al rozar un proyectil.
+    graze: () => tone({ freq: 1500, endFreq: 2200, type: 'triangle', duration: 0.07, volume: 0.09, priority: 1 }),
     // Derrape: fricción corta al invertir la dirección corriendo.
     skid: () => noise({ duration: 0.09, volume: 0.07, priority: 0, filter: { type: 'bandpass', freq: 1900, endFreq: 900, q: 3 } }),
     // Pisada al correr: golpecito seco y bajo, apenas audible para no tapar la música.

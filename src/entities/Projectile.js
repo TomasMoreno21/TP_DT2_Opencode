@@ -9,8 +9,8 @@ export const PROJECTILE_CONFIG = {
     homingDurationMs: 500,
     homingSpeed: 90,
     minStraightSpeed: 90,
-    maxSpeed: 360,
-    acceleration: 500,
+    maxSpeed: 420,
+    acceleration: 600,
     ricochetMaxLifeMs: 8000,
     rastraTrailEveryMs: 90,
     rastraTrailLifeMs: 320
@@ -178,8 +178,11 @@ export class Projectile {
             return this.isExpired;
         }
 
+        // Contra la vista y no contra la pantalla: en la torre el mundo es más alto que ella.
+        const view = this.scene.cameras.main.worldView;
+
         return this.circle.x < -margin || this.circle.x > this.scene.scale.width + margin ||
-            this.circle.y < -margin || this.circle.y > this.scene.scale.height + margin;
+            this.circle.y < view.y - margin || this.circle.y > view.bottom + margin;
     }
 
     destroy() {
