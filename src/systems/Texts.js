@@ -1,6 +1,8 @@
-// Textos del juego por idioma. Español por defecto; el usuario pasa las
-// traducciones oficiales y se agregan como una clave más en STRINGS.
+// Textos del juego. Español por defecto; los demás idiomas vienen de Traducila
+// ({ key: texto en español, translate }) y se buscan por el texto ya armado.
 // Uso: Lang.t('play') o Lang.t('best', { v: 123 }).
+import enData from '../assets/translations_en.json';
+
 const LANG_KEY = 'fastMoveLang';
 
 const STRINGS = {
@@ -146,151 +148,38 @@ const STRINGS = {
         ach_speedster_desc: 'Llegá con la mitad del tiempo',
         ach_collector: 'Coleccionista',
         ach_collector_desc: 'Sumá 1000 puntos',
-    },
-    en: {
-        subtitle: 'Clear all {n} levels by hitting each point quota',
-        best: 'Best score: {v}',
-        rankLabel: 'RANK',
-        rank_bronze: 'BRONZE',
-        rank_silver: 'SILVER',
-        rank_gold: 'GOLD',
-        rank_none: '—',
-        timeBonus: 'TIME +{v}',
-        sumTotalTime: 'Total time',
-        sumScore: 'Points',
-        sumTime: 'Time bonus',
-        sumMods: 'Modifiers',
-        sumCombo: 'Max combo',
-        sumDeaths: 'Deaths',
-        ranksMenu: 'Ranks',
-        play: 'PLAY',
-        hudScore: 'SCORE',
-        hudQuota: 'GOAL {c}/{q}',
-        hudLevel: 'LEVEL {c}/{t}',
-        hudAir: 'AIRBORNE x{n}',
-        hudExit: 'EXIT',
-        introLevel: 'LEVEL {n}',
-        introGo: 'GO!',
-        mod_shortClock: 'Short clock',
-        mod_burst: 'Barrage',
-        mod_slowDash: 'Slow dash',
-        mod_fragileCombo: 'Fragile combo',
-        mod_singlePoint: 'Single point',
-        mod_highGoal: 'High goal',
-        modBonus: 'MODIFIERS +{v}',
-        optModifiers: 'Modifiers mode',
-        tabNormal: 'NORMAL',
-        tabMods: 'MODIFIERS',
-        introTipFragile: 'Fragile platforms drop when stepped on: keep moving',
-        introTipHazard: 'Spikes shake before they pop out: cross when they retract or grab the shield',
-        introTipVoid: 'The stage climbs on its own: do not fall behind. Grab the orbs and the exit appears',
-        optionsBtn: 'OPTIONS',
-        optionsTitle: 'OPTIONS',
-        optReduceFlash: 'Reduce flashes',
-        optReduceMotion: 'Reduce motion',
-        optHint: 'Applies from the next game',
-        overMissing: 'You were {n} short of the goal',
-        overTipHit: 'Tip: the dash (Shift) makes you briefly invulnerable',
-        overTipTime: 'Tip: chain points without stopping to reach the goal in time',
-        streak5: 'STREAK!',
-        streak10: 'UNSTOPPABLE!',
-        streakFrenzy: 'FRENZY!',
-        rankingBtn: 'RANKING',
-        rankingTitle: 'LOCAL RANKING',
-        rankingEmpty: 'No scores yet. Be the first!',
-        rankingBack: 'BACK',
-        rankingClear: 'CLEAR',
-        rankingClearSure: 'SURE? CLICK AGAIN',
-        colName: 'NAME',
-        colScore: 'SCORE',
-        colLevels: 'LEVELS',
-        colCombo: 'COMBO',
-        colDate: 'DATE',
-        entryTitle: 'YOU MADE THE TOP 10!',
-        entryPlace: 'Place #{p} · {s} points',
-        entryPrompt: 'Enter your initials',
-        entryHint: '↑ ↓ change letter · ← → move · Enter confirms',
-        entryOk: 'OK',
-        entryContinue: 'CONTINUE',
-        generating: 'Generating levels...',
-        newLevels: 'NEW LEVELS',
-        seed: 'Seed: {n}',
-        controls: 'CONTROLS',
-        controlsTitle: 'Controls',
-        rowMove: 'Move',
-        rowMoveC: 'A / D  or  ← / →',
-        rowJump: 'Jump',
-        rowJumpC: 'Space / W  or  ↑',
-        rowGrab: 'Wall grab',
-        rowGrabC: 'Hold toward a wall',
-        rowWallJump: 'Wall jump',
-        rowWallJumpC: 'Jump touching a wall -> opposite side',
-        rowDash: 'Dash',
-        rowDashC: 'Shift',
-        rowMisc: 'Retry / Mute',
-        rowMiscC: 'R / M',
-        popupHint: 'click outside to close',
-        lang: 'LANGUAGE',
-        langTitle: 'Idioma / Language',
-        langEs: 'Español',
-        langEn: 'English',
-        tutMove: 'Move',
-        tutJump: 'Jump',
-        tutGrab: 'Hold against a wall',
-        tutWallJump: 'On the wall, jump',
-        tutDash: 'Dash',
-        tutOr: 'or',
-        tutOk: 'Nice!',
-        tutDone: 'Done! You know how to move',
-        tutSkip: 'T = skip tutorial',
-        prTitle: 'Practice: {m}',
-        prExit: 'Now head to the exit',
-        prRetry: 'Close, try again!',
-        prSkip: 'Enter = skip practice',
-        prDone: 'Practice done!',
-        coachHazard: 'Tip: spikes shake before they pop out. Cross when they retract or use the dash',
-        coachVoid: 'Tip: keep moving. Use dash (SHIFT) for the long jumps',
-        coachProjectile: 'Tip: the red circle warns where the ball comes from. Dash makes you invulnerable',
-        coachTime: 'Tip: grab the nearby points first.',
-        tutorialBtn: 'TUTORIAL',
-        tutorialTitle: 'Tutorial and badges',
-        tutorialOn: 'Tutorial on',
-        tutorialOff: 'Tutorial off',
-        tutorialReset: 'Reset tutorial',
-        pauseTitle: 'PAUSED',
-        pauseResume: 'RESUME',
-        pauseNew: 'NEW LEVEL',
-        pauseMenu: 'MENU',
-        pauseGenerating: 'Generating...',
-        pauseHint: 'ESC = resume',
-        badgesTitle: 'Badges',
-        badgeNew: 'Badge: {n}',
-        badge_wallJump: 'Wall jump',
-        badge_dash: 'Dash',
-        badge_perfect: 'Perfect bounce',
-        badge_shield: 'Saving shield',
-        badge_void: 'Escaped the Void',
-        achievementsBtn: 'AWARDS',
-        achievementsTitle: 'Achievements',
-        achNew: 'Achievement: {n}',
-        ach_noDeaths: 'No falls',
-        ach_noDeaths_desc: 'Clear a level without dying',
-        ach_maxCombo: 'Maxed out',
-        ach_maxCombo_desc: 'Reach x5 combo',
-        ach_champion: 'Champion',
-        ach_champion_desc: 'Clear the campaign',
-        ach_gold: 'Gold medal',
-        ach_gold_desc: 'Gold rank in a level',
-        ach_goldAll: 'All gold',
-        ach_goldAll_desc: 'Gold rank in every level',
-        ach_airborne: 'Flying',
-        ach_airborne_desc: 'Air chain of 5',
-        ach_speedster: 'Speedster',
-        ach_speedster_desc: 'Finish with half the time left',
-        ach_collector: 'Collector',
-        ach_collector_desc: 'Score 1000 points',
     }
 };
+
+// Mapa por idioma: clave en minúsculas -> traducción.
+const TRANSLATIONS = {
+    en: new Map(enData.data.words.map((w) => [w.key.toLowerCase(), w.translate]))
+};
+
+function translate (lang, text)
+{
+    const map = TRANSLATIONS[lang];
+    const lower = text.toLowerCase();
+    let out = map.get(lower);
+
+    if (out === undefined) {
+        // Claves que terminan en ':' valen como prefijo ("Mejor puntaje: 120").
+        for (const [key, value] of map) {
+            if (key.endsWith(':') && lower.startsWith(key)) {
+                out = value + text.slice(key.length);
+                break;
+            }
+        }
+    }
+
+    if (out === undefined) {
+        return text;
+    }
+
+    const isUpper = text === text.toUpperCase() && text !== text.toLowerCase();
+
+    return isUpper ? out.toUpperCase() : out;
+}
 
 export const Lang = {
     current: 'es',
@@ -300,7 +189,7 @@ export const Lang = {
         try {
             const saved = localStorage.getItem(LANG_KEY);
 
-            if (saved && STRINGS[saved]) {
+            if (saved && (STRINGS[saved] || TRANSLATIONS[saved])) {
                 this.current = saved;
             }
         } catch {
@@ -310,7 +199,7 @@ export const Lang = {
 
     set (lang)
     {
-        if (!STRINGS[lang]) {
+        if (!STRINGS[lang] && !TRANSLATIONS[lang]) {
             return;
         }
 
@@ -325,12 +214,12 @@ export const Lang = {
 
     t (key, vars = {})
     {
-        let text = STRINGS[this.current][key] ?? STRINGS.es[key] ?? key;
+        let text = STRINGS.es[key] ?? key;
 
         for (const [name, value] of Object.entries(vars)) {
             text = text.replace(`{${name}}`, value);
         }
 
-        return text;
+        return this.current === 'es' ? text : translate(this.current, text);
     }
 };

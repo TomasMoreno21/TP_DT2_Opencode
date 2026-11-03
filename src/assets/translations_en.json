@@ -1,0 +1,36 @@
+{
+  "data": {
+    "project": "Fast Move",
+    "language": "en",
+    "words": [
+      { "key": "Saltá tocando una pared -> lado opuesto", "translate": "Jump touching a wall -> opposite side" },
+      { "key": "Idioma", "translate": "Language" },
+      { "key": "Completá los 2 niveles juntando la meta de puntos de cada uno", "translate": "Clear all 2 levelsd by hitting each point quota" },
+      { "key": "Reintentar / Mute", "translate": "Retry / Mute" },
+      { "key": "Mantené la dirección contra una pared", "translate": "Hold toward a wall" },
+      { "key": "Tutorial e insignias", "translate": "Tutorial and badges" },
+      { "key": "Opciones", "translate": "Options" },
+      { "key": "Reiniciar tutorial", "translate": "Reset tutorial" },
+      { "key": "Mejor puntaje:", "translate": "Best score:" },
+      { "key": "Controles", "translate": "Controls" },
+      { "key": "Saltar", "translate": "Jump" },
+      { "key": "Ranking", "translate": "Ranking" },
+      { "key": "Puntaje", "translate": "Score" },
+      { "key": "Tutorial", "translate": "Tutorial" },
+      { "key": "Mover", "translate": "Move" },
+      { "key": "Nombre", "translate": "Name" },
+      { "key": "Borrar", "translate": "Clear" },
+      { "key": "Jugar", "translate": "Play" },
+      { "key": "Rebote perfecto", "translate": "Perfect bounce" },
+      { "key": "Volver", "translate": "Back" },
+      { "key": "clic afuera para cerrar", "translate": "click outside to close" },
+      { "key": "Fecha", "translate": "Fecha" },
+      { "key": "Niveles", "translate": "Levels" },
+      { "key": "Ranking Local", "translate": "Local Ranking" },
+      { "key": "Nuevos Niveles", "translate": "New levels" },
+      { "key": "Tutorial activado", "translate": "Tutorial on" },
+      { "key": "Escudo salvador", "translate": "Saving shield" }
+    ]
+  },
+  "error": null
+}
