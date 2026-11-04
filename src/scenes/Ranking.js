@@ -64,7 +64,7 @@ export class Ranking extends Scene
         }
 
         // Pestañas Normal / Modificadores (cada una con su propio ranking).
-        [['normal', 'tabNormal', 330], ['mods', 'tabMods', 570]].forEach(([mode, key, x]) => {
+        [['normal', 'tabNormal', (WORLD.width / 2) - 120], ['mods', 'tabMods', (WORLD.width / 2) + 120]].forEach(([mode, key, x]) => {
             const tab = new MenuButton(this, {
                 x, y: 574, w: 220, h: 34, label: Lang.t(key), style: mode === this.mode ? 'primary' : 'ghost', delay: 300,
                 onClick: () => {
