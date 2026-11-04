@@ -84,7 +84,6 @@ const EVENTS = {
         tone({ freq: 160, endFreq: 50, type: 'triangle', duration: 0.22, volume: 0.16, pan: panFor(x), priority: 1 });
     },
     fragileBack: ({ x } = {}) => tone({ freq: 520, endFreq: 780, type: 'sine', duration: 0.12, volume: 0.08, pan: panFor(x), priority: 0 }),
-    portal: () => tone({ freq: 500, endFreq: 1800, type: 'sine', duration: 0.16, volume: 0.14 }),
     shield: () => tone({ freq: 380, endFreq: 760, type: 'sine', duration: 0.18, volume: 0.2 }),
     hit: () => {
         duck(0.3, 400);

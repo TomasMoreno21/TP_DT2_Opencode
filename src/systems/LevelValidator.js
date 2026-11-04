@@ -1,7 +1,6 @@
 import { PLAYER_CONFIG } from '../entities/Player.js';
 import { WORLD } from '../assets/levels.js';
 import { TRAMPOLINE_CONFIG } from '../entities/Trampoline.js';
-import { PORTAL_CONFIG } from '../entities/Portal.js';
 import { moverOffset } from '../entities/MovingPlatform.js';
 
 const DT = 1 / 60;
@@ -25,13 +24,11 @@ const PICKUP_DX = 24;
 const PICKUP_DY = 32;
 const GOAL_DX = 44;
 const GOAL_DY = 50;
-const PORTAL_CHARGE_FRAMES = Math.ceil((PORTAL_CONFIG.chargeMs / 1000) / DT);
 const TRAMPOLINE_PERFECT_HALF = TRAMPOLINE_CONFIG.perfectZoneHalf;
 
 // El validador replica la física del jugador en una grilla de 60 Hz y explora
 // con BFS todos los estados alcanzables. Modela plataformas, trampolines
 // (rebote base/perfecto con el mismo clamp del techo que Trampoline.bounce),
-// portales (solo entrando parado, porque exigen 350 ms de carga) y
 // plataformas móviles (como copias estáticas a lo largo de su ruta: asume que
 // el jugador puede subirse en el momento justo). Los pinchos y proyectiles no
 // bloquean la ruta (son temporales), así que no se modelan.
@@ -344,13 +341,11 @@ export class LevelValidator {
         // opts.startFrame: frame del nivel en el que arranca la busqueda (replanificar en vivo).
         const f0 = opts.startFrame ?? 0;
         const platforms = platformsAt(f0);
-        const portals = this.pairPortals(config);
         const wantPath = Boolean(opts.path);
         const start = opts.start ?? { x: config.spawn.x, y: config.spawn.y, vx: 0, vy: 0 };
         const maxFrames = opts.maxFrames ?? this.maxFrames;
 
-        // Cola por buckets de profundidad: los portales saltan varios frames de
-        // golpe y una FIFO simple rompería el orden de llegada mínimo.
+        // Cola por buckets de profundidad (frames transcurridos).
         const buckets = [];
         const push = (depth, state, parent, move) => {
             (buckets[depth] ??= []).push({ state, parent: wantPath ? parent : null, move });
@@ -484,18 +479,6 @@ export class LevelValidator {
                         push(depth + 1, next, node, { dir, jump: false, dash: true });
                     }
                 }
-
-                // Portal: hay que esperar parado dentro del sensor durante la carga.
-                if (state.grounded) {
-                    for (const portal of portals) {
-                        if (Math.abs(state.x - portal.x) < PORTAL_CONFIG.width / 2 + HW &&
-                            Math.abs(state.y - portal.y) < PORTAL_CONFIG.height / 2 + HH) {
-                            const dest = portal.linked;
-                            const landed = withDash(moveBody({ x: dest.x, y: dest.y - HH, vx: 0, vy: 0 }, stepPlatforms), Math.max(0, state.dashCd - PORTAL_CHARGE_FRAMES));
-                            push(depth + PORTAL_CHARGE_FRAMES, landed, node, { dir: 0, jump: false, wait: PORTAL_CHARGE_FRAMES });
-                        }
-                    }
-                }
             }
         }
 
@@ -514,18 +497,6 @@ export class LevelValidator {
     // objetivo, o null. La usa el bot de pruebas de tools/playbot.js.
     findPath(config, start, target, maxFrames = 600, opts = {}) {
         return this.explore(config, [{ ...target, frames: Infinity }], { ...opts, start, path: true, maxFrames });
-    }
-
-    // Replica Level.materializePortals: pares consecutivos, el impar se descarta.
-    pairPortals(config) {
-        const data = config.portals || [];
-        const paired = data.length - (data.length % 2);
-        const list = data.slice(0, paired).map((p) => ({ x: p.x, y: p.y, linked: null }));
-        for (let i = 0; i + 1 < list.length; i += 2) {
-            list[i].linked = list[i + 1];
-            list[i + 1].linked = list[i];
-        }
-        return list;
     }
 
     // ¿Se alcanza la salida en menos de `maxFrames` frames? (busqueda solo de la

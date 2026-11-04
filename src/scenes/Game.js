@@ -1,7 +1,6 @@
 import { Scene } from 'phaser';
 import { Level } from '../systems/Level';
 import { Player, PLAYER_CONFIG } from '../entities/Player';
-import { PORTAL_CONFIG } from '../entities/Portal';
 import { RisingVoid } from '../entities/RisingVoid';
 import { buildTower } from '../systems/TowerLevel';
 import { PointSpawner } from '../systems/PointSpawner';
@@ -275,16 +274,6 @@ export class Game extends Scene
                     Audio.play('shield');
                     this.floatingText.show(powerUp.x, powerUp.y - 28, '¡ESCUDO!', '#2dd4ff', 20);
                     this.burstAt(powerUp.x, powerUp.y, 0x2dd4ff);
-                }
-            });
-        }
-
-        if (this.level.portalList.length) {
-            this.physics.add.overlap(this.player.rect, this.level.portals, (player, sensor) => {
-                const portal = this.level.portalList.find((p) => p.sensor === sensor);
-
-                if (portal && portal.status === 'idle') {
-                    portal.beginCharge();
                 }
             });
         }
@@ -742,7 +731,6 @@ export class Game extends Scene
         }
 
         this.updateAirStreak();
-        this.updatePortals();
         this.updateVoid(delta);
     }
 
@@ -853,39 +841,6 @@ export class Game extends Scene
 
         if (near) {
             this.level.goal.moveTo(near.x, near.y - near.h / 2 - 36);
-        }
-    }
-
-    // Gestiona la carga de los portales: la cancela si el jugador se aleja y
-    // ejecuta el salto cuando el aviso termina.
-    updatePortals() {
-        if (this.level.portalList.length === 0) {
-            return;
-        }
-
-        const playerRect = this.player.rect;
-
-        for (const portal of this.level.portalList) {
-            if (portal.status !== 'charging') {
-                continue;
-            }
-
-            const stillTouching = Math.abs(playerRect.x - portal.x) <= (playerRect.width + PORTAL_CONFIG.width) / 2 &&
-                Math.abs(playerRect.y - portal.y) <= (playerRect.height + PORTAL_CONFIG.height) / 2;
-
-            if (!stillTouching) {
-                portal.cancelCharge();
-                continue;
-            }
-
-            if (portal.isCharged) {
-                portal.teleport(playerRect);
-                Audio.play('portal');
-                this.unlockBadge('portal');
-                this.burstAt(portal.x, portal.y, 0x9d7bff);
-                this.burstAt(this.player.rect.x, this.player.rect.y, 0x9d7bff);
-                this.camFx.flash(120, 157, 123, 255);
-            }
         }
     }
 

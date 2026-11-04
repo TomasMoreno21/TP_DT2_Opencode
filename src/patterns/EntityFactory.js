@@ -6,7 +6,6 @@ import { MovingPlatform } from '../entities/MovingPlatform';
 import { FragilePlatform } from '../entities/FragilePlatform';
 import { Hazard } from '../entities/Hazard';
 import { PowerUp } from '../entities/PowerUp';
-import { Portal } from '../entities/Portal';
 
 export class EntityFactory {
     static createPoint(scene, x, y) {
@@ -43,9 +42,5 @@ export class EntityFactory {
 
     static createPowerUp(scene, data) {
         return new PowerUp(scene, data);
-    }
-
-    static createPortal(scene, data) {
-        return new Portal(scene, data);
     }
 }

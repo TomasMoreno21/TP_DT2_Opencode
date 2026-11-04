@@ -162,7 +162,7 @@ export const LEVEL_TUNING = {
         bounceLayoutPriority: true,
         trampolineClearance: true
     },
-    // N3-N5 (frágiles, pinchos y portales): varias formas por nivel y mecánicas mutadas
+    // N3-N5 (frágiles y pinchos): varias formas por nivel y mecánicas mutadas
     // (ver LevelShapes.js); sin mutación de plataformas ni BFS al jugar.
     3: { 
         shaped: true,
@@ -186,7 +186,7 @@ export const LEVEL_TUNING = {
     },
     5: { 
         shaped: true,
-        // N5: portales y combinaciones, máxima variedad y combinaciones complejas
+        // N5: máxima variedad y combinaciones complejas
         selectionTemperature: 0.6,
         maxIntensity: 1.0,
         minNovelty: 7,
@@ -904,7 +904,7 @@ export class LevelGenerator {
         const flip = (e) => { if (e && typeof e.x === 'number') e.x = W - e.x; };
         flip(cfg.spawn);
         flip(cfg.goal);
-        for (const key of ['platforms', 'pointSpots', 'gems', 'trampolines', 'hazards', 'powerUps', 'portals', 'movingPlatforms']) {
+        for (const key of ['platforms', 'pointSpots', 'gems', 'trampolines', 'hazards', 'powerUps', 'movingPlatforms']) {
             for (const e of cfg[key] || []) flip(e);
         }
     }
@@ -914,13 +914,10 @@ export class LevelGenerator {
     // Si lleva un trampolín elevado, también viaja su "corredor": las plataformas
     // que lo flanquean por arriba (la boca por la que sale el rebote) y lo que hay
     // en ese hueco, para que no se desalinee. Los elementos son objetos con x/y
-    // (las plataformas además tienen w/h). Devuelve null si algo no transportable
-    // (un portal) depende de ella.
+    // (las plataformas además tienen w/h).
     _carriedBy(cfg, p) {
         const t = top(p);
         const on = (e, window) => Math.abs(e.x - p.x) <= p.w / 2 + 12 && (t - e.y) >= -14 && (t - e.y) <= window;
-
-        if ((cfg.portals || []).some((e) => on(e, 40))) return null;
 
         const carried = [];
         const trampolines = (cfg.trampolines || []).filter((e) => on(e, 26));
@@ -1040,7 +1037,7 @@ export class LevelGenerator {
             for (const e of cfg[key] || []) if (inBand(e) && above(e)) entities.push(e);
         }
         if (inBand(cfg.goal) && above(cfg.goal)) entities.push(cfg.goal);
-        if ((cfg.portals || []).some((e) => inBand(e)) || (cfg.movingPlatforms || []).some((m) => inBand(m))) return false;
+        if ((cfg.movingPlatforms || []).some((m) => inBand(m))) return false;
 
         const group = [...platforms, ...entities];
         const lo = Math.max(...platforms.map((p) => 60 + p.w / 2 - p.x), ...entities.map((e) => 70 - e.x));
@@ -1133,16 +1130,13 @@ export class LevelGenerator {
         return n >= range.min && n <= range.max;
     }
 
-    // Lleva la cantidad de trampolines a `target` (quita al azar los que no están
-    // atados a un portal; agrega clonando el ancho de uno existente, en el piso o
+    // Lleva la cantidad de trampolines a `target` (quita al azar; agrega clonando el ancho de uno existente, en el piso o
     // sobre una plataforma). Devuelve cuántos cambió.
     _setTrampolineCount(rng, cfg, target) {
         const list = cfg.trampolines || (cfg.trampolines = []);
         let changed = 0;
         for (let guard = 0; list.length > target && guard < 6; guard++) {
-            const removable = list.filter((t) => !this._isPortalBound(cfg, t));
-            if (removable.length === 0) break;
-            list.splice(list.indexOf(rng.pick(removable)), 1);
+            list.splice(list.indexOf(rng.pick(list)), 1);
             changed++;
         }
         for (let guard = 0; list.length < target && guard < 6; guard++) {
@@ -1175,7 +1169,6 @@ export class LevelGenerator {
         let changed = this._setTrampolineCount(rng, cfg, rng.int(range.min, range.max)) > 0;
 
         for (const t of cfg.trampolines || []) {
-            if (this._isPortalBound(cfg, t)) continue;
             const plats = () => (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
 
             if (rng.chance(0.5)) {
@@ -1192,7 +1185,6 @@ export class LevelGenerator {
     // Pone el trampolín `t` sobre una plataforma libre de juego (con su zona libre
     // y algo a lo que subir). Si ningún intento sirve, `t` queda donde estaba.
     _placeTrampolineOnPlatform(rng, cfg, t) {
-        if (this._isPortalBound(cfg, t)) return false;
         const surfaces = this._surfaces(cfg).filter((s) => this._isPlayPlatform(s) && s.y < FLOOR_TOP - 40 && s.w >= t.w + 40);
         if (surfaces.length === 0) return false;
 
@@ -1203,8 +1195,7 @@ export class LevelGenerator {
             t.x = Math.round(rng.range(left(surface) + margin, right(surface) - margin));
             t.y = Math.round(top(surface) - TRAMPOLINE_HALF_HEIGHT);
             const plats = (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
-            if (this._trampolineWorks(t, plats) && !this._entityNearTrampoline(cfg, t, true) &&
-                (cfg.portals || []).every((pt) => Math.abs(pt.x - t.x) >= t.w / 2 + 90)) {
+            if (this._trampolineWorks(t, plats) && !this._entityNearTrampoline(cfg, t, true)) {
                 this._clearAroundTrampolines(rng, cfg);
                 return true;
             }
@@ -1237,7 +1228,7 @@ export class LevelGenerator {
         const clone = (list) => list.map((e) => ({ ...e }));
         const keep = (cfg.platforms || []).filter((p) => !(this._isPlayPlatform(p) && p.y < FLOOR_TOP - 20 && !p.fixed));
         cfg.platforms = [...keep, ...clone(shape.platforms)];
-        cfg.trampolines = [...(cfg.trampolines || []).filter((t) => this._isPortalBound(cfg, t)), ...clone(shape.trampolines)];
+        cfg.trampolines = clone(shape.trampolines);
         this._lastChannels = shape.channels;
         this._macroActive = true;
 
@@ -1384,11 +1375,10 @@ export class LevelGenerator {
         for (const t of cfg.trampolines || []) {
             const playPlatforms = (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
             const floor = t.y >= FLOOR_TOP - 12;
-            const portalBound = this._isPortalBound(cfg, t);
-            const blocks = (p) => (portalBound ? this._blocksBounceLane(t, p) : this._blocksTrampoline(t, p));
+            const blocks = (p) => this._blocksTrampoline(t, p);
 
             // Un trampolín del piso tapado se prueba primero en otro lugar libre.
-            if (floor && !portalBound) {
+            if (floor) {
                 if (!this._trampolineWorks(t, playPlatforms) || this._entityNearTrampoline(cfg, t)) this._placeTrampoline(rng, cfg, t);
                 if (this._trampolineWorks(t, (cfg.platforms || []).filter((p) => this._isPlayPlatform(p)))) continue;
             }
@@ -1422,7 +1412,7 @@ export class LevelGenerator {
             // Si su lugar no se pudo despejar (p. ej. un trampolín sobre una
             // escalera, rodeado de escalones), se lo baja al piso donde haya lugar.
             const stillBlocked = cfg.platforms.some((p) => this._blocksTrampoline(t, p)) || this._entityNearTrampoline(cfg, t);
-            if (stillBlocked && !floor && !portalBound) {
+            if (stillBlocked && !floor) {
                 const old = { x: t.x, y: t.y };
                 t.y = FLOOR_TOP - TRAMPOLINE_HALF_HEIGHT;
                 if (!this._placeTrampoline(rng, cfg, t)) {
@@ -1449,11 +1439,11 @@ export class LevelGenerator {
     // hay ninguno, hace lugar quitando las plataformas libres que menos estorban.
     // Devuelve false si no lo logra (queda donde estaba).
     _placeTrampoline(rng, cfg, t) {
-        // Solo los del piso; y no se toca un trampolín que comparta lugar con un portal.
-        if (t.y < FLOOR_TOP - 12 || this._isPortalBound(cfg, t)) return false;
+        // Solo los del piso.
+        if (t.y < FLOOR_TOP - 12) return false;
 
         const playPlatforms = () => (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
-        const entityOk = (probe) => (cfg.portals || []).every((pt) => Math.abs(pt.x - probe.x) >= t.w / 2 + 90) &&
+        const entityOk = (probe) =>
             !this._entityNearTrampoline({ ...cfg, trampolines: (cfg.trampolines || []).map((o) => (o === t ? probe : o)) }, probe, true);
 
         const xs = [];
@@ -2103,7 +2093,7 @@ export class LevelGenerator {
     _platformFits(cfg, p) {
         const pad = 26;
         const hits = (e) => e.x > left(p) - pad && e.x < right(p) + pad && e.y > top(p) - 60 && e.y < bottom(p) + 60;
-        const lists = ['pointSpots', 'gems', 'powerUps', 'portals', 'trampolines', 'hazards'];
+        const lists = ['pointSpots', 'gems', 'powerUps', 'trampolines', 'hazards'];
 
         if (lists.some((key) => (cfg[key] || []).some(hits))) return false;
         if (hits(cfg.goal) || hits(cfg.spawn)) return false;
@@ -2122,7 +2112,7 @@ export class LevelGenerator {
         const plats = (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
         let n = 0;
         for (const t of cfg.trampolines || []) {
-            if (t === skip || this._isPortalBound(cfg, t)) continue;
+            if (t === skip) continue;
             if (plats.some((p) => this._blocksTrampoline(t, p))) n++;
         }
         return n;
@@ -2195,12 +2185,6 @@ export class LevelGenerator {
             right(p) > t.x - half && left(p) < t.x + half && bottom(p) > t.y - height && top(p) < t.y - 6;
         const perfectHalf = Math.min(TRAMPOLINE_CONFIG.perfectZoneHalf, t.w / 2) + PLAYER_HALF_WIDTH;
         return overlaps(t.w / 2 + PLAYER_HALF_WIDTH, TRAMPOLINE_BASE_APEX) || overlaps(perfectHalf, TRAMPOLINE_PERFECT_APEX);
-    }
-
-    // Trampolín montado junto a un portal (combinación diseñada, como en N5): no se
-    // mueve y queda exento de la zona libre (solo se le exige el pasillo vertical del rebote).
-    _isPortalBound(cfg, t) {
-        return (cfg.portals || []).some((p) => Math.abs(p.x - t.x) < 90 && Math.abs(p.y - t.y) < 60);
     }
 
     // ¿`p` es la plataforma sobre la que está apoyado el trampolín `t`?
@@ -2335,11 +2319,6 @@ _trampolinesUsable(cfg) {
     const platforms = (cfg.platforms || []).filter((p) => this._isPlayPlatform(p));
 
     for (const t of cfg.trampolines || []) {
-        if (this._isPortalBound(cfg, t)) {
-                // Solo el pasillo vertical del rebote tiene que estar libre.
-                if (platforms.some((p) => this._blocksBounceLane(t, p))) return false;
-                continue;
-            }
             if (platforms.some((p) => this._blocksTrampoline(t, p))) return false;
             if (this._entityNearTrampoline(cfg, t)) return false;
 
@@ -2529,7 +2508,6 @@ _trampolinesUsable(cfg) {
             if ((cfg.trampolines || []).some((t) => Math.abs(t.x - x) < t.w / 2 + 80 && Math.abs(t.y - y) < 110)) continue;
             if ((cfg.hazards || []).some((h) => Math.abs(h.x - x) < h.w / 2 + 45 && Math.abs(h.y - y) < 60)) continue;
             if ((cfg.powerUps || []).some((u) => Math.hypot(u.x - x, u.y - y) < 70)) continue;
-            if ((cfg.portals || []).some((u) => Math.hypot(u.x - x, u.y - y) < 90)) continue;
             if ((cfg.movingPlatforms || []).some((m) => this._insideMoverRoute(m, x, y, 50))) continue;
             if (!this._hasHeadroom(cfg, x, y, 50)) continue;
 
@@ -2611,7 +2589,7 @@ _trampolinesUsable(cfg) {
         // Nada de spots dentro ni pegados a una columna (la parte baja de una columna
         // apoyada en el piso no cuenta como superficie).
         if ((cfg.platforms || []).some((p) => this._isColumn(p) && x > left(p) - 24 && x < right(p) + 24 && y > top(p) - 10 && y < bottom(p) + 10)) return false;
-        if (near(cfg.gems, 60) || near(cfg.powerUps, 50) || near(cfg.portals, 70)) return false;
+        if (near(cfg.gems, 60) || near(cfg.powerUps, 50)) return false;
         if ((cfg.pointSpots || []).some((s, i) => i !== ignoreIndex && Math.hypot(s.x - x, s.y - y) < 60)) return false;
         if ((cfg.trampolines || []).some((t) => Math.abs(t.x - x) < t.w / 2 + TRAMPOLINE_SPOT_GAP && Math.abs(t.y - y) < 60)) return false;
         if ((cfg.hazards || []).some((h) => Math.abs(h.x - x) < h.w / 2 + 25 && Math.abs(h.y - y) < 60)) return false;
@@ -2641,7 +2619,7 @@ _trampolinesUsable(cfg) {
     }
 
     // Una plataforma se puede mutar si es flotante, de tamaño normal y nada
-    // (trampolín, pincho, portal, móvil…) depende de su posición.
+    // (trampolín, pincho, móvil…) depende de su posición.
     _isFree(p, anchors, cfg) {
         if (p.fixed) return false;
         if (this._isCorridorMate(cfg, p)) return false;
@@ -2670,7 +2648,6 @@ _trampolinesUsable(cfg) {
         };
         push(cfg.trampolines, 26);
         push(cfg.hazards, 26);
-        push(cfg.portals, 40);
         push(cfg.powerUps, 26);
         push(cfg.movingPlatforms, 26);
         push(cfg.gems, 70);

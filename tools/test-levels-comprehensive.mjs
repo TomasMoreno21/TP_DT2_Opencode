@@ -61,11 +61,6 @@ function stretchLevel(level) {
         ...p,
         x: WALL + (p.x - WALL) * SX
     }));
-    if (level.portals) stretched.portals = level.portals.map(po => ({
-        ...po,
-        x: WALL + (po.x - WALL) * SX,
-        y: po.y
-    }));
     if (level.fragilePlatforms) stretched.fragilePlatforms = level.fragilePlatforms.map(f => ({
         ...f,
         x: WALL + (f.x - WALL) * SX
@@ -280,11 +275,10 @@ test('Different difficulty variants possible for same level', () => {
         // Verificar que haya configuración para variar
         const hasProjectiles = levelData.projectiles !== null;
         const hasFragiles = levelData.fragilePlatforms?.length > 0;
-        const hasPortals = levelData.portals?.length > 0;
         const hasHazards = levelData.hazards?.length > 0;
         
         // Al menos debería tener algunos elementos variables
-        if (!hasProjectiles && !hasFragiles && !hasPortals && !hasHazards) {
+        if (!hasProjectiles && !hasFragiles && !hasHazards) {
             throw new Error(`N${levelId} has no variable elements for difficulty variants`);
         }
     });

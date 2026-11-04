@@ -4,7 +4,7 @@ import { LAYOUT_STYLES, BOUNCE_STYLES, buildLayout, fitsLayout, floorSpots, fram
 
 // Niveles 1 a 5: la estructura sale de LevelLayout.js (grafo de plataformas con reglas de espacio
 // y carriles de trampolín reservados) y acá se le suman las mecánicas de cada nivel (frágiles,
-// pinchos, portales), los spots y la gema. Son builders puros: reciben el rng del generador y
+// pinchos), los spots y la gema. Son builders puros: reciben el rng del generador y
 // devuelven datos. Al jugar no se valida con BFS (es lento): cada estilo se barre offline con
 // tools/test-models.mjs (`npm run test-models`) y los parámetros se acotan para que cualquier
 // valor del rango sea alcanzable. Si se toca el generador hay que correrlo.
@@ -41,7 +41,7 @@ function pickFloor(rng, layout, count, apart, taken = []) {
 }
 
 // Pasa la estructura al formato del nivel: N3 y N5 convierten plataformas que no están en el
-// camino a la salida en frágiles; N4 y N5 suman lugares para pinchos y escudos; N5, portales.
+// camino a la salida en frágiles; N4 y N5 suman lugares para pinchos y escudos.
 function layoutToConfig(rng, levelId, layout) {
     const { items, path, trampolines, spawn, goal, goalItem, tower } = layout;
     const below = (p) => items.filter((q) => { for (let k = q.parent; k >= 0; k = items[k].parent) if (items[k] === p) return true; return false; });
@@ -97,7 +97,7 @@ function addFragileLedges(rng, cfg, count, ctx) {
         for (const [side, rise] of shuffle(rng, [[1, 0], [-1, 0], [1, -60], [-1, -60], [1, 60], [-1, 60]])) {
             const x = Math.round(base.x + side * (base.w / 2 + rng.int(100, 115) + w / 2));
             const top = base.y - base.h / 2 + rise;
-            const apart = [cfg.spawn, cfg.goal, ...(cfg.hazardSlots ?? []), ...(cfg.powerSlots ?? []), ...(cfg.portals ?? [])]
+            const apart = [cfg.spawn, cfg.goal, ...(cfg.hazardSlots ?? []), ...(cfg.powerSlots ?? [])]
                 .every((o) => Math.hypot(x - o.x, top - o.y) > 90);
 
             if (apart && fitsLayout({ x, top, w }, items, ctx)) {
@@ -161,7 +161,6 @@ function spotCandidates(cfg) {
     });
     const nearAny = (c) => [
         ...(cfg.hazards ?? []).map((h) => ({ x: h.x, y: h.y, r: h.w / 2 + 28 })),
-        ...(cfg.portals ?? []).map((p) => ({ x: p.x, y: p.y, r: 50 })),
         ...(cfg.trampolines ?? []).map((t) => ({ x: t.x, y: t.y, r: t.w / 2 + 40 })),
         ...(cfg.powerUps ?? []).map((p) => ({ x: p.x, y: p.y, r: 45 })),
         { x: cfg.spawn.x, y: cfg.spawn.y, r: 70 },
@@ -290,14 +289,13 @@ function mutateMechanics(rng, levelId, cfg, hazardCap = Infinity) {
 
     if (cfg.hazardSlots) {
         const wanted = Math.min(hazardCap, levelId === 4 ? rng.int(2, 4) : rng.int(1, 2));
-        // Los pinchos no van junto al spawn ni a la salida, ni tapan un portal o el trampolin, ni
+        // Los pinchos no van junto al spawn ni a la salida, ni tapan el trampolin, ni
         // quedan casi pegados a otros de la misma fila.
         const chosen = [];
 
         for (const h of shuffle(rng, cfg.hazardSlots)) {
             const free = Math.hypot(h.x - cfg.spawn.x, h.y - cfg.spawn.y) >= h.w / 2 + 80 &&
                 Math.hypot(h.x - cfg.goal.x, h.y - cfg.goal.y) >= h.w / 2 + 70 &&
-                (cfg.portals ?? []).every((p) => Math.hypot(h.x - p.x, h.y - p.y) > 100) &&
                 (cfg.trampolines ?? []).every((tr) => Math.hypot(h.x - tr.x, h.y - tr.y) > tr.w / 2 + h.w / 2 + 40) &&
                 chosen.every((o) => Math.abs(o.y - h.y) >= 20 || Math.abs(o.x - h.x) >= (o.w + h.w) / 2 + 70);
 
@@ -335,7 +333,7 @@ function mirror(cfg) {
     flip(cfg.spawn);
     flip(cfg.goal);
 
-    for (const key of ['platforms', 'fragilePlatforms', 'pointSpots', 'trampolines', 'hazards', 'powerUps', 'portals']) {
+    for (const key of ['platforms', 'fragilePlatforms', 'pointSpots', 'trampolines', 'hazards', 'powerUps']) {
         for (const e of cfg[key] ?? []) flip(e);
     }
 }
@@ -361,7 +359,7 @@ export function generateShapedLevel(rng, levelId, baseConfig, forceShape = null)
     let ctx = { reserved: [], spawn: cfg.spawn };
 
     if (layout) {
-        for (const key of ['platforms', 'fragilePlatforms', 'trampolines', 'hazards', 'powerUps', 'portals', 'gems', 'pointSpots', 'hazardSlots', 'powerSlots']) {
+        for (const key of ['platforms', 'fragilePlatforms', 'trampolines', 'hazards', 'powerUps', 'gems', 'pointSpots', 'hazardSlots', 'powerSlots']) {
             delete cfg[key];
         }
         Object.assign(cfg, layoutToConfig(rng, levelId, layout));
