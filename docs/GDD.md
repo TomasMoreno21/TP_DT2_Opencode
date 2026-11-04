@@ -1,6 +1,6 @@
 # Fast Move — Game Design Document
 
-**Equipo:** Tomás Moreno, Facundo Ibañez
+**Equipo:** Tomás Moreno, Micaela Córdoba
 **Género:** plataformas 2D *time-attack* de pantalla única
 **Plataforma:** navegador (PC, teclado) — Phaser 4 + Vite, publicado en Vercel
 **Versión del documento:** versión jugable con la campaña completa de 5 niveles
@@ -47,11 +47,11 @@ La campaña tiene **5 niveles**; al pisar la salida del quinto se gana.
 
 ### 4.1 Movimiento del jugador
 
-- **Correr:** velocidad máxima 340 px/s con aceleración y frenado propios en suelo y aire.
+- **Correr:** velocidad máxima 400 px/s con aceleración y frenado propios en suelo y aire.
 - **Salto variable:** soltar el botón pronto corta el salto.
 - **Ayudas de entrada:** *coyote time* (140 ms) y *jump buffer* (170 ms).
 - **Wall grab y wall jump:** el jugador se agarra a las paredes y salta hacia el lado opuesto.
-- **Dash:** impulso de 700 px/s durante 170 ms, sin salto. Es **invulnerable** durante todo el impulso y 0,2 s más después. Enfriamiento de 0,9 s (barra en el HUD). **Solo se recarga con el tiempo**, no al tocar suelo, pared o trampolín.
+- **Dash:** impulso de 700 px/s durante 170 ms, sin salto. Es **invulnerable** durante todo el impulso y 0,2 s más después. Enfriamiento de 0,9 s (barra en el HUD). No se recarga al tocar suelo, pared o trampolín; **recoger un punto acorta 0,45 s** lo que falta.
 
 ### 4.2 Puntos, combo, bono de tiempo y rangos
 
@@ -72,7 +72,7 @@ Rebotan al jugador hacia arriba. Caer en la **zona perfecta** del centro da un r
 
 ### 4.5 Proyectiles (nivel 2)
 
-Nacen en las paredes de los bordes, con una marca pulsante de 400 ms de aviso. Viajan en **línea recta** hacia donde estaba el jugador al salir (no lo persiguen) y **aceleran** hasta 360 px/s. Un impacto termina el nivel. Su frecuencia y velocidad aumentan con el tiempo; el dash los atraviesa.
+Nacen en las paredes de los bordes, con una marca pulsante de 400 ms de aviso. Viajan en **línea recta** hacia donde estaba el jugador al salir (no lo persiguen) y **aceleran** hasta 420 px/s. Un impacto termina el nivel. Su frecuencia y velocidad aumentan con el tiempo; el dash los atraviesa.
 
 ### 4.6 Plataformas frágiles (nivel 3)
 
