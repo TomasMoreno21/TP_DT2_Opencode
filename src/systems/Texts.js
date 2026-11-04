@@ -152,34 +152,35 @@ const STRINGS = {
     }
 };
 
-// Mapa por idioma: clave en minúsculas -> traducción.
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Por idioma: mapa clave en minúsculas -> traducción, más un regex con todas
+// las claves (las más largas primero) para reemplazarlas dentro del texto.
+function buildDict (words)
+{
+    const map = new Map(words.map((w) => [w.key.toLowerCase(), w.translate]));
+    const keys = [...map.keys()].sort((a, b) => b.length - a.length).map(escapeRegex);
+    const regex = new RegExp(`(?<![\\p{L}\\d])(?:${keys.join('|')})(?![\\p{L}\\d])`, 'giu');
+
+    return { map, regex };
+}
+
 const TRANSLATIONS = {
-    en: new Map(enData.data.words.map((w) => [w.key.toLowerCase(), w.translate]))
+    en: buildDict(enData.data.words)
 };
 
+// Reemplaza cada frase conocida dentro del texto ya armado ("Mejor puntaje: 405",
+// "NIVEL 3/5"); lo que no está en el diccionario queda en español.
 function translate (lang, text)
 {
-    const map = TRANSLATIONS[lang];
-    const lower = text.toLowerCase();
-    let out = map.get(lower);
+    const { map, regex } = TRANSLATIONS[lang];
 
-    if (out === undefined) {
-        // Claves que terminan en ':' valen como prefijo ("Mejor puntaje: 120").
-        for (const [key, value] of map) {
-            if (key.endsWith(':') && lower.startsWith(key)) {
-                out = value + text.slice(key.length);
-                break;
-            }
-        }
-    }
+    return text.replace(regex, (found) => {
+        const out = map.get(found.toLowerCase());
+        const isUpper = found === found.toUpperCase() && found !== found.toLowerCase();
 
-    if (out === undefined) {
-        return text;
-    }
-
-    const isUpper = text === text.toUpperCase() && text !== text.toLowerCase();
-
-    return isUpper ? out.toUpperCase() : out;
+        return isUpper ? out.toUpperCase() : out;
+    });
 }
 
 export const Lang = {
