@@ -97,7 +97,7 @@ export class GameOver extends Scene
         this.tweens.add({ targets: face, scale: 1, duration: 350, ease: 'Back.easeOut' });
 
         // Título: cae de arriba con rebote; en derrota sacude la pantalla.
-        const title = this.add.text((WORLD.width / 2), -60, config.title, {
+        const title = this.add.text((WORLD.width / 2), -60, Lang.t(config.title), {
             fontFamily: 'Arial Black', fontSize: 64, color: config.color,
             stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5);
@@ -112,11 +112,11 @@ export class GameOver extends Scene
             }
         });
 
-        this.add.text((WORLD.width / 2), 252, this.subtitle(), {
+        this.add.text((WORLD.width / 2), 252, Lang.t(this.subtitle()), {
             fontFamily: 'Arial', fontSize: 22, color: '#cccccc'
         }).setOrigin(0.5);
 
-        this.add.text((WORLD.width / 2), 300, `Puntaje: ${this.score}`, {
+        this.add.text((WORLD.width / 2), 300, Lang.t(`Puntaje: ${this.score}`), {
             fontFamily: 'Arial Black', fontSize: 32, color: '#ffffff',
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
@@ -131,7 +131,7 @@ export class GameOver extends Scene
         }
 
         if (this.isNewRecord) {
-            const record = this.add.text((WORLD.width / 2), isVictory ? 392 : 450, '¡Nuevo récord!', {
+            const record = this.add.text((WORLD.width / 2), isVictory ? 392 : 450, Lang.t('¡Nuevo récord!'), {
                 fontFamily: 'Arial Black', fontSize: 22, color: '#00ff88',
                 stroke: '#000000', strokeThickness: 6
             }).setOrigin(0.5).setScale(0);
@@ -337,7 +337,7 @@ export class GameOver extends Scene
         // Una línea simple, sin panel: el color del resultado ya lo da el título.
         const labelColor = this.reason === 'victory' ? '#00ff88' : '#ff99aa';
 
-        const labelText = this.add.text(0, 360, 'Mejor puntaje: ', {
+        const labelText = this.add.text(0, 360, Lang.t('Mejor puntaje: '), {
             fontFamily: 'Arial Black', fontSize: 20, color: labelColor
         }).setOrigin(0, 0.5);
 
@@ -401,7 +401,7 @@ export class GameOver extends Scene
         }
 
         const btn = this.add.image((WORLD.width / 2), y, key).setInteractive({ useHandCursor: true });
-        const label = this.add.text((WORLD.width / 2), y, text, {
+        const label = this.add.text((WORLD.width / 2), y, Lang.t(text), {
             fontFamily: 'Arial Black', fontSize: 26, color: textColor
         }).setOrigin(0.5);
 

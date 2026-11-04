@@ -6,6 +6,7 @@ import { MainMenu } from './scenes/MainMenu';
 import { Pause } from './scenes/Pause';
 import { Ranking } from './scenes/Ranking';
 import { installPlaytest } from './systems/Playtest';
+import { hookPhaserText, Lang } from './systems/Texts';
 import { Preloader } from './scenes/Preloader';
 import { AUTO, Game as PhaserGame, Scale } from 'phaser';
 
@@ -38,6 +39,8 @@ const config = {
 };
 
 const StartGame = (parent) => {
+    Lang.init();
+    hookPhaserText();
 
     const game = new PhaserGame({ ...config, parent });
 

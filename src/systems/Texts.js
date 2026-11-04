@@ -1,6 +1,7 @@
 // Textos del juego. Español por defecto; los demás idiomas vienen de Traducila
 // ({ key: texto en español, translate }) y se buscan por el texto ya armado.
 // Uso: Lang.t('play') o Lang.t('best', { v: 123 }).
+import { GameObjects } from 'phaser';
 import enData from '../assets/translations_en.json';
 
 const LANG_KEY = 'fastMoveLang';
@@ -91,7 +92,7 @@ const STRINGS = {
         rowMiscC: 'R / M',
         popupHint: 'clic afuera para cerrar',
         lang: 'IDIOMA',
-        langTitle: 'Idioma / Language',
+        langTitle: 'Idioma',
         langEs: 'Español',
         langEn: 'English',
         tutMove: 'Movete',
@@ -154,15 +155,50 @@ const STRINGS = {
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// Por idioma: mapa clave en minúsculas -> traducción, más un regex con todas
-// las claves (las más largas primero) para reemplazarlas dentro del texto.
+// Por idioma: una entrada por frase (las más largas primero) y un regex que las
+// busca todas dentro del texto. Los números de una clave valen para cualquier
+// número ("Te faltaron 1 de la meta" sirve para "Te faltaron 20 de la meta").
 function buildDict (words)
 {
-    const map = new Map(words.map((w) => [w.key.toLowerCase(), w.translate]));
-    const keys = [...map.keys()].sort((a, b) => b.length - a.length).map(escapeRegex);
-    const regex = new RegExp(`(?<![\\p{L}\\d])(?:${keys.join('|')})(?![\\p{L}\\d])`, 'giu');
+    const entries = [];
 
-    return { map, regex };
+    for (const { key, translate: out } of words) {
+        entries.push({ key, out });
+
+        // "Tiempo total:" también vale sin los dos puntos.
+        if (key.endsWith(':') && out.endsWith(':')) {
+            entries.push({ key: key.slice(0, -1), out: out.slice(0, -1) });
+        }
+    }
+
+    entries.sort((a, b) => b.key.length - a.key.length);
+
+    for (const entry of entries) {
+        const pieces = entry.key.split(/\d+/).map(escapeRegex);
+
+        entry.source = pieces.join('(\\d+)');
+        entry.full = new RegExp(`^${entry.source}$`, 'iu');
+        entry.outParts = entry.out.split(/\d+/);
+        entry.numbers = pieces.length - 1;
+    }
+
+    const regex = new RegExp(`(?<![\\p{L}\\d])(?:${entries.map((e) => e.source.replace(/\(\\d\+\)/g, '\\d+')).join('|')})(?![\\p{L}\\d])`, 'giu');
+
+    return { entries, regex };
+}
+
+const letters = (s) => (s.match(/\p{L}/gu) ?? []).length;
+
+// Arma la traducción de una frase encontrada, pasando los números tal cual.
+function render (entry, found)
+{
+    const match = entry.full.exec(found);
+
+    if (entry.outParts.length - 1 !== entry.numbers) {
+        return entry.out;
+    }
+
+    return entry.outParts.map((part, i) => part + (i < entry.numbers ? match[i + 1] : '')).join('');
 }
 
 const TRANSLATIONS = {
@@ -171,16 +207,36 @@ const TRANSLATIONS = {
 
 // Reemplaza cada frase conocida dentro del texto ya armado ("Mejor puntaje: 405",
 // "NIVEL 3/5"); lo que no está en el diccionario queda en español.
+const cache = new Map();
+
 function translate (lang, text)
 {
-    const { map, regex } = TRANSLATIONS[lang];
+    const cacheKey = `${lang}|${text}`;
 
-    return text.replace(regex, (found) => {
-        const out = map.get(found.toLowerCase());
+    if (cache.has(cacheKey)) {
+        return cache.get(cacheKey);
+    }
+
+    const { entries, regex } = TRANSLATIONS[lang];
+    let covered = 0;
+
+    const replaced = text.replace(regex, (found) => {
+        const entry = entries.find((e) => e.key === found) ?? entries.find((e) => e.full.test(found));
+        const out = render(entry, found);
         const isUpper = found === found.toUpperCase() && found !== found.toLowerCase();
+
+        covered += letters(found);
 
         return isUpper ? out.toUpperCase() : out;
     });
+
+    // Si solo se reconoció una palabra suelta de una oración larga, se deja entera
+    // en español: mejor eso que una frase mezclada ("las plataformas Fragile caen...").
+    const result = covered * 10 >= letters(text) * 7 ? replaced : text;
+
+    cache.set(cacheKey, result);
+
+    return result;
 }
 
 export const Lang = {
@@ -223,5 +279,33 @@ export const Lang = {
         }
 
         return this.current === 'es' ? text : translate(this.current, text);
+    },
+
+    // Traduce un texto ya armado (sin buscar claves de STRINGS).
+    text (text)
+    {
+        return this.current === 'es' || typeof text !== 'string' ? text : translate(this.current, text);
     }
 };
+
+// Todo texto de Phaser pasa por el diccionario: así ninguna pantalla se queda sin
+// traducir aunque el texto esté escrito a mano en el código.
+export function hookPhaserText ()
+{
+    const proto = GameObjects.Text.prototype;
+
+    if (proto.langHooked) {
+        return;
+    }
+
+    const original = proto.setText;
+
+    proto.setText = function (value)
+    {
+        const out = Array.isArray(value) ? value.map((v) => Lang.text(v)) : Lang.text(value);
+
+        return original.call(this, out);
+    };
+
+    proto.langHooked = true;
+}
