@@ -3,7 +3,7 @@
 **Equipo:** Tomás Moreno, Facundo Ibañez
 **Género:** plataformas 2D *time-attack* de pantalla única
 **Plataforma:** navegador (PC, teclado) — Phaser 4 + Vite, publicado en Vercel
-**Versión del documento:** versión jugable (campaña de 2 niveles) y alcance de la entrega final (5 niveles)
+**Versión del documento:** versión jugable con la campaña completa de 5 niveles
 
 ---
 
@@ -27,7 +27,7 @@ Fast Move es un juego de plataformas donde cada nivel es una sola pantalla fija.
 4. **Victoria:** al completar el último nivel aparece la pantalla final con puntaje total, combo máximo y récord.
 5. **Derrota:** ver sección 5. Se ofrece *Reintentar nivel* o *Salir* al menú.
 
-La versión jugable tiene **2 niveles**. La entrega final prevé una campaña de 5 niveles (sección 9).
+La campaña tiene **5 niveles**; al pisar la salida del quinto se gana.
 
 ## 3. Controles
 
@@ -57,7 +57,7 @@ La versión jugable tiene **2 niveles**. La entrega final prevé una campaña de
 
 - Los **puntos** valen 10. Hay 12 spots fijos y **2 puntos activos a la vez**; al recoger uno se activa otro spot al azar.
 - Cada recolección suma al **combo**, que se pierde tras **3 s** sin recolectar. El **multiplicador** es `1 + combo / 3` (hacia abajo), con tope en **x5**.
-- **Meta del nivel:** cantidad de puntos para abrir la salida (12 en el nivel 1, 10 en el 2). Es por cantidad y no por puntaje a propósito: un umbral de puntaje dejaría salir antes a quien encadena combos y no a quien no lo hace. El puntaje se premia aparte.
+- **Meta del nivel:** cantidad de puntos para abrir la salida (12, 10, 13, 14 y 12 en los niveles 1 a 5). Es por cantidad y no por puntaje a propósito: un umbral de puntaje dejaría salir antes a quien encadena combos y no a quien no lo hace. El puntaje se premia aparte.
 - **Bono de tiempo:** al pisar la salida, cada segundo sobrante da **5 puntos**. Da una razón para seguir sumando después de cumplir la meta.
 - **Rangos:** con el puntaje del nivel más el bono se otorga **bronce, plata u oro**. Umbrales: meta × 20, × 35 y × 50 (con meta 12: 240, 420 y 600). Son valores iniciales sin probar y se van a ajustar.
 - **HUD y menú:** una barra a la derecha avanza hacia el oro con marcas de bronce y plata. El mejor rango de cada nivel se guarda en el navegador y se muestra en el menú como una **medalla dibujada** (las de oro brillan; los niveles sin rango muestran una ranura apagada).
@@ -74,7 +74,19 @@ Rebotan al jugador hacia arriba. Caer en la **zona perfecta** del centro da un r
 
 Nacen en las paredes de los bordes, con una marca pulsante de 400 ms de aviso. Viajan en **línea recta** hacia donde estaba el jugador al salir (no lo persiguen) y **aceleran** hasta 360 px/s. Un impacto termina el nivel. Su frecuencia y velocidad aumentan con el tiempo; el dash los atraviesa.
 
-### 4.6 Tabla resumen
+### 4.6 Plataformas frágiles (nivel 3)
+
+Caen poco después de pisarlas: hay que seguir moviéndose.
+
+### 4.7 Pinchos y escudo (nivel 4)
+
+Los pinchos tiemblan antes de salir y se retraen por ciclos; tocarlos cuenta como un impacto. El **escudo** (power-up) absorbe un golpe y se puede volver a conseguir.
+
+### 4.8 El Vacío (nivel 5)
+
+El nivel 5 es una **torre**: el escenario sube solo y el borde inferior del Vacío mata al tocarlo (el escudo no lo frena). Arranca tras una breve demora; si el jugador trepa más rápido que el escenario, la vista lo acompaña y nunca baja. Los orbes que el Vacío se traga se reubican. La **cuota es de 12 orbes**: al cumplirla, la torre se detiene, el Vacío desaparece y la salida aparece sobre una plataforma visible alejada del jugador. Escapar de la torre da la insignia *Escapaste del Vacío*.
+
+### 4.9 Tabla resumen
 
 | Mecánica | Qué hace | Aparece en |
 |---|---|---|
@@ -82,7 +94,10 @@ Nacen en las paredes de los bordes, con una marca pulsante de 400 ms de aviso. V
 | Puntos, combo, cadena aérea | Fuente de puntaje | Niveles 1 y 2 |
 | Bono de tiempo y rangos | Premian terminar rápido y con buen puntaje | Todos los niveles |
 | Trampolines | Rebote, con zona perfecta | Nivel 2 |
-| Proyectiles | Obstáculo que obliga a esquivar | Nivel 2 |
+| Proyectiles | Obstáculo que obliga a esquivar | Niveles 2 a 5 |
+| Plataformas frágiles | Caen al pisarlas | Nivel 3 en adelante |
+| Pinchos y escudo | Peligro con aviso; el escudo absorbe un golpe | Nivel 4 en adelante |
+| Vacío | Escenario que sube solo; la cuota lo detiene | Nivel 5 |
 
 ## 5. Reglas, victoria y derrota
 
@@ -96,7 +111,8 @@ Nacen en las paredes de los bordes, con una marca pulsante de 400 ms de aviso. V
 **Se pierde el nivel cuando:**
 
 - el **tiempo llega a cero** antes de pisar la salida, o
-- un **proyectil impacta** al jugador (nivel 2).
+- un **proyectil o un pincho** impacta al jugador sin escudo, o
+- el **Vacío** lo alcanza (nivel 5).
 
 **Se gana la campaña** al pisar la salida del último nivel.
 
@@ -106,14 +122,17 @@ Nacen en las paredes de los bordes, con una marca pulsante de 400 ms de aviso. V
 |---|---|---|---|---|---|
 | 1 | Arranque | 60 s | 12 puntos | Ninguno | Enseña movimiento, wall jump y combo sin presión. |
 | 2 | Rebotes | 50 s | 10 puntos | Proyectiles | Trampolines y proyectiles: subir por rebotes y esquivar a la vez. |
+| 3 | Frágiles | 50 s | 13 puntos | Proyectiles | Plataformas frágiles: no quedarse quieto. |
+| 4 | Peligro | 47 s | 14 puntos | Proyectiles y pinchos | Pinchos con aviso y escudo. |
+| 5 | Final | 55 s | 12 puntos | Vacío y proyectiles | Torre que sube sola: trepar y juntar 12 orbes; al cumplirlos se detiene y aparece la salida. |
 
-**Progresión:** el nivel 1 no tiene amenazas y da 10 s más de reloj; el nivel 2 reduce el tiempo y agrega proyectiles y verticalidad. La dificultad sube por presión de tiempo y por combinar mecánicas.
+**Progresión:** el nivel 1 no tiene amenazas y da 10 s más de reloj; cada nivel siguiente suma una mecánica (rebotes, frágiles, pinchos y por último el Vacío). La dificultad sube por presión de tiempo y por combinar mecánicas.
 
 Todos los mapas ocupan una pantalla de 1024×768 y se validan con una herramienta propia que comprueba que cada punto y la salida sean alcanzables con la física del jugador.
 
 **Generación de niveles**
 
-- Cada campaña sale de una **semilla** (visible en el menú; NUEVOS NIVELES la cambia). El mapa parte del diseño base y se modifica: espejo, plataformas quitadas, agregadas o movidas, y puntos, gemas y salida reubicados.
+- Cada campaña sale de una **semilla** (visible en el menú; NUEVOS NIVELES la cambia). El mapa parte del diseño base y se modifica: espejo, plataformas quitadas, agregadas o movidas, y puntos y salida reubicados.
 - Solo se acepta un mapa si pasa la validación y su dificultad queda en una banda cercana a la del diseño base. El tiempo y la frecuencia de proyectiles se ajustan al mapa, con límites para que un nivel posterior nunca sea más generoso que uno anterior. Si ningún candidato sirve, se usa el diseño base.
 - La validación tiene en cuenta que el jugador puede hacer wall jump y dash.
 - **Asistencia al perder:** al reintentar se genera otro mapa y, tras cada derrota seguida (hasta 3), sale más fácil, con más espacio y 2 s extra. El juego avisa "Mapa nuevo: más espacio y más tiempo".
@@ -122,7 +141,7 @@ Todos los mapas ocupan una pantalla de 1024×768 y se validan con una herramient
 
 - **Tutorial:** en el nivel 1, pistas paso a paso (mover, saltar, wall grab, wall jump, dash) que se completan al usar cada mecánica. Panel sobre la franja del piso con teclas dibujadas y puntos de progreso. Se saltea con T.
 - **Coach al fallar:** tras derrotas seguidas por la misma causa, muestra un consejo.
-- **Insignias de aprendizaje** por hitos como un wall jump, un dash o un rebote perfecto.
+- **Insignias de aprendizaje** (5): wall jump, dash, rebote perfecto, escudo salvador y Vacío (escapar de la torre del nivel 5).
 - **Feedback:** sonidos generados por código, pausa breve al recolectar o recibir un golpe, cámara lenta al perder y zoom leve con multiplicador alto.
 
 ## 8. Arte, interfaz y audio
@@ -135,11 +154,10 @@ Todos los mapas ocupan una pantalla de 1024×768 y se validan con una herramient
 
 ## 9. Alcance
 
-**Ya funcionando (versión actual):** menú, campaña de 2 niveles, tutorial, victoria y derrota, puntaje y récord persistentes, bono de tiempo y rangos con medallas, audio y feedback.
+**Ya funcionando (versión actual):** menú, campaña de 5 niveles, tutorial, victoria y derrota, puntaje y récord persistentes, bono de tiempo y rangos con medallas, audio y feedback.
 
 **Dentro del alcance de la entrega final:**
 
-- **Niveles 3 a 5**, hasta una campaña de 5 niveles. Su contenido y sus mecánicas todavía no están definidos.
 - **Modo modificadores** (opcional, detallado abajo), con ranking propio.
 - **Rangos por nivel:** ya implementados, con umbrales a ajustar (sección 4.2).
 - **Retos fijos:** objetivos opcionales, por ejemplo "terminá un nivel sin usar el dash". Cada reto da una medalla.

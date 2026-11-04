@@ -34,7 +34,7 @@ npm run build
 
 ## Gameplay
 
-Plataformas 2D *time-attack* de pantalla única. En cada nivel hay que recolectar una **meta de puntos** antes de que se acabe el tiempo; al cumplirla se abre la **salida**, y pisarla pasa al siguiente nivel. La campaña de esta versión tiene **2 niveles**: al completar el segundo se gana.
+Plataformas 2D *time-attack* de pantalla única. En cada nivel hay que recolectar una **meta de puntos** antes de que se acabe el tiempo; al cumplirla se abre la **salida**, y pisarla pasa al siguiente nivel. La campaña tiene **5 niveles**: al completar el quinto se gana.
 
 Documento de diseño completo: [`docs/GDD.md`](docs/GDD.md).
 
@@ -46,21 +46,31 @@ Completar los niveles y conseguir el mayor puntaje total. El mejor puntaje se gu
 
 | # | Nombre | Tiempo | Meta | Novedad |
 |---|---|---|---|---|
-| 1 | Arranque | 55 s | 12 puntos | Sin peligros: movimiento, wall jump y combo |
-| 2 | Rebotes | 50 s | 12 puntos | Trampolines y proyectiles |
+| 1 | Arranque | 60 s | 12 puntos | Sin peligros: movimiento, wall jump y combo |
+| 2 | Rebotes | 50 s | 10 puntos | Trampolines y proyectiles |
+| 3 | Frágiles | 50 s | 13 puntos | Plataformas frágiles que caen al pisarlas |
+| 4 | Peligro | 47 s | 14 puntos | Pinchos con aviso y escudo |
+| 5 | Final | 55 s | 12 puntos | Torre: el escenario sube solo con el **Vacío** |
+
+En el **nivel 5** el escenario sube solo y el borde del Vacío mata al tocarlo (el escudo no lo frena). Hay que trepar y juntar **12 orbes**; al cumplir la cuota la torre se detiene, el Vacío desaparece y aparece la salida sobre una plataforma visible.
 
 ### Mecánicas principales
 
-- **Movimiento:** correr, salto variable, wall grab, wall jump y dash invulnerable.
+- **Movimiento:** correr, salto variable, wall grab, wall jump y dash invulnerable (SHIFT).
 - **Puntos y combo:** cada punto vale 10; encadenar recolecciones (menos de 3 s entre una y otra) sube el multiplicador hasta x5.
 - **Cadena aérea:** recolectar sin tocar el piso suma un bono creciente.
 - **Trampolines:** rebote alto, con una zona perfecta en el centro.
+- **Plataformas frágiles:** caen poco después de pisarlas.
+- **Pinchos y escudo:** los pinchos tiemblan antes de salir; el escudo absorbe un golpe.
+- **Vacío (nivel 5):** el escenario sube solo; ver arriba.
 - **Proyectiles:** nacen en las paredes, persiguen medio segundo y luego aceleran en línea recta.
+- **Insignias:** wall jump, dash, rebote perfecto, escudo salvador y Vacío (por escapar de la torre).
 
 ### Cómo se pierde
 
 - Se acaba el tiempo antes de pisar la salida.
-- Un proyectil impacta al jugador.
+- Un proyectil o un pincho (sin escudo) impacta al jugador.
+- El Vacío alcanza al jugador (nivel 5).
 
 Los puntos de un nivel perdido no cuentan; se conserva lo ya acumulado.
 
@@ -72,7 +82,8 @@ Los puntos de un nivel perdido no cuentan; se conserva lo ya acumulado.
 | Saltar | Espacio, W o flecha arriba (mantener = más alto) |
 | Agarrarse a la pared | Mantener la dirección contra la pared |
 | Wall jump | Saltar mientras se toca una pared |
-| Dash | Shift |
+| Dash | SHIFT |
+| Pausa | Esc |
 | Reiniciar nivel | R |
 | Silenciar | M |
 | Saltear tutorial | T |
@@ -88,7 +99,7 @@ El código se organiza en `src/` con responsabilidades separadas:
 - `src/assets/`: datos de niveles (`levels.js`), prácticas y recursos.
 - `tools/`: validación de niveles y bot de prueba.
 
-Los niveles son datos en `src/assets/levels.js`. `ACTIVE_LEVELS` define cuántos se juegan: está en 2 para esta entrega, y los niveles 3 a 5 (plataformas móviles, pinchos con escudo y portales) ya existen pero están desactivados.
+Los niveles son datos en `src/assets/levels.js`. `ACTIVE_LEVELS` define cuántos se juegan: están activos los 5. El nivel 5 no sale de `levels.js` tal cual: `systems/TowerLevel.js` genera la torre y `entities/RisingVoid.js` es el Vacío.
 
 ```
 GameScene
