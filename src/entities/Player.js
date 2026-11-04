@@ -16,13 +16,13 @@ export const PLAYER_CONFIG = {
     hangVy: 60,
     maxFallSpeed: 1000,
     cornerForgiveness: 10,
-    ledgeForgiveness: 18,
+    ledgeForgiveness: 34,
     wallStickMs: 140,
     wallSlideSpeed: 50,
     wallPushSpeed: 20,
-    wallGripMs: 60,
-    wallBrakeRate: 7000,
-    wallJumpLockMs: 150,
+    wallGripMs: 80,
+    wallBrakeRate: 14000,
+    wallJumpLockMs: 130,
     dashRefundMs: 450,
     turnAccel: 3600,
     jumpVelocity: -500,
@@ -31,7 +31,7 @@ export const PLAYER_CONFIG = {
     jumpBufferTime: 170,
     wallJumpXVelocity: 360,
     wallJumpYVelocity: -500,
-    wallJumpCooldown: 220,
+    wallJumpCooldown: 180,
     wallCoyoteTime: 180,
     shieldDurationMs: 6000,
     shieldColor: 0x2dd4ff,
@@ -442,7 +442,7 @@ export class Player {
             const blocked = (dir > 0 && b.blocked.right) || (dir < 0 && b.blocked.left);
             const step = bottom - pTop;
 
-            if (blocked && !this.onFloor && step > 0 && step <= PLAYER_CONFIG.ledgeForgiveness && vy >= -50 &&
+            if (blocked && !this.onFloor && step > 0 && step <= PLAYER_CONFIG.ledgeForgiveness && vy >= -200 &&
                 top < pTop && cx + halfW > pl - 2 && cx - halfW < pr + 2 &&
                 (dir > 0 ? Math.abs(cx + halfW - pl) < 4 : Math.abs(cx - halfW - pr) < 4)) {
                 b.position.y -= step + 0.5;
