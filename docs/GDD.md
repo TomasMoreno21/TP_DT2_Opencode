@@ -21,7 +21,7 @@ Fast Move es un juego de plataformas donde cada nivel es una sola pantalla fija.
 
 ## 2. Flujo de juego
 
-1. **Menú principal:** JUGAR, CONTROLES, IDIOMA (es/en), TUTORIAL y NUEVOS NIVELES (genera otra semilla de mapas). Muestra el mejor puntaje y una medalla por nivel.
+1. **Menú principal:** JUGAR, RANKING, LOGROS, CONTROLES, TUTORIAL, OPCIONES, IDIOMA (es/en) y NUEVOS NIVELES (genera otra semilla de mapas), más el interruptor del modo modificadores. Muestra el mejor puntaje y una medalla por nivel.
 2. **Nivel:** se recolectan puntos hasta cumplir la meta, y entonces se abre la **salida**.
 3. **Pisar la salida** termina el nivel: los segundos sobrantes se convierten en puntos (bono de tiempo), se muestra el rango y el puntaje se suma al total de la campaña.
 4. **Victoria:** al completar el último nivel aparece la pantalla final con puntaje total, combo máximo y récord.
@@ -154,29 +154,27 @@ Todos los mapas ocupan una pantalla de 1024×768 y se validan con una herramient
 
 ## 9. Alcance
 
-**Ya funcionando (versión actual):** menú, campaña de 5 niveles, tutorial, victoria y derrota, puntaje y récord persistentes, bono de tiempo y rangos con medallas, audio y feedback.
+**Implementado en la versión final:**
 
-**Dentro del alcance de la entrega final:**
+- Menú con JUGAR, RANKING, LOGROS, CONTROLES, TUTORIAL, OPCIONES, IDIOMA y NUEVOS NIVELES, y el interruptor del **modo modificadores**.
+- Campaña de **5 niveles** (sección 6), con generación de mapas por semilla y validación de alcanzabilidad.
+- Tutorial, coach al fallar y **5 insignias** de aprendizaje (sección 7).
+- Puntaje, combo, cadena aérea, bono de tiempo y **rangos** con medallas (umbrales a ajustar, sección 4.2).
+- **Ranking local** de los 10 mejores puntajes de la campaña (iniciales, niveles, combo y fecha), guardado en el navegador, con tabla aparte para el modo modificadores.
+- **Logros** (8): Sin caídas, Al máximo, Campeón, Medalla de oro, Oro total, Volando, Velocista y Coleccionista (suma 1000 puntos).
+- **Opciones de accesibilidad:** reducir destellos y reducir movimiento (se aplican desde la próxima partida).
+- Pausa (Esc), audio procedural, español e inglés.
 
-- **Modo modificadores** (opcional, detallado abajo), con ranking propio.
-- **Rangos por nivel:** ya implementados, con umbrales a ajustar (sección 4.2).
-- **Retos fijos:** objetivos opcionales, por ejemplo "terminá un nivel sin usar el dash". Cada reto da una medalla.
-- **Salto doble:** se desbloquea con un logro y se activa desde el menú. Al ser una ventaja, esas partidas no entran al ranking normal.
-- **Ranking local:** mejores puntajes de la campaña en una tabla, guardados en el navegador.
-- **Logros y medallas:** hitos como completar un nivel sin morir o llegar a x5, mostrados en el menú. Amplía las insignias de aprendizaje.
-- **Niveles adicionales o variantes**, si el tiempo lo permite.
+**Modo modificadores**
 
-**Modo modificadores (opcional)**
+Un interruptor del menú. Apagado, el juego es el de siempre. Encendido, al empezar **cada** nivel toca un modificador al azar que lo hace más difícil y suma un bonus al puntaje del nivel (con 5 % de probabilidad tocan dos).
 
-Un interruptor del menú. Apagado, el juego es el de siempre. Encendido, al empezar cada nivel puede tocar **un** modificador al azar que lo hace más difícil y suma un bonus al puntaje del nivel.
-
-- **Probabilidad:** 30 % en el nivel 1, +5 puntos por cada nivel siguiente.
 - **Aviso:** se muestra al comienzo del nivel con su nombre y bonus, y queda como etiqueta en el HUD.
-- **Reintentos y filtro:** al reintentar se vuelve a sortear, y solo salen modificadores que aplican al mapa (Ráfaga no sale sin proyectiles).
-- **Ranking:** los puntajes de este modo van a un ranking separado.
+- **Reintentos y filtro:** al reintentar se vuelve a sortear, y solo salen modificadores que aplican al mapa (Ráfaga no sale sin proyectiles). Reloj corto y Meta alta no salen juntos.
+- **Ranking:** los puntajes de este modo van a una tabla separada.
 - **Modificadores:** Reloj corto, Ráfaga, Dash lento, Combo frágil, Un solo punto y Meta alta, con un bonus de +10 a +20 % al puntaje del nivel.
 
-**A evaluar (sin confirmar):** skins del personaje, que se desbloquean con logros o puntaje.
+**No implementado (previsto en el diseño original):** retos fijos con medalla, salto doble desbloqueable y skins del personaje.
 
 **Ideas a futuro**
 
@@ -184,5 +182,5 @@ Un interruptor del menú. Apagado, el juego es el de siempre. Encendido, al empe
 - Modo práctica para rejugar niveles superados.
 - Modo diario: mapa con semilla fija por día y ranking propio.
 - Contrarreloj de nivel único con "fantasma" de la mejor partida.
-- Mecánicas nuevas: plataformas que se rompen, gravedad invertida, imanes de puntos, interruptores.
+- Mecánicas nuevas: gravedad invertida, imanes de puntos, interruptores.
 - Soporte de gamepad.
