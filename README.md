@@ -1,6 +1,6 @@
 ### Fast Move
 
-Fast Move es un videojuego de plataformas *time-attack*: en 60 segundos hay que recolectar la mayor cantidad de puntos posible mientras se esquivan proyectiles. El mapa es fijo, a pantalla única, con plataformas y paredes.
+Fast Move es un videojuego de plataformas *time-attack*: en cada nivel hay que juntar una meta de puntos antes de que se acabe el tiempo y llegar a la salida, mientras se esquivan proyectiles y otros peligros. Son 5 niveles de pantalla única; el último es una torre que sube sola.
 
 ## Integrantes
 
@@ -36,7 +36,7 @@ npm run build
 
 Plataformas 2D *time-attack* de pantalla única. En cada nivel hay que recolectar una **meta de puntos** antes de que se acabe el tiempo; al cumplirla se abre la **salida**, y pisarla pasa al siguiente nivel. La campaña tiene **5 niveles**: al completar el quinto se gana.
 
-Documento de diseño completo: [`docs/GDD.md`](docs/GDD.md).
+Documento de diseño completo: [`docs/GDD.pdf`](docs/GDD.pdf) (fuente editable: [`docs/GDD.md`](docs/GDD.md)).
 
 ### Objetivo
 
@@ -92,9 +92,9 @@ Los puntos de un nivel perdido no cuentan; se conserva lo ya acumulado.
 
 El código se organiza en `src/` con responsabilidades separadas:
 
-- `src/scenes/`: escenas de Phaser (Boot, Preloader, MainMenu, Game, GameOver).
-- `src/entities/`: entidades (Player, Point, Trampoline, Projectile, Goal, etc.).
-- `src/systems/`: sistemas (ScoreManager, GameTimer, ProjectileManager, TutorialManager, LevelValidator, etc.).
+- `src/scenes/`: escenas de Phaser (Boot, Preloader, MainMenu, Game, Pause, GameOver, Ranking).
+- `src/entities/`: entidades (Player, Point, Trampoline, FragilePlatform, Hazard, PowerUp, Projectile, RisingVoid, Goal).
+- `src/systems/`: sistemas (ScoreManager, GameTimer, ProjectileManager, TutorialManager, LevelGenerator, LevelValidator, TowerLevel, Badges, Achievements, Leaderboard, etc.).
 - `src/patterns/`: EntityFactory (patrón Factory que desacopla los spawners de las clases concretas).
 - `src/assets/`: datos de niveles (`levels.js`), prácticas y recursos.
 - `tools/`: validación de niveles y bot de prueba.

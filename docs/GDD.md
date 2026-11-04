@@ -37,7 +37,7 @@ La campaña tiene **5 niveles**; al pisar la salida del quinto se gana.
 | Saltar | Espacio, W o flecha arriba (mantener = salto más alto) |
 | Agarrarse a la pared | Mantener la dirección contra la pared |
 | Salto de pared | Saltar mientras se toca una pared |
-| Dash | Shift |
+| Dash | SHIFT |
 | Reiniciar el nivel | R |
 | Pausa (continuar, otro nivel o menú) | Esc |
 | Silenciar | M |
@@ -90,8 +90,8 @@ El nivel 5 es una **torre**: el escenario sube solo y el borde inferior del Vac�
 
 | Mecánica | Qué hace | Aparece en |
 |---|---|---|
-| Salto, wall jump, dash | Movimiento base | Niveles 1 y 2 |
-| Puntos, combo, cadena aérea | Fuente de puntaje | Niveles 1 y 2 |
+| Salto, wall jump, dash | Movimiento base | Todos los niveles |
+| Puntos, combo, cadena aérea | Fuente de puntaje | Todos los niveles |
 | Bono de tiempo y rangos | Premian terminar rápido y con buen puntaje | Todos los niveles |
 | Trampolines | Rebote, con zona perfecta | Nivel 2 |
 | Proyectiles | Obstáculo que obliga a esquivar | Niveles 2 a 5 |
