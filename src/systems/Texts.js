@@ -71,6 +71,7 @@ const STRINGS = {
         entryHint: '↑ ↓ cambian la letra · ← → mueven · Enter confirma',
         entryOk: 'ACEPTAR',
         entryContinue: 'CONTINUAR',
+        continueBtn: 'CONTINUAR',
         generating: 'Generando niveles...',
         newLevels: 'NUEVOS NIVELES',
         seed: 'Semilla: {n}',
