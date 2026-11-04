@@ -66,6 +66,15 @@ En el **nivel 5** el escenario sube solo y el borde del Vacío mata al tocarlo (
 - **Proyectiles:** nacen en las paredes, persiguen medio segundo y luego aceleran en línea recta.
 - **Insignias:** wall jump, dash, rebote perfecto, escudo salvador y Vacío (por escapar de la torre).
 
+### Menú y extras
+
+- **Ranking local:** top 10 de la campaña con iniciales, guardado en el navegador.
+- **Logros** (8) e **insignias** de aprendizaje (5).
+- **Rangos:** bronce, plata y oro por nivel, con medalla en el menú.
+- **Modo modificadores:** un modificador al azar por nivel (Reloj corto, Ráfaga, Dash lento, Combo frágil, Un solo punto, Meta alta) que suma un bonus; tiene su propio ranking.
+- **Opciones:** reducir destellos y reducir movimiento. Idiomas: español e inglés.
+- **NUEVOS NIVELES:** genera otra semilla de mapas.
+
 ### Cómo se pierde
 
 - Se acaba el tiempo antes de pisar la salida.
