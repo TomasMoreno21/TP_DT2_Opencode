@@ -59,7 +59,7 @@ La campaña tiene **5 niveles**; al pisar la salida del quinto se gana.
 - Cada recolección suma al **combo**, que se pierde tras **3 s** sin recolectar. El **multiplicador** es `1 + combo / 3` (hacia abajo), con tope en **x5**.
 - **Meta del nivel:** cantidad de puntos para abrir la salida (12, 10, 13, 14 y 12 en los niveles 1 a 5). Es por cantidad y no por puntaje a propósito: un umbral de puntaje dejaría salir antes a quien encadena combos y no a quien no lo hace. El puntaje se premia aparte.
 - **Bono de tiempo:** al pisar la salida, cada segundo sobrante da **5 puntos**. Da una razón para seguir sumando después de cumplir la meta.
-- **Rangos:** con el puntaje del nivel más el bono se otorga **bronce, plata u oro**. Umbrales: meta × 20, × 35 y × 50 (con meta 12: 240, 420 y 600). Son valores iniciales sin probar y se van a ajustar.
+- **Rangos:** con el puntaje del nivel más el bono se otorga **bronce, plata u oro**. Umbrales: meta × 20, × 35 y × 50 (con meta 12: 240, 420 y 600).
 - **HUD y menú:** una barra a la derecha avanza hacia el oro con marcas de bronce y plata. El mejor rango de cada nivel se guarda en el navegador y se muestra en el menú como una **medalla dibujada** (las de oro brillan; los niveles sin rango muestran una ranura apagada).
 
 ### 4.3 Cadena aérea
@@ -159,7 +159,7 @@ Todos los mapas ocupan una pantalla de 1024×768 y se validan con una herramient
 - Menú con JUGAR, RANKING, LOGROS, CONTROLES, TUTORIAL, OPCIONES, IDIOMA y NUEVOS NIVELES, y el interruptor del **modo modificadores**.
 - Campaña de **5 niveles** (sección 6), con generación de mapas por semilla y validación de alcanzabilidad.
 - Tutorial, coach al fallar y **5 insignias** de aprendizaje (sección 7).
-- Puntaje, combo, cadena aérea, bono de tiempo y **rangos** con medallas (umbrales a ajustar, sección 4.2).
+- Puntaje, combo, cadena aérea, bono de tiempo y **rangos** con medallas (sección 4.2).
 - **Ranking local** de los 10 mejores puntajes de la campaña (iniciales, niveles, combo y fecha), guardado en el navegador, con tabla aparte para el modo modificadores.
 - **Logros** (8): Sin caídas, Al máximo, Campeón, Medalla de oro, Oro total, Volando, Velocista y Coleccionista (suma 1000 puntos).
 - **Opciones de accesibilidad:** reducir destellos y reducir movimiento (se aplican desde la próxima partida).
@@ -173,14 +173,3 @@ Un interruptor del menú. Apagado, el juego es el de siempre. Encendido, al empe
 - **Reintentos y filtro:** al reintentar se vuelve a sortear, y solo salen modificadores que aplican al mapa (Ráfaga no sale sin proyectiles). Reloj corto y Meta alta no salen juntos.
 - **Ranking:** los puntajes de este modo van a una tabla separada.
 - **Modificadores:** Reloj corto, Ráfaga, Dash lento, Combo frágil, Un solo punto y Meta alta, con un bonus de +10 a +20 % al puntaje del nivel.
-
-**No implementado (previsto en el diseño original):** retos fijos con medalla, salto doble desbloqueable y skins del personaje.
-
-**Ideas a futuro**
-
-- Estadísticas por nivel (mejor tiempo y mejor combo).
-- Modo práctica para rejugar niveles superados.
-- Modo diario: mapa con semilla fija por día y ranking propio.
-- Contrarreloj de nivel único con "fantasma" de la mejor partida.
-- Mecánicas nuevas: gravedad invertida, imanes de puntos, interruptores.
-- Soporte de gamepad.
