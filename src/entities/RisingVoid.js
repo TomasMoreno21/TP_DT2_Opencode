@@ -1,7 +1,7 @@
 import { WORLD } from '../assets/levels';
 
 export const VOID_CONFIG = {
-    startDelayMs: 2500,
+    startDelayMs: 3000,
     // Cuánto por debajo del borde de la pantalla arranca a verse el vacío.
     edgeInset: 24,
     // Distancia mínima entre el borde superior de la pantalla y el jugador: si trepás más rápido, el escenario te acompaña.

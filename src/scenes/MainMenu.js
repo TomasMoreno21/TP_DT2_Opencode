@@ -157,8 +157,7 @@ export class MainMenu extends Scene
         const secondary = [
             [Lang.t('achievementsBtn'), () => this.toggleAchievements()],
             [Lang.t('rankingBtn'), () => this.scene.start('Ranking', { campaignSeed: this.campaignSeed })],
-            [Lang.t('optionsBtn'), () => this.toggleOptions()],
-            [Lang.t('continueBtn'), () => this.continueCampaign()]
+            [Lang.t('optionsBtn'), () => this.toggleOptions()]
         ];
         const spacing = 220;
         const startX = (WORLD.width / 2) - ((secondary.length - 1) * spacing) / 2;
@@ -271,12 +270,6 @@ export class MainMenu extends Scene
         this.add.text(24, 738, Lang.t('seed', { n: this.campaignSeed }), {
             fontFamily: 'Arial', fontSize: 14, color: '#8888aa'
         }).setOrigin(0, 0.5);
-    }
-
-    continueCampaign () {
-        const lastLevel = localStorage.getItem('fastMoveLastLevel');
-        const levelIndex = lastLevel ? Math.max(0, Math.min(LEVELS.length - 1, Number(lastLevel) - 1)) : 0;
-        this.startGame({ levelIndex });
     }
 
     // Pide la campaña en segundo plano (Web Worker) apenas se abre el menú: la
@@ -608,8 +601,8 @@ export class MainMenu extends Scene
         const popup = this.add.container(0, 0).setVisible(false).setDepth(10);
 
         const panel = this.add.graphics();
-        panel.fillStyle(COLORS.panel, 1).fillRoundedRect((WORLD.width / 2 + -250), 232, 500, 300, 18);
-        panel.lineStyle(2, COLORS.panelBorder, 1).strokeRoundedRect((WORLD.width / 2 + -250), 232, 500, 300, 18);
+        panel.fillStyle(COLORS.panel, 1).fillRoundedRect((WORLD.width / 2 + -290), 232, 580, 300, 18);
+        panel.lineStyle(2, COLORS.panelBorder, 1).strokeRoundedRect((WORLD.width / 2 + -290), 232, 580, 300, 18);
 
         const title = this.add.text((WORLD.width / 2), 258, Lang.t('tutorialTitle'), {
             fontFamily: 'Arial Black', fontSize: 24, color: COLORS.gold, stroke: '#000000', strokeThickness: 5
@@ -638,7 +631,7 @@ export class MainMenu extends Scene
 
         const owned = BADGES.filter((id) => Badges.has(id)).length;
         const divider = this.add.graphics();
-        divider.lineStyle(1, 0x3a3a5c, 1).lineBetween((WORLD.width / 2 + -220), 352, (WORLD.width / 2 + 220), 352);
+        divider.lineStyle(1, 0x3a3a5c, 1).lineBetween((WORLD.width / 2 + -260), 352, (WORLD.width / 2 + 260), 352);
         const badgesTitle = this.add.text((WORLD.width / 2), 374, `${Lang.t('badgesTitle')}  ${owned}/${BADGES.length}`, {
             fontFamily: 'Arial Black', fontSize: 18, color: COLORS.teal
         }).setOrigin(0.5);
@@ -648,18 +641,18 @@ export class MainMenu extends Scene
         BADGES.forEach((id, i) => {
             const has = Badges.has(id);
             const inRow = Math.min(3, BADGES.length - Math.floor(i / 3) * 3);
-            const x = (WORLD.width / 2) + ((i % 3) - (inRow - 1) / 2) * 152;
+            const x = (WORLD.width / 2) + ((i % 3) - (inRow - 1) / 2) * 180;
             const y = 420 + Math.floor(i / 3) * 46;
             const chip = this.add.graphics();
-            chip.fillStyle(has ? 0x3a3010 : 0x1b1b33, 1).fillRoundedRect(x - 72, y - 18, 144, 36, 9);
-            chip.lineStyle(2, has ? 0xffdd44 : 0x3a3a5c, 1).strokeRoundedRect(x - 72, y - 18, 144, 36, 9);
+            chip.fillStyle(has ? 0x3a3010 : 0x1b1b33, 1).fillRoundedRect(x - 85, y - 18, 170, 36, 9);
+            chip.lineStyle(2, has ? 0xffdd44 : 0x3a3a5c, 1).strokeRoundedRect(x - 85, y - 18, 170, 36, 9);
             const label = this.add.text(x, y, `${has ? '★' : '☆'} ${Lang.t('badge_' + id)}`, {
                 fontFamily: 'Arial', fontSize: 15, color: has ? COLORS.gold : '#6b6b8a'
             }).setOrigin(0.5);
             parts.push(chip, label);
         });
 
-        const hint = this.add.text((WORLD.width / 2), 508, Lang.t('popupHint'), {
+        const hint = this.add.text((WORLD.width / 2), 510, Lang.t('popupHint'), {
             fontFamily: 'Arial', fontSize: 13, color: COLORS.grey
         }).setOrigin(0.5);
 
@@ -672,11 +665,11 @@ export class MainMenu extends Scene
         const popup = this.add.container(0, 0).setVisible(false).setDepth(10);
 
         const panel = this.add.graphics();
-        panel.fillStyle(COLORS.panel, 1).fillRoundedRect((WORLD.width / 2 + -320), 190, 640, 340, 18);
-        panel.lineStyle(2, COLORS.panelBorder, 1).strokeRoundedRect((WORLD.width / 2 + -320), 190, 640, 340, 18);
+        panel.fillStyle(COLORS.panel, 1).fillRoundedRect((WORLD.width / 2 + -320), 180, 640, 350, 18);
+        panel.lineStyle(2, COLORS.panelBorder, 1).strokeRoundedRect((WORLD.width / 2 + -320), 180, 640, 350, 18);
 
         const owned = ACHIEVEMENTS.filter((a) => AchievementStore.has(a.id)).length;
-        const title = this.add.text((WORLD.width / 2), 222, `${Lang.t('achievementsTitle')}  ${owned}/${ACHIEVEMENTS.length}`, {
+        const title = this.add.text((WORLD.width / 2), 212, `${Lang.t('achievementsTitle')}  ${owned}/${ACHIEVEMENTS.length}`, {
             fontFamily: 'Arial Black', fontSize: 24, color: COLORS.gold, stroke: '#000000', strokeThickness: 5
         }).setOrigin(0.5);
 
@@ -685,7 +678,7 @@ export class MainMenu extends Scene
         ACHIEVEMENTS.forEach((a, i) => {
             const has = AchievementStore.has(a.id);
             const cx = WORLD.width / 2 + (i % 2 === 0 ? -160 : 160);
-            const y = 284 + Math.floor(i / 2) * 62;
+            const y = 274 + Math.floor(i / 2) * 62;
             const chip = this.add.graphics();
             chip.fillStyle(has ? 0x3a3010 : 0x1b1b33, 1).fillRoundedRect(cx - 150, y - 26, 300, 52, 9);
             chip.lineStyle(2, has ? 0xffdd44 : 0x3a3a5c, 1).strokeRoundedRect(cx - 150, y - 26, 300, 52, 9);
@@ -701,7 +694,7 @@ export class MainMenu extends Scene
             parts.push(chip, name, detail);
         });
 
-        const hint = this.add.text((WORLD.width / 2), 508, Lang.t('popupHint'), {
+        const hint = this.add.text((WORLD.width / 2), 510, Lang.t('popupHint'), {
             fontFamily: 'Arial', fontSize: 13, color: COLORS.grey
         }).setOrigin(0.5);
 

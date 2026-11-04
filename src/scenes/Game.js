@@ -240,7 +240,6 @@ export class Game extends Scene
                         this.unlockBadge('perfect');
                         this.pace.hitstop(FEEL.hitstop.perfect);
                         this.camFx.shake('perfect');
-                        this.camFx.flash(120, 255, 221, 68);
                     }
                 }
             });
