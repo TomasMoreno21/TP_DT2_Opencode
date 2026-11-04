@@ -196,7 +196,7 @@ function placeSpots(rng, cfg, preferFragile = false, tight = false) {
     // Índices: 0 = baja (y >= 520), 1 = media (340-519), 2 = alta (<340)
     // El objetivo es tener spots representados en las 3 franjas, priorizando frágiles en N3
     const spotCounts = preferFragile ? FRAGILE_SPOTS : SPOT_COUNT;
-    const nnValues = tight ? [SPOT_NN, 140, 115, 95, 80, 65] : [SPOT_NN, 140, 115, 95, 80];
+    const nnValues = tight ? [SPOT_NN, 140, 115, 95, 80, 65] : [SPOT_NN, 140, 115, 95, 80, 75];
 
     // Contador de spots por franja
     const bandCounts = { 0: 0, 1: 0, 2: 0 };

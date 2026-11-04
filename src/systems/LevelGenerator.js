@@ -562,7 +562,8 @@ export class LevelGenerator {
             validations++;
             const budget = (candidate.quota * check.meanFrames) / 60 / candidate.durationSeconds;
 
-            if (check.ok && budget <= maxBudget) {
+            // El validador no cuenta spots: se descarta el candidato al que le faltaron lugares (mínimos de test-levels).
+            if (check.ok && candidate.pointSpots.length >= (levelId === 3 ? 8 : 11) && budget <= maxBudget) {
                 config = candidate;
                 res = check;
                 break;
