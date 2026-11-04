@@ -164,6 +164,9 @@ export class Game extends Scene
             return;
         }
 
+        // El botón "continuar" del menú retoma desde el último nivel jugado.
+        try { localStorage.setItem('fastMoveLastLevel', String(this.levelIndex + 1)); } catch { /* sin storage: continuar arranca en el N1 */ }
+
         this.gameEnded = false;
         this.levelComplete = false;
         this.frozen = false;

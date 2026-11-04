@@ -276,7 +276,7 @@ export class MainMenu extends Scene
     continueCampaign () {
         const lastLevel = localStorage.getItem('fastMoveLastLevel');
         const levelIndex = lastLevel ? Math.max(0, Math.min(LEVELS.length - 1, Number(lastLevel) - 1)) : 0;
-        this.startGame({ levelIndex });
+        this.startGame(this.playButton, levelIndex);
     }
 
     // Pide la campaña en segundo plano (Web Worker) apenas se abre el menú: la
