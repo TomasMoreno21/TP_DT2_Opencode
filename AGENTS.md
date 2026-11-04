@@ -50,7 +50,7 @@ Antes de modificar una funcionalidad:
 
 En este videojuego, considerar cuando corresponda:
 
-- Mecánicas por nivel y su activación (trampolines, plataformas móviles, pinchos, escudo, portales, gemas).
+- Mecánicas por nivel y su activación (trampolines, plataformas frágiles, pinchos, escudo, Vacío del nivel 5).
 - Movimiento, salto, wall grab / wall jump y dash; límites del mapa fijo 1024×768.
 - Puntos, spots fijos, quota, combo/multiplicador x1–x5 y mejor puntaje (localStorage).
 - Proyectiles: spawn, homing, línea recta acelerada y variantes.
