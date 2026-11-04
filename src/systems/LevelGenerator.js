@@ -562,9 +562,7 @@ export class LevelGenerator {
             validations++;
             const budget = (candidate.quota * check.meanFrames) / 60 / candidate.durationSeconds;
 
-            const hasGem = levelId < 3 || Boolean(candidate.gems?.length);
-
-            if (check.ok && hasGem && budget <= maxBudget) {
+            if (check.ok && budget <= maxBudget) {
                 config = candidate;
                 res = check;
                 break;

@@ -36,7 +36,16 @@ export class RisingVoid {
         return this.top - y;
     }
 
+    // Cuota cumplida: la vista y el borde se quedan donde están (y siguen matando).
+    stop() {
+        this.stopped = true;
+    }
+
     update(delta, playerY, viewH) {
+        if (this.stopped) {
+            return;
+        }
+
         this.elapsedMs += delta;
 
         const scroll = this.elapsedMs > VOID_CONFIG.startDelayMs ? this.speed * delta / 1000 : 0;

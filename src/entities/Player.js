@@ -19,6 +19,8 @@ export const PLAYER_CONFIG = {
     ledgeForgiveness: 18,
     wallStickMs: 140,
     wallSlideSpeed: 50,
+    wallPushSpeed: 20,
+    wallGripMs: 60,
     wallBrakeRate: 7000,
     wallJumpLockMs: 150,
     dashRefundMs: 450,
@@ -267,13 +269,16 @@ export class Player {
         }
 
         const side = this.wallSide;
-        const holdingToward = side === 'left' ? (touchingLeft && left) : (touchingRight && right);
+        const holdingToward = side === 'left' ? left : right;
+        // El contacto (`blocked`) se apaga algún frame aunque sigas apretado a la pared: el agarre se mantiene
+        // un instante sin él, si no se suelta y se vuelve a tomar en cada frame (vibración).
+        const gripping = holdingToward && (touchingWall || (this.wallGrabbing && !this.onFloor && now - this.lastWallTouchTime <= PLAYER_CONFIG.wallGripMs));
         const wallCoyoteReady = now - this.lastWallTouchTime <= PLAYER_CONFIG.wallCoyoteTime;
         const wallJumpReady = !this.onFloor && !this.isDashing && (touchingWall || wallCoyoteReady) && side
             && (justPressedJump || bufferReady)
             && now - this.lastWallJumpTime >= PLAYER_CONFIG.wallJumpCooldown;
 
-        if (touchingWall && holdingToward && !this.isDashing) {
+        if (gripping && !this.isDashing) {
             if (!this.wallGrabbing) {
                 this.wallGrabAt = now;
                 this.squashBounce(0.85, 1.12);
@@ -287,7 +292,9 @@ export class Player {
             const slide = now - this.wallGrabAt < PLAYER_CONFIG.wallStickMs ? 0 : PLAYER_CONFIG.wallSlideSpeed;
             const vy = this.body.velocity.y;
             const step = PLAYER_CONFIG.wallBrakeRate * dtSec;
-            this.body.setVelocity(0, Math.abs(slide - vy) <= step ? slide : vy + Math.sign(slide - vy) * step);
+            // Un empuje mínimo contra la pared mantiene el contacto: con vx = 0 el cuerpo se despega, `blocked`
+            // se apaga un frame, el agarre se suelta y se vuelve a tomar (era la vibración).
+            this.body.setVelocity(side === 'left' ? -PLAYER_CONFIG.wallPushSpeed : PLAYER_CONFIG.wallPushSpeed, Math.abs(slide - vy) <= step ? slide : vy + Math.sign(slide - vy) * step);
         } else if (this.wallGrabbing) {
             this.wallGrabbing = false;
             this.rect.setFillStyle(MULTIPLIER_COLORS[this.multiplier] ?? PLAYER_CONFIG.color);
@@ -325,7 +332,7 @@ export class Player {
             return;
         }
 
-        if (touchingWall && holdingToward) {
+        if (gripping) {
             this.applyMotionScale();
             return;
         }

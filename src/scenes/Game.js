@@ -819,12 +819,13 @@ export class Game extends Scene
         }
     }
 
-    // Cuota cumplida en la torre: el escenario se detiene, el Vacío desaparece y la salida aparece
-    // sobre la plataforma visible más cercana a más de 250 px del jugador (para no regalarla).
+    // Cuota cumplida en la torre: el escenario se detiene (la vista queda fija y el Vacío sigue abajo, así
+    // que caer sigue matando) y la salida aparece sobre la plataforma visible más cercana a más de 250 px
+    // del jugador (para no regalarla).
     stopTower()
     {
         // Un orbe tomado después de cumplir la cuota vuelve a llamar acá: la torre ya está detenida.
-        if (!this.risingVoid) {
+        if (!this.risingVoid || this.risingVoid.stopped) {
             return;
         }
 
@@ -836,10 +837,7 @@ export class Game extends Scene
             .filter((p) => p.y > view.y + 120 && p.y < view.bottom - 160 && Math.hypot(p.x - x, p.y - y) > 250)
             .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
 
-        this.risingVoid.destroy();
-        this.risingVoid = null;
-        cam.startFollow(this.player.rect, true, 0.12, 0.12);
-        cam.setDeadzone(80, 120);
+        this.risingVoid.stop();
 
         if (near) {
             this.level.goal.moveTo(near.x, near.y - near.h / 2 - 36);
