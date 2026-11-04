@@ -43,7 +43,8 @@ for (let k = 0; k < COUNT; k++) {
         bins[bin] = (bins[bin] ?? 0) + 1;
     }
     for (const m of entry.mutations) {
-        if (m.startsWith('forma:')) shapes[m] = (shapes[m] ?? 0) + 1;
+        // N2 ya es un nivel con formas (_shapedLevel): la mutación es el nombre de la forma, sin prefijo.
+        if (m !== 'base-fijo') shapes[m] = (shapes[m] ?? 0) + 1;
     }
 }
 

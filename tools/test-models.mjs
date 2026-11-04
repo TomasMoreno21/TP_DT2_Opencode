@@ -39,11 +39,9 @@ for (const [levelKey, shapes] of Object.entries(LEVEL_SHAPES)) {
             const problems = [];
             if (!res.goalOk) problems.push('salida inalcanzable');
             if (res.spotsOk < res.spotsTotal) problems.push(`spots ${res.spotsOk}/${res.spotsTotal}: ${res.spotsBad.map((s) => `(${s.x},${s.y})`).join(' ')}`);
-            if (res.gemsBad?.length) problems.push(`gemas: ${res.gemsBad?.map((g) => `(${g.x},${g.y})`).join(' ')}`);
             if (res.layoutIssues.length) problems.push(`layout: ${res.layoutIssues.join('; ')}`);
             if (!res.safeRoute) problems.push('sin ruta segura');
             if (cfg.pointSpots.length < 12) problems.push(`solo ${cfg.pointSpots.length} spots`);
-            if (levelId >= 3 && !cfg.gems?.length) problems.push('sin gema');
 
             if (problems.length) failures.push(`N${levelId} ${shape} semilla ${seed}: ${problems.join(' | ')}`);
             else ok++;

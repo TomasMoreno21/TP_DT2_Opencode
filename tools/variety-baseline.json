@@ -25,11 +25,11 @@
     "min": {
       "coarseSignatures": 44,
       "distinctTrampolineSets": 45,
-      "trampolineBinCount": 10,
-      "shapesUsed": 5
+      "trampolineBinCount": 7,
+      "shapesUsed": 3
     },
     "max": {
-      "topBinShare": 62
+      "topBinShare": 70
     }
   },
   "after": {

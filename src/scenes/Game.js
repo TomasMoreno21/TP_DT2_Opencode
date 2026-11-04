@@ -919,7 +919,8 @@ export class Game extends Scene
 
     onQuotaMet ()
     {
-        if (this.gameEnded || this.levelComplete) {
+        // Los orbes tomados después de la cuota vuelven a llamar acá: el aviso y el sonido van una sola vez.
+        if (this.gameEnded || this.levelComplete || this.level.goal.isOpen) {
             return;
         }
 
