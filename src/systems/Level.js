@@ -29,7 +29,6 @@ export class Level {
         this.materializeFragilePlatforms();
         this.materializeHazards();
         this.materializePowerUps();
-        this.materializePortals();
     }
 
     // Libera los tweens y timers de las entidades del nivel. Se invoca al reiniciar
@@ -50,9 +49,6 @@ export class Level {
             powerUp.destroy();
         }
 
-        for (const portal of this.portalList) {
-            portal.destroy();
-        }
     }
 
     materializeTrampolines() {
@@ -107,39 +103,6 @@ export class Level {
             const powerUp = EntityFactory.createPowerUp(this.scene, p);
             this.powerUps.add(powerUp.circle);
             this.powerUpList.push(powerUp);
-        }
-    }
-
-    // Los portales se vinculan por pares consecutivos en la config. Si la cantidad
-// es impar, el ultimo queda sin pareja: se descarta para no dejar un portal
-// que al pisarlo intenta teletransportar hacia null.
-    materializePortals() {
-        this.portals = this.scene.physics.add.group();
-        this.portalList = [];
-
-        const portalData = this.config.portals ?? [];
-        const paired = portalData.length - (portalData.length % 2);
-
-        for (let i = 0; i < paired; i++) {
-            const portal = EntityFactory.createPortal(this.scene, portalData[i]);
-            this.portals.add(portal.sensor);
-            this.portalList.push(portal);
-        }
-
-        for (let i = 0; i + 1 < this.portalList.length; i += 2) {
-            this.portalList[i].linked = this.portalList[i + 1];
-            this.portalList[i + 1].linked = this.portalList[i];
-
-            // Hilo tenue entre el par para leer a dónde lleva cada portal.
-            const [a, b] = [this.portalList[i], this.portalList[i + 1]];
-            const line = this.scene.add.graphics().setDepth(0.1).lineStyle(2, a.ring.fillColor, 0.18);
-            const len = Math.hypot(b.x - a.x, b.y - a.y);
-
-            for (let d = 0; d < len; d += 16) {
-                const t0 = d / len;
-                const t1 = Math.min(d + 7, len) / len;
-                line.lineBetween(a.x + (b.x - a.x) * t0, a.y + (b.y - a.y) * t0, a.x + (b.x - a.x) * t1, a.y + (b.y - a.y) * t1);
-            }
         }
     }
 }

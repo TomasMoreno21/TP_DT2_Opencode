@@ -205,7 +205,6 @@ export function buildTower(seed, base, assist = 0) {
         powerUps,
         hazards,
         trampolines,
-        portals: [],
         // Para tools/test-tower.mjs y para depurar: la estructura sin aplanar.
         tower: { main: all, extras, sections, need, floorTop }
     };

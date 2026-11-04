@@ -62,16 +62,15 @@ for (let k = 0; k < COUNT; k++) {
             if (!res.ok) fail(seed, base.id, `re-validación falla: spots ${res.spotsOk}/${res.spotsTotal} goal=${res.goalFrames} ${res.layoutIssues.join(';')}`);
         }
 
-        for (const key of ['pointSpots', 'gems', 'trampolines', 'hazards', 'powerUps', 'portals', 'movingPlatforms']) {
+        for (const key of ['pointSpots', 'gems', 'trampolines', 'hazards', 'powerUps', 'movingPlatforms']) {
             // Los niveles con `trampolines: {min,max}` en LEVEL_TUNING pueden variar su cantidad.
             const range = key === 'trampolines' ? LEVEL_TUNING[base.id]?.trampolines : null;
             const n = cfg[key]?.length ?? 0;
             // N3-N5 (formas de LevelShapes): pinchos, escudos, gemas y trampolines varian por forma; lo
-            // que se exige es 12 spots, 1 gema y portales en pares (la validez la barre test-models).
+            // que se exige es 12 spots, 1 gema (la validez la barre test-models).
             if (LEVEL_TUNING[base.id]?.shaped) {
                 if (key === 'pointSpots' && n !== 12) fail(seed, base.id, `${n} spots`);
                 if (key === 'gems' && n !== (base.id >= 3 ? 1 : 0)) fail(seed, base.id, `${n} gemas`);
-                if (key === 'portals' && n % 2 !== 0) fail(seed, base.id, 'portales impares');
             } else if (range) {
                 if (n < range.min || n > range.max) fail(seed, base.id, `${key}: ${n} fuera de [${range.min},${range.max}]`);
             } else if (n !== (base[key]?.length ?? 0)) fail(seed, base.id, `cambió la cantidad de ${key}`);
@@ -79,7 +78,7 @@ for (let k = 0; k < COUNT; k++) {
         if (cfg.quota !== base.quota) fail(seed, base.id, 'cambió la quota');
 
         const inBounds = (e) => e.x >= 0 && e.x <= WORLD.width && e.y >= 0 && e.y <= WORLD.height;
-        for (const key of ['pointSpots', 'gems', 'trampolines', 'hazards', 'powerUps', 'portals', 'platforms']) {
+        for (const key of ['pointSpots', 'gems', 'trampolines', 'hazards', 'powerUps', 'platforms']) {
             if ((cfg[key] || []).some((e) => !inBounds(e))) fail(seed, base.id, `${key} fuera del mundo`);
         }
         if (!inBounds(cfg.goal) || !inBounds(cfg.spawn)) fail(seed, base.id, 'goal/spawn fuera del mundo');

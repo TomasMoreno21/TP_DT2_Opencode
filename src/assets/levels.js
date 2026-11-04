@@ -307,7 +307,7 @@ const BASE_LEVELS = [
     }
 ];
 
-// Campaña completa de 5 niveles (N3 frágiles, N4 pinchos y escudo, N5 portales y combinación).
+// Campaña completa de 5 niveles (N3 frágiles, N4 pinchos y escudo, N5 torre y combinación).
 // Las plantillas están en coordenadas de BASE_WIDTH: se estiran en x (las paredes de
 // borde quedan a 40 px) y se conserva la altura. Anchos y alturas no cambian, salvo el piso.
 const WALL = 40;
