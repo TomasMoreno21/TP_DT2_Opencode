@@ -56,7 +56,6 @@ export class Hud {
         this.rankThresholds = null;
         this.lastRankIndex = -1;
         this.dashReady = true;
-        this.shieldActive = false;
         this.scoreShown = 0;
         this.scoreTarget = 0;
         this.scoreAnim = { v: 0 };
@@ -495,11 +494,6 @@ export class Hud {
         this.dashPos = { x: 40, y };
         this.dashLabel = this.text(40, y + 27, 'SHIFT', 11, '#aaaacc', { originX: 0.5, stroke: 2 });
 
-        // Escudo: solo aparece mientras está activo.
-        this.shieldPos = { x: 92, y };
-        this.shieldRing = this.fix(scene.add.graphics()).setVisible(false);
-        this.shieldIcon = this.fix(scene.add.graphics()).setVisible(false);
-
         this.setDashCooldown(0, 1);
     }
 
@@ -536,38 +530,6 @@ export class Hud {
         }
 
         this.dashReady = ready;
-    }
-
-    setShield (remainingMs, totalMs) {
-        const active = remainingMs > 0;
-        const { x, y } = this.shieldPos;
-
-        this.shieldRing.setVisible(active);
-        this.shieldIcon.setVisible(active);
-
-        if (!active) {
-            this.shieldActive = false;
-            return;
-        }
-
-        const fraction = Math.max(Math.min(remainingMs / totalMs, 1), 0);
-        const color = fraction < 0.25 ? 0xff4455 : 0x2dd4ff;
-
-        this.shieldRing.clear();
-        this.drawAbilityBase(this.shieldRing, x, y);
-        drawArc(this.shieldRing, x, y, 19, 4, fraction, color);
-
-        // Escudo: silueta de blasón.
-        this.shieldIcon.clear().fillStyle(color, 1);
-        this.shieldIcon.fillPoints([
-            { x: x - 8, y: y - 8 }, { x: x + 8, y: y - 8 }, { x: x + 8, y: y + 1 },
-            { x, y: y + 10 }, { x: x - 8, y: y + 1 }
-        ], true);
-
-        if (!this.shieldActive) {
-            this.shieldActive = true;
-            this.flash(x - 26, y - 26, 52, 52, 0x2dd4ff, 26);
-        }
     }
 
     // --- Efectos ---------------------------------------------------------------

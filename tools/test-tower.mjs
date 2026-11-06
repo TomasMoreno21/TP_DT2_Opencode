@@ -101,10 +101,6 @@ for (let seed = FIRST; seed < FIRST + COUNT; seed++) {
             }
         }
 
-        // Escudos: algunos, y nunca sobre pinchos.
-        if (cfg.powerUps.length < 3) fail('pocos escudos', tag, String(cfg.powerUps.length));
-        if (cfg.powerUps.some((u) => cfg.hazards.some((h) => Math.abs(h.x - u.x) < h.w / 2 && Math.abs(h.y - (u.y + 36)) < 4))) fail('escudo sobre pinchos', tag, '');
-
         // Variedad.
         if (assist === 0) {
             sections.forEach((s) => styleSeen.add(s));

@@ -178,7 +178,7 @@ export const LEVEL_TUNING = {
     },
     4: { 
         shaped: true,
-        // N4: pinchos y escudos, mayor variedad de diseño y mecánicas
+        // N4: pinchos, mayor variedad de diseño y mecánicas
         selectionTemperature: 0.55,
         maxIntensity: 0.9,
         minNovelty: 6,
@@ -903,13 +903,13 @@ export class LevelGenerator {
         const flip = (e) => { if (e && typeof e.x === 'number') e.x = W - e.x; };
         flip(cfg.spawn);
         flip(cfg.goal);
-        for (const key of ['platforms', 'pointSpots', 'gems', 'trampolines', 'hazards', 'powerUps', 'movingPlatforms']) {
+        for (const key of ['platforms', 'pointSpots', 'gems', 'trampolines', 'hazards', 'movingPlatforms']) {
             for (const e of cfg[key] || []) flip(e);
         }
     }
 
     // Entidades que descansan sobre una plataforma y deben acompañarla cuando se
-    // la mueve: trampolines, pinchos, power-ups, gemas, la salida y los spots.
+    // la mueve: trampolines, pinchos, gemas, la salida y los spots.
     // Si lleva un trampolín elevado, también viaja su "corredor": las plataformas
     // que lo flanquean por arriba (la boca por la que sale el rebote) y lo que hay
     // en ese hueco, para que no se desalinee. Los elementos son objetos con x/y
@@ -922,7 +922,6 @@ export class LevelGenerator {
         const trampolines = (cfg.trampolines || []).filter((e) => on(e, 26));
         for (const e of trampolines) carried.push(e);
         for (const e of cfg.hazards || []) if (on(e, 26)) carried.push(e);
-        for (const e of cfg.powerUps || []) if (on(e, 26)) carried.push(e);
         for (const e of cfg.gems || []) if (on(e, 70)) carried.push(e);
         for (const e of cfg.pointSpots || []) if (this._restsOn(e.x, e.y, p)) carried.push(e);
         if (cfg.goal && on(cfg.goal, 70)) carried.push(cfg.goal);
@@ -932,7 +931,7 @@ export class LevelGenerator {
             for (const q of cfg.platforms || []) {
                 if (q !== p && this._isPlayPlatform(q) && this._flanksTrampoline(tramp, q) && !carried.includes(q)) carried.push(q);
             }
-            for (const key of ['gems', 'pointSpots', 'powerUps']) {
+            for (const key of ['gems', 'pointSpots']) {
                 for (const e of cfg[key] || []) {
                     const inHole = Math.abs(e.x - tramp.x) <= tramp.w / 2 + 70 &&
                         e.y < tramp.y - 20 && e.y > tramp.y - TRAMPOLINE_CLEARANCE - 130;
@@ -1032,7 +1031,7 @@ export class LevelGenerator {
 
         const platforms = cfg.platforms.filter((p) => p.h <= 26 || p === column ? inBand(p) && p.y < FLOOR_TOP : false);
         const entities = [];
-        for (const key of ['trampolines', 'hazards', 'powerUps', 'gems', 'pointSpots']) {
+        for (const key of ['trampolines', 'hazards', 'gems', 'pointSpots']) {
             for (const e of cfg[key] || []) if (inBand(e) && above(e)) entities.push(e);
         }
         if (inBand(cfg.goal) && above(cfg.goal)) entities.push(cfg.goal);
@@ -1530,7 +1529,7 @@ export class LevelGenerator {
         return false;
     }
 
-    // Corre los spots, gemas y power-ups sueltos que hayan quedado al ras de un
+    // Corre los spots y gemas sueltos que hayan quedado al ras de un
     // trampolín (el rebote necesita su entorno libre).
     _clearAroundTrampolines(rng, cfg) {
         const near = (e) => (cfg.trampolines || []).some((t) =>
@@ -2092,7 +2091,7 @@ export class LevelGenerator {
     _platformFits(cfg, p) {
         const pad = 26;
         const hits = (e) => e.x > left(p) - pad && e.x < right(p) + pad && e.y > top(p) - 60 && e.y < bottom(p) + 60;
-        const lists = ['pointSpots', 'gems', 'powerUps', 'trampolines', 'hazards'];
+        const lists = ['pointSpots', 'gems', 'trampolines', 'hazards'];
 
         if (lists.some((key) => (cfg[key] || []).some(hits))) return false;
         if (hits(cfg.goal) || hits(cfg.spawn)) return false;
@@ -2191,7 +2190,7 @@ export class LevelGenerator {
         return Math.abs(top(p) - (t.y + TRAMPOLINE_HALF_HEIGHT)) <= 8 && right(p) > t.x - t.w / 2 && left(p) < t.x + t.w / 2;
     }
 
-    // ¿Algún elemento (pincho, spot al ras, gema al ras, power-up, salida, spawn u
+    // ¿Algún elemento (pincho, spot al ras, gema al ras, salida, spawn u
     // otro trampolín) quedó pegado al trampolín `t`?
     // Con `movable` = true no cuentan los spots (se pueden correr después).
     _entityNearTrampoline(cfg, t, movable = false) {
@@ -2203,7 +2202,6 @@ export class LevelGenerator {
         const spotLevel = (e) => Math.abs(e.x - t.x) < t.w / 2 + TRAMPOLINE_SPOT_GAP && Math.abs(e.y - t.y) < 60;
         if (!movable && (cfg.pointSpots || []).some(spotLevel)) return true;
         if ((cfg.gems || []).some((g) => level(g, 60))) return true;
-        if ((cfg.powerUps || []).some((u) => level(u, 60))) return true;
         if (cfg.goal && Math.abs(cfg.goal.x - t.x) < t.w / 2 + 80 && Math.abs(cfg.goal.y - t.y) < 110) return true;
         if (cfg.spawn && Math.abs(cfg.spawn.x - t.x) < t.w / 2 + 80 && Math.abs(cfg.spawn.y - t.y) < 110) return true;
         return false;
@@ -2474,7 +2472,6 @@ _trampolinesUsable(cfg) {
                     !gems.some((g, i) => i !== index && Math.hypot(g.x - x, g.y - y) < 160) &&
                     Math.hypot(cfg.goal.x - x, cfg.goal.y - y) > 110 &&
                     Math.hypot(cfg.spawn.x - x, cfg.spawn.y - y) > 140 &&
-                    (cfg.powerUps || []).every((u) => Math.hypot(u.x - x, u.y - y) > 60) &&
                     this._hasHeadroom(cfg, x, y, 40) &&
                     // Las gemas sobre móviles son deseables en N3: no las excluya
                     // de la ruta del móvil.
@@ -2506,7 +2503,6 @@ _trampolinesUsable(cfg) {
             if (Math.hypot(x - cfg.spawn.x, y - cfg.spawn.y) < GOAL_MIN_FROM_SPAWN) continue;
             if ((cfg.trampolines || []).some((t) => Math.abs(t.x - x) < t.w / 2 + 80 && Math.abs(t.y - y) < 110)) continue;
             if ((cfg.hazards || []).some((h) => Math.abs(h.x - x) < h.w / 2 + 45 && Math.abs(h.y - y) < 60)) continue;
-            if ((cfg.powerUps || []).some((u) => Math.hypot(u.x - x, u.y - y) < 70)) continue;
             if ((cfg.movingPlatforms || []).some((m) => this._insideMoverRoute(m, x, y, 50))) continue;
             if (!this._hasHeadroom(cfg, x, y, 50)) continue;
 
@@ -2588,7 +2584,7 @@ _trampolinesUsable(cfg) {
         // Nada de spots dentro ni pegados a una columna (la parte baja de una columna
         // apoyada en el piso no cuenta como superficie).
         if ((cfg.platforms || []).some((p) => this._isColumn(p) && x > left(p) - 24 && x < right(p) + 24 && y > top(p) - 10 && y < bottom(p) + 10)) return false;
-        if (near(cfg.gems, 60) || near(cfg.powerUps, 50)) return false;
+        if (near(cfg.gems, 60)) return false;
         if ((cfg.pointSpots || []).some((s, i) => i !== ignoreIndex && Math.hypot(s.x - x, s.y - y) < 60)) return false;
         if ((cfg.trampolines || []).some((t) => Math.abs(t.x - x) < t.w / 2 + TRAMPOLINE_SPOT_GAP && Math.abs(t.y - y) < 60)) return false;
         if ((cfg.hazards || []).some((h) => Math.abs(h.x - x) < h.w / 2 + 25 && Math.abs(h.y - y) < 60)) return false;
@@ -2647,7 +2643,6 @@ _trampolinesUsable(cfg) {
         };
         push(cfg.trampolines, 26);
         push(cfg.hazards, 26);
-        push(cfg.powerUps, 26);
         push(cfg.movingPlatforms, 26);
         push(cfg.gems, 70);
         if (cfg.goal) anchors.push({ x: cfg.goal.x, y: cfg.goal.y, window: 70 });

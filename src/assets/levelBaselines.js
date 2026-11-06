@@ -2,28 +2,28 @@
 // Esfuerzo de referencia de los niveles base (validador con comfort 1).
 export const LEVEL_BASELINES = {
     "1": {
-        "pathLengthFrames": 180,
-        "meanFrames": 105.3,
+        "pathLengthFrames": 190,
+        "meanFrames": 107.1,
         "goalFrames": 125
     },
     "2": {
         "pathLengthFrames": 165,
-        "meanFrames": 94.7,
-        "goalFrames": 66
+        "meanFrames": 95.1,
+        "goalFrames": 72
     },
     "3": {
-        "pathLengthFrames": 156,
-        "meanFrames": 92.9,
-        "goalFrames": 159
+        "pathLengthFrames": 159,
+        "meanFrames": 94.2,
+        "goalFrames": 163
     },
     "4": {
         "pathLengthFrames": 160,
-        "meanFrames": 89.9,
+        "meanFrames": 91.3,
         "goalFrames": 129
     },
     "5": {
-        "pathLengthFrames": 177,
-        "meanFrames": 103.7,
+        "pathLengthFrames": 181,
+        "meanFrames": 104.4,
         "goalFrames": 92
     }
 };

@@ -51,7 +51,7 @@ La campaña tiene **5 niveles**; al pisar la salida del quinto se gana.
 - **Salto variable:** soltar el botón pronto corta el salto.
 - **Ayudas de entrada:** *coyote time* (140 ms) y *jump buffer* (170 ms).
 - **Wall grab y wall jump:** el jugador se agarra a las paredes y salta hacia el lado opuesto.
-- **Dash:** impulso de 700 px/s durante 170 ms, sin salto. Es **invulnerable** durante todo el impulso y 0,2 s más después. Enfriamiento de 0,9 s (barra en el HUD). No se recarga al tocar suelo, pared o trampolín; **recoger un punto acorta 0,45 s** lo que falta.
+- **Dash:** impulso de 700 px/s durante 170 ms, sin salto. Es **invulnerable** durante todo el impulso y 0,2 s más después. Enfriamiento de 1,1 s (barra en el HUD). No se recarga al tocar suelo, pared o trampolín; **recoger un punto acorta 0,45 s** lo que falta.
 
 ### 4.2 Puntos, combo, bono de tiempo y rangos
 
@@ -78,13 +78,13 @@ Nacen en las paredes de los bordes, con una marca pulsante de 400 ms de aviso. V
 
 Caen poco después de pisarlas: hay que seguir moviéndose.
 
-### 4.7 Pinchos y escudo (nivel 4)
+### 4.7 Pinchos (nivel 4)
 
-Los pinchos tiemblan antes de salir y se retraen por ciclos; tocarlos cuenta como un impacto. El **escudo** (power-up) absorbe un golpe y se puede volver a conseguir.
+Los pinchos tiemblan antes de salir y se retraen por ciclos; tocarlos cuenta como un impacto.
 
 ### 4.8 El Vacío (nivel 5)
 
-El nivel 5 es una **torre**: el escenario sube solo y el borde inferior del Vacío mata al tocarlo (el escudo no lo frena). Arranca tras una breve demora; si el jugador trepa más rápido que el escenario, la vista lo acompaña y nunca baja. Los orbes que el Vacío se traga se reubican. La **cuota es de 12 orbes**: al cumplirla, la torre se detiene, el Vacío desaparece y la salida aparece sobre una plataforma visible alejada del jugador. Escapar de la torre da la insignia *Escapaste del Vacío*.
+El nivel 5 es una **torre**: el escenario sube solo y el borde inferior del Vacío mata al tocarlo. Arranca tras una breve demora; si el jugador trepa más rápido que el escenario, la vista lo acompaña y nunca baja. Los orbes que el Vacío se traga se reubican. La **cuota es de 16 orbes**: al cumplirla, la torre se detiene, el Vacío desaparece y la salida aparece sobre una plataforma visible alejada del jugador. Escapar de la torre da la insignia *Escapaste del Vacío*.
 
 ### 4.9 Tabla resumen
 
@@ -96,7 +96,7 @@ El nivel 5 es una **torre**: el escenario sube solo y el borde inferior del Vac�
 | Trampolines | Rebote, con zona perfecta | Nivel 2 |
 | Proyectiles | Obstáculo que obliga a esquivar | Niveles 2 a 5 |
 | Plataformas frágiles | Caen al pisarlas | Nivel 3 en adelante |
-| Pinchos y escudo | Peligro con aviso; el escudo absorbe un golpe | Nivel 4 en adelante |
+| Pinchos | Peligro con aviso | Nivel 4 en adelante |
 | Vacío | Escenario que sube solo; la cuota lo detiene | Nivel 5 |
 
 ## 5. Reglas, victoria y derrota
@@ -111,7 +111,7 @@ El nivel 5 es una **torre**: el escenario sube solo y el borde inferior del Vac�
 **Se pierde el nivel cuando:**
 
 - el **tiempo llega a cero** antes de pisar la salida, o
-- un **proyectil o un pincho** impacta al jugador sin escudo, o
+- un **proyectil o un pincho** impacta al jugador, o
 - el **Vacío** lo alcanza (nivel 5).
 
 **Se gana la campaña** al pisar la salida del último nivel.
@@ -120,11 +120,11 @@ El nivel 5 es una **torre**: el escenario sube solo y el borde inferior del Vac�
 
 | # | Nombre | Tiempo | Meta | Peligros | Idea del nivel |
 |---|---|---|---|---|---|
-| 1 | Arranque | 60 s | 12 puntos | Ninguno | Enseña movimiento, wall jump y combo sin presión. |
-| 2 | Rebotes | 50 s | 10 puntos | Proyectiles | Trampolines y proyectiles: subir por rebotes y esquivar a la vez. |
-| 3 | Frágiles | 50 s | 13 puntos | Proyectiles | Plataformas frágiles: no quedarse quieto. |
-| 4 | Peligro | 47 s | 14 puntos | Proyectiles y pinchos | Pinchos con aviso y escudo. |
-| 5 | Final | 55 s | 12 puntos | Vacío y proyectiles | Torre que sube sola: trepar y juntar 12 orbes; al cumplirlos se detiene y aparece la salida. |
+| 1 | Arranque | 60 s | 10 puntos | Ninguno | Enseña movimiento, wall jump y combo sin presión. |
+| 2 | Rebotes | 50 s | 12 puntos | Proyectiles | Trampolines y proyectiles: subir por rebotes y esquivar a la vez. |
+| 3 | Frágiles | 50 s | 14 puntos | Proyectiles | Plataformas frágiles: no quedarse quieto. |
+| 4 | Peligro | 47 s | 15 puntos | Proyectiles y pinchos | Pinchos con aviso. |
+| 5 | Final | 55 s | 16 puntos | Vacío y proyectiles | Torre que sube sola: trepar y juntar 16 orbes; al cumplirlos se detiene y aparece la salida. |
 
 **Progresión:** el nivel 1 no tiene amenazas y da 10 s más de reloj; cada nivel siguiente suma una mecánica (rebotes, frágiles, pinchos y por último el Vacío). La dificultad sube por presión de tiempo y por combinar mecánicas.
 
@@ -140,8 +140,7 @@ Todos los mapas ocupan una pantalla de 1024×768 y se validan con una herramient
 ## 7. Ayuda al jugador
 
 - **Tutorial:** en el nivel 1, pistas paso a paso (mover, saltar, wall grab, wall jump, dash) que se completan al usar cada mecánica. Panel sobre la franja del piso con teclas dibujadas y puntos de progreso. Se saltea con T.
-- **Coach al fallar:** tras derrotas seguidas por la misma causa, muestra un consejo.
-- **Insignias de aprendizaje** (5): wall jump, dash, rebote perfecto, escudo salvador y Vacío (escapar de la torre del nivel 5).
+- **Insignias de aprendizaje** (4): wall jump, dash, rebote perfecto y Vacío (escapar de la torre del nivel 5).
 - **Feedback:** sonidos generados por código, pausa breve al recolectar o recibir un golpe, cámara lenta al perder y zoom leve con multiplicador alto.
 
 ## 8. Arte, interfaz y audio
@@ -170,6 +169,6 @@ Todos los mapas ocupan una pantalla de 1024×768 y se validan con una herramient
 Un interruptor del menú. Apagado, el juego es el de siempre. Encendido, al empezar **cada** nivel toca un modificador al azar que lo hace más difícil y suma un bonus al puntaje del nivel (con 5 % de probabilidad tocan dos).
 
 - **Aviso:** se muestra al comienzo del nivel con su nombre y bonus, y queda como etiqueta en el HUD.
-- **Reintentos y filtro:** al reintentar se vuelve a sortear, y solo salen modificadores que aplican al mapa (Ráfaga no sale sin proyectiles). Reloj corto y Meta alta no salen juntos.
+- **Reintentos y filtro:** al reintentar se vuelve a sortear, y solo salen modificadores que aplican al mapa (Pinchos rápidos no sale sin pinchos). No salen juntos Reloj corto con Meta alta, Sin dash con Dash lento, ni Niebla con Orbes efímeros o Un solo punto.
 - **Ranking:** los puntajes de este modo van a una tabla separada.
-- **Modificadores:** Reloj corto, Ráfaga, Dash lento, Combo frágil, Un solo punto y Meta alta, con un bonus de +10 a +20 % al puntaje del nivel.
+- **Modificadores:** Reloj corto (tiempo −35 %), Dash lento (enfriamiento ×3), Un solo punto, Meta alta (cuota +40 %), Luna (salto más alto y caída lenta), Sin dash, Orbes efímeros (duran 5 s), Pinchos rápidos y Niebla (solo se ve un círculo alrededor del jugador), con un bonus de +15 a +25 % al puntaje del nivel.

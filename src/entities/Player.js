@@ -33,13 +33,10 @@ export const PLAYER_CONFIG = {
     wallJumpYVelocity: -500,
     wallJumpCooldown: 180,
     wallCoyoteTime: 180,
-    shieldDurationMs: 6000,
-    shieldColor: 0x2dd4ff,
-    invulnerableMs: 500,
     dashSpeed: 700,
     dashDurationMs: 170,
     dashGraceMs: 200,
-    dashCooldownMs: 900,
+    dashCooldownMs: 1100,
     dashTrailIntervalMs: 45,
     dashTrailLifeMs: 220
 };
@@ -79,12 +76,7 @@ export class Player {
         this.lastWallTouchTime = -Infinity;
         this.wallSide = null;
 
-        this.shieldUntil = 0;
         this.invulnerableUntil = 0;
-
-        this.shieldRing = scene.add.circle(x, y, PLAYER_CONFIG.width * 0.9, 0x2dd4ff, 0.12);
-        this.shieldRing.setStrokeStyle(3, PLAYER_CONFIG.shieldColor, 0.9);
-        this.shieldRing.setVisible(false);
 
         // Impulsos de squash (se combinan con el estiramiento por velocidad).
         this.impX = 1;
@@ -118,10 +110,6 @@ export class Player {
         scene.listen('point-collected', () => this.refundDash());
     }
 
-    get hasShield() {
-        return this.scene.time.now < this.shieldUntil;
-    }
-
     get isInvulnerable() {
         return this.scene.time.now < this.invulnerableUntil;
     }
@@ -141,33 +129,13 @@ export class Player {
         this.dashCooldownUntil = Math.max(now, this.dashCooldownUntil - PLAYER_CONFIG.dashRefundMs);
     }
 
-    activateShield(durationMs = PLAYER_CONFIG.shieldDurationMs) {
-        this.shieldUntil = this.scene.time.now + durationMs;
-    }
-
-    // Absorbe el golpe: consume el escudo y deja una ventana de invulnerabilidad.
     // Daño sentido: carita >_< + squash rápido. Lo llama Game.onHit.
     flinch(durationMs = 240) {
         this.flinchUntil = this.scene.time.now + durationMs;
         this.squashBounce(1.25, 0.75);
     }
 
-    absorbHit() {
-        this.flinch();
-        this.shieldUntil = 0;
-        this.invulnerableUntil = this.scene.time.now + PLAYER_CONFIG.invulnerableMs;
-        this.rect.setFillStyle(0xffffff);
-        this.scene.time.delayedCall(350, () => {
-            if (!this.wallGrabbing) {
-                this.rect.setFillStyle(MULTIPLIER_COLORS[this.multiplier] ?? PLAYER_CONFIG.color);
-            }
-        });
-    }
-
     update(deltaMs = 16.7) {
-        this.shieldRing.setPosition(this.rect.x, this.rect.y);
-        this.shieldRing.setVisible(this.hasShield);
-
         // El derrape lo marca la física más abajo; el fx lo lee al inicio del próximo frame.
         this.fx.update(deltaMs);
         this.turning = false;
@@ -463,7 +431,9 @@ export class Player {
         this.impX += (1 - this.impX) * 0.18;
         this.impY += (1 - this.impY) * 0.18;
         const runK = Math.min(Math.abs(this.body.velocity.x) / PLAYER_CONFIG.speed, 1);
-        this.rect.setScale(this.impX * (1 + runK * 0.18), this.impY * (1 - runK * 0.12));
+        // En el aire se estira hacia donde va: más alto y fino cuanto más rápido sube o cae.
+        const airK = this.onFloor ? 0 : Math.min(Math.abs(this.body.velocity.y) / 900, 1);
+        this.rect.setScale(this.impX * (1 + runK * 0.18) * (1 - airK * 0.08), this.impY * (1 - runK * 0.12) * (1 + airK * 0.12));
     }
 
     setMultiplier(multiplier) {

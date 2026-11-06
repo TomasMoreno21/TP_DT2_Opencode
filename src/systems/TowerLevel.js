@@ -19,7 +19,6 @@ const TRAMPOLINE_W = 56;
 const TRAMPOLINE_MIN_W = 100;
 const SPIKE_MIN_W = 110;
 const SPIKE_EXIT_GAP = 190;
-const SHIELD_EVERY = 900;
 const FRAGILE_RUN_MAX = 3;
 // Ciclo de los pinchos de la torre: más tiempo seguro que el de los otros niveles (71 % -> 79 %), porque
 // cubren toda la plataforma y hay que poder aterrizar y salir.
@@ -35,7 +34,7 @@ export const STYLES = {
     bounce:   { weight: 2, rows: [4, 6], rise: [96, 110], gap: [100, 210], w: [100, 140], dir: 'alt', fragile: 0, spike: 0, tramp: 1, extra: 0.5 },
     crumble:  { weight: 2, rows: [4, 6], rise: [96, 104], gap: [100, 180], w: [100, 140], dir: 'alt', crumble: true, fragile: 0.75, spike: 0, tramp: 0.05, extra: 0.4 },
     gauntlet: { weight: 2, rows: [5, 7], rise: [96, 110], gap: [120, 200], w: [120, 160], dir: 'alt', fragile: 0, spike: 0.38, tramp: 0.1, extra: 0.6 },
-    rest:     { weight: 1, rows: [3, 4], rise: [96, 106], gap: [120, 190], w: [150, 200], dir: 'alt', fragile: 0, spike: 0, tramp: 0, extra: 0.8, shield: true }
+    rest:     { weight: 1, rows: [3, 4], rise: [96, 106], gap: [120, 190], w: [150, 200], dir: 'alt', fragile: 0, spike: 0, tramp: 0, extra: 0.8 }
 };
 
 const overlapX = (a, b, margin) => Math.abs(a.x - b.x) < (a.w + b.w) / 2 + margin;
@@ -160,9 +159,7 @@ export function buildTower(seed, base, assist = 0) {
     const fragilePlatforms = [];
     const hazards = [];
     const trampolines = [];
-    const powerUps = [];
     const pointSpots = [{ x: 200, y: floorTop - 24 }, { x: 1160, y: floorTop - 24 }];
-    let sinceShield = 0;
 
     all.concat(extras).forEach((p) => {
         if (p.kind === 'fragile') {
@@ -176,15 +173,6 @@ export function buildTower(seed, base, assist = 0) {
             }
 
             if (p.tramp) trampolines.push({ x: p.x, y: p.top - 6, w: TRAMPOLINE_W });
-
-            if (!p.extra) {
-                sinceShield += p.rise;
-
-                if (sinceShield >= (STYLES[p.style].shield ? SHIELD_EVERY / 2 : SHIELD_EVERY)) {
-                    powerUps.push({ x: p.x, y: p.top - 40, respawnMs: 16000 });
-                    sinceShield = 0;
-                }
-            }
         }
 
         pointSpots.push({ x: p.x, y: p.top - 24 });
@@ -194,7 +182,7 @@ export function buildTower(seed, base, assist = 0) {
         ...base,
         worldHeight: floorTop + FLOOR_H,
         scrollSpeed,
-        quota: 12,
+        quota: 16,
         spawn: { x: spawnX, y: floorTop - 28 },
         goal: { x: -1000, y: -1000 },
         // Pocos y espaciados: el peligro principal es el escenario.
@@ -202,7 +190,6 @@ export function buildTower(seed, base, assist = 0) {
         platforms,
         fragilePlatforms,
         pointSpots,
-        powerUps,
         hazards,
         trampolines,
         // Para tools/test-tower.mjs y para depurar: la estructura sin aplanar.

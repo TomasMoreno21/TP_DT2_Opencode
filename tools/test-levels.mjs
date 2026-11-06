@@ -62,11 +62,11 @@ for (let k = 0; k < COUNT; k++) {
             if (!res.ok) fail(seed, base.id, `re-validación falla: spots ${res.spotsOk}/${res.spotsTotal} goal=${res.goalFrames} ${res.layoutIssues.join(';')}`);
         }
 
-        for (const key of ['pointSpots', 'gems', 'trampolines', 'hazards', 'powerUps', 'movingPlatforms']) {
+        for (const key of ['pointSpots', 'gems', 'trampolines', 'hazards', 'movingPlatforms']) {
             // Los niveles con `trampolines: {min,max}` en LEVEL_TUNING pueden variar su cantidad.
             const range = key === 'trampolines' ? LEVEL_TUNING[base.id]?.trampolines : null;
             const n = cfg[key]?.length ?? 0;
-            // N3-N5 (formas de LevelShapes): pinchos, escudos, gemas y trampolines varian por forma; lo
+            // N3-N5 (formas de LevelShapes): pinchos, gemas y trampolines varian por forma; lo
             // que se exige es 8 spots en N3 (frágiles), 11-12 en el resto y ninguna gema (la validez la barre test-models).
             if (LEVEL_TUNING[base.id]?.shaped) {
                 if (key === 'pointSpots' && (base.id === 3 ? n !== 8 : n < 11)) fail(seed, base.id, `${n} spots`);
@@ -78,7 +78,7 @@ for (let k = 0; k < COUNT; k++) {
         if (cfg.quota !== base.quota) fail(seed, base.id, 'cambió la quota');
 
         const inBounds = (e) => e.x >= 0 && e.x <= WORLD.width && e.y >= 0 && e.y <= WORLD.height;
-        for (const key of ['pointSpots', 'gems', 'trampolines', 'hazards', 'powerUps', 'platforms']) {
+        for (const key of ['pointSpots', 'gems', 'trampolines', 'hazards', 'platforms']) {
             if ((cfg[key] || []).some((e) => !inBounds(e))) fail(seed, base.id, `${key} fuera del mundo`);
         }
         if (!inBounds(cfg.goal) || !inBounds(cfg.spawn)) fail(seed, base.id, 'goal/spawn fuera del mundo');

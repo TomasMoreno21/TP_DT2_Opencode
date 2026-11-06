@@ -40,7 +40,7 @@ const TRAMPOLINE_PERFECT_HALF = TRAMPOLINE_CONFIG.perfectZoneHalf;
 // pared) y 'away' (se sigue alejando). Sin esto el simulador trepaba paredes
 // pegado a ellas, algo imposible en el juego real.
 // Dash (Shift): 700 px/s en línea recta con la gravedad apagada durante 170 ms.
-// Solo se recarga con el tiempo (900 ms): tocar suelo, trampolín o pared no lo
+// Solo se recarga con el tiempo (1100 ms): tocar suelo, trampolín o pared no lo
 // resetea (ver Player.update).
 const DASH_FRAMES = Math.ceil(PLAYER_CONFIG.dashDurationMs / 1000 / DT);
 const DASH_SPEED = PLAYER_CONFIG.dashSpeed;
@@ -273,9 +273,6 @@ export class LevelValidator {
         (config.pointSpots || []).forEach((s, i) => {
             if (inside(s.x, s.y, 2)) issues.push(`spot ${i} dentro de una plataforma`);
             if (s.x < 60 || s.x > WORLD.width - 60) issues.push(`spot ${i} contra la pared`);
-        });
-        (config.powerUps || []).forEach((p, i) => {
-            if (inside(p.x, p.y, 2)) issues.push(`power-up ${i} dentro de una plataforma`);
         });
 
         const goal = config.goal;

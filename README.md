@@ -46,13 +46,13 @@ Completar los niveles y conseguir el mayor puntaje total. El mejor puntaje se gu
 
 | # | Nombre | Tiempo | Meta | Novedad |
 |---|---|---|---|---|
-| 1 | Arranque | 60 s | 12 puntos | Sin peligros: movimiento, wall jump y combo |
-| 2 | Rebotes | 50 s | 10 puntos | Trampolines y proyectiles |
-| 3 | Frágiles | 50 s | 13 puntos | Plataformas frágiles que caen al pisarlas |
-| 4 | Peligro | 47 s | 14 puntos | Pinchos con aviso y escudo |
-| 5 | Final | 55 s | 12 puntos | Torre: el escenario sube solo con el **Vacío** |
+| 1 | Arranque | 60 s | 10 puntos | Sin peligros: movimiento, wall jump y combo |
+| 2 | Rebotes | 50 s | 12 puntos | Trampolines y proyectiles |
+| 3 | Frágiles | 50 s | 14 puntos | Plataformas frágiles que caen al pisarlas |
+| 4 | Peligro | 47 s | 15 puntos | Pinchos con aviso |
+| 5 | Final | 55 s | 16 puntos | Torre: el escenario sube solo con el **Vacío** |
 
-En el **nivel 5** el escenario sube solo y el borde del Vacío mata al tocarlo (el escudo no lo frena). Hay que trepar y juntar **12 orbes**; al cumplir la cuota la torre se detiene, el Vacío desaparece y aparece la salida sobre una plataforma visible.
+En el **nivel 5** el escenario sube solo y el borde del Vacío mata al tocarlo. Hay que trepar y juntar **16 orbes**; al cumplir la cuota la torre se detiene, el Vacío desaparece y aparece la salida sobre una plataforma visible.
 
 ### Mecánicas principales
 
@@ -61,24 +61,24 @@ En el **nivel 5** el escenario sube solo y el borde del Vacío mata al tocarlo (
 - **Cadena aérea:** recolectar sin tocar el piso suma un bono creciente.
 - **Trampolines:** rebote alto, con una zona perfecta en el centro.
 - **Plataformas frágiles:** caen poco después de pisarlas.
-- **Pinchos y escudo:** los pinchos tiemblan antes de salir; el escudo absorbe un golpe.
+- **Pinchos:** tiemblan antes de salir y se retraen por ciclos.
 - **Vacío (nivel 5):** el escenario sube solo; ver arriba.
 - **Proyectiles:** nacen en las paredes, persiguen medio segundo y luego aceleran en línea recta.
-- **Insignias:** wall jump, dash, rebote perfecto, escudo salvador y Vacío (por escapar de la torre).
+- **Insignias:** wall jump, dash, rebote perfecto y Vacío (por escapar de la torre).
 
 ### Menú y extras
 
 - **Ranking local:** top 10 de la campaña con iniciales, guardado en el navegador.
 - **Logros** (8) e **insignias** de aprendizaje (5).
 - **Rangos:** bronce, plata y oro por nivel, con medalla en el menú.
-- **Modo modificadores:** un modificador al azar por nivel (Reloj corto, Ráfaga, Dash lento, Combo frágil, Un solo punto, Meta alta) que suma un bonus; tiene su propio ranking.
+- **Modo modificadores:** un modificador al azar por nivel (Reloj corto, Dash lento, Un solo punto, Meta alta, Luna, Sin dash, Orbes efímeros, Pinchos rápidos, Niebla) que suma un bonus; tiene su propio ranking.
 - **Opciones:** reducir destellos y reducir movimiento. Idiomas: español e inglés.
 - **NUEVOS NIVELES:** genera otra semilla de mapas.
 
 ### Cómo se pierde
 
 - Se acaba el tiempo antes de pisar la salida.
-- Un proyectil o un pincho (sin escudo) impacta al jugador.
+- Un proyectil o un pincho impacta al jugador.
 - El Vacío alcanza al jugador (nivel 5).
 
 Los puntos de un nivel perdido no cuentan; se conserva lo ya acumulado.
@@ -102,7 +102,7 @@ Los puntos de un nivel perdido no cuentan; se conserva lo ya acumulado.
 El código se organiza en `src/` con responsabilidades separadas:
 
 - `src/scenes/`: escenas de Phaser (Boot, Preloader, MainMenu, Game, Pause, GameOver, Ranking).
-- `src/entities/`: entidades (Player, Point, Trampoline, FragilePlatform, Hazard, PowerUp, Projectile, RisingVoid, Goal).
+- `src/entities/`: entidades (Player, Point, Trampoline, FragilePlatform, Hazard, Projectile, RisingVoid, Goal).
 - `src/systems/`: sistemas (ScoreManager, GameTimer, ProjectileManager, TutorialManager, LevelGenerator, LevelValidator, TowerLevel, Badges, Achievements, Leaderboard, etc.).
 - `src/patterns/`: EntityFactory (patrón Factory que desacopla los spawners de las clases concretas).
 - `src/assets/`: datos de niveles (`levels.js`), prácticas y recursos.

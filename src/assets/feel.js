@@ -14,7 +14,7 @@ export const FEEL = {
     shake: {
         dash: [90, 0.0035, 'x'],
         land: [110, 0.005, 'y'],
-        shield: [160, 0.008],
+        rumble: [160, 0.008],
         death: [400, 0.02],
         goal: [150, 0.006],
         combo: [70, 0.002],

@@ -10,7 +10,7 @@ const BASE_LEVELS = [
         id: 1,
         name: 'Arranque',
         durationSeconds: 60,
-        quota: 12,
+        quota: 10,
         spawn: { x: 200, y: 684 },
         // N1 sin proyectiles: nivel de arranque tranqui (reversible).
         projectiles: null,
@@ -57,7 +57,7 @@ const BASE_LEVELS = [
         id: 2,
         name: 'Rebotes',
         durationSeconds: 50,
-        quota: 10,
+        quota: 12,
         spawn: { x: 360, y: 660 },
         projectiles: {
             initialInterval: 2000,
@@ -119,7 +119,7 @@ const BASE_LEVELS = [
         id: 3,
         name: 'Frágiles',
         durationSeconds: 50,
-        quota: 13,
+        quota: 14,
         spawn: { x: 120, y: 684 },
         // Proyectiles apenas mas rapidos que los del N2, con progresion muy lenta.
         projectiles: {
@@ -173,7 +173,7 @@ const BASE_LEVELS = [
         id: 4,
         name: 'Peligro',
         durationSeconds: 47,
-        quota: 14,
+        quota: 15,
         spawn: { x: 110, y: 684 },
         // Proyectil estandar con ritmo mas rapido que el N3 (el ricochet queda para el N5).
         projectiles: {
@@ -215,14 +215,6 @@ const BASE_LEVELS = [
             // Fila 2 derecha (obliga a cronometrar el cruce al remate)
             { x: 724, y: 530, w: 76, offsetMs: 925 }
         ],
-        powerUps: [
-            // Escudo accesible: sobre la plataforma izquierda de la fila 1
-            { x: 160, y: 610, respawnMs: 14000 },
-            // Escudo de riesgo: flotando sobre la fila 3 central
-            { x: 512, y: 420, respawnMs: 16000 },
-            // Escudo alto: sobre la plataforma de la fila 4 derecha
-            { x: 694, y: 334, respawnMs: 16000 }
-        ],
         pointSpots: [
             { x: 280, y: 688 },
             { x: 740, y: 688 },
@@ -243,7 +235,7 @@ const BASE_LEVELS = [
         id: 5,
         name: 'Final',
         durationSeconds: 55,
-        quota: 18,
+        quota: 16,
         spawn: { x: 110, y: 660 },
         projectiles: {
             initialInterval: 1100,
@@ -280,10 +272,6 @@ const BASE_LEVELS = [
             { x: 150, y: 520, w: 110 },
             { x: 874, y: 520, w: 110 }
         ],
-        powerUps: [
-            // Respiro en el piso, entre la torre y los pinchos de la derecha.
-            { x: 610, y: 688, respawnMs: 16000 }
-        ],
         hazards: [
             // Pinchos de piso desfasados: se cruza en la ventana retraída
             { x: 340, y: 708, w: 100 },
@@ -307,7 +295,7 @@ const BASE_LEVELS = [
     }
 ];
 
-// Campaña completa de 5 niveles (N3 frágiles, N4 pinchos y escudo, N5 torre y combinación).
+// Campaña completa de 5 niveles (N3 frágiles, N4 pinchos, N5 torre y combinación).
 // Las plantillas están en coordenadas de BASE_WIDTH: se estiran en x (las paredes de
 // borde quedan a 40 px) y se conserva la altura. Anchos y alturas no cambian, salvo el piso.
 const WALL = 40;

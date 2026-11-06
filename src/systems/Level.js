@@ -28,7 +28,6 @@ export class Level {
         this.materializeMovingPlatforms();
         this.materializeFragilePlatforms();
         this.materializeHazards();
-        this.materializePowerUps();
     }
 
     // Libera los tweens y timers de las entidades del nivel. Se invoca al reiniciar
@@ -43,10 +42,6 @@ export class Level {
 
         for (const fragile of this.fragileList) {
             fragile.destroy();
-        }
-
-        for (const powerUp of this.powerUpList) {
-            powerUp.destroy();
         }
 
     }
@@ -92,17 +87,6 @@ export class Level {
             const hazard = EntityFactory.createHazard(this.scene, h);
             this.hazards.add(hazard.rect);
             this.hazardList.push(hazard);
-        }
-    }
-
-    materializePowerUps() {
-        this.powerUps = this.scene.physics.add.group();
-        this.powerUpList = [];
-
-        for (const p of this.config.powerUps ?? []) {
-            const powerUp = EntityFactory.createPowerUp(this.scene, p);
-            this.powerUps.add(powerUp.circle);
-            this.powerUpList.push(powerUp);
         }
     }
 }

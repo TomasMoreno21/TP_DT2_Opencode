@@ -57,10 +57,6 @@ function stretchLevel(level) {
         ...h,
         x: WALL + (h.x - WALL) * SX
     }));
-    if (level.powerUps) stretched.powerUps = level.powerUps.map(p => ({
-        ...p,
-        x: WALL + (p.x - WALL) * SX
-    }));
     if (level.fragilePlatforms) stretched.fragilePlatforms = level.fragilePlatforms.map(f => ({
         ...f,
         x: WALL + (f.x - WALL) * SX
@@ -112,7 +108,6 @@ LEVELS_TO_TEST.forEach(levelId => {
             pointSpots: stretched.pointSpots || [],
             gems: stretched.gems || [],
             hazards: stretched.hazards || [],
-            powerUps: stretched.powerUps || [],
             fragilePlatforms: stretched.fragilePlatforms || [],
             trampolines: stretched.trampolines || []
         };
@@ -149,7 +144,6 @@ LEVELS_TO_TEST.forEach(levelId => {
             pointSpots: stretched.pointSpots || [],
             gems: stretched.gems || [],
             hazards: stretched.hazards || [],
-            powerUps: stretched.powerUps || [],
             fragilePlatforms: stretched.fragilePlatforms || [],
             trampolines: stretched.trampolines || []
         };

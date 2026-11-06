@@ -26,13 +26,18 @@ export class AmbientParticles
     }
 
     // time: ms de juego; deltaMs: lo que pasó desde el frame anterior; still: reducir movimiento.
-    update (time, deltaMs, still)
+    update (time, deltaMs, still, vx = 0, speedK = 0)
     {
         const { dy, sway } = this.cfg;
 
         for (const p of this.items) {
             if (!still) {
                 p.y += dy * p.speed * (deltaMs / 1000);
+                // Corren hacia atrás según la velocidad del jugador y se estiran como rayitas.
+                p.x -= vx * 0.08 * p.speed * (deltaMs / 1000);
+                const span = WORLD.width + 16;
+                p.x = (((p.x + 8) % span) + span) % span - 8;
+                p.dot.setScale(1 + speedK * 2.5 * p.speed, 1);
 
                 if (p.y < -8) p.y = WORLD.height + 8;
                 else if (p.y > WORLD.height + 8) p.y = -8;

@@ -120,10 +120,6 @@ export class Trampoline {
         this.scene.burstAt(this.x, this.y - 8, tint);
         this.scene.fx?.ring(this.x, this.y - 4, tint, perfect ? 56 : 38, 220);
 
-        if (perfect && this.scene.floatingText) {
-            this.scene.floatingText.show(this.x, this.y - 26, '¡PERFECTO!', '#ffdd44', 16);
-        }
-
         return perfect;
     }
 

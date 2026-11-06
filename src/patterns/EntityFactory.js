@@ -5,7 +5,6 @@ import { Trampoline } from '../entities/Trampoline';
 import { MovingPlatform } from '../entities/MovingPlatform';
 import { FragilePlatform } from '../entities/FragilePlatform';
 import { Hazard } from '../entities/Hazard';
-import { PowerUp } from '../entities/PowerUp';
 
 export class EntityFactory {
     static createPoint(scene, x, y) {
@@ -38,9 +37,5 @@ export class EntityFactory {
 
     static createHazard(scene, data) {
         return new Hazard(scene, data);
-    }
-
-    static createPowerUp(scene, data) {
-        return new PowerUp(scene, data);
     }
 }

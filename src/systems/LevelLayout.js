@@ -13,7 +13,6 @@ const COLUMN_COLOR = 0x4a4270;
 export const plat = (x, top, w, h = 20) => ({ x: Math.round(x), y: Math.round(top + h / 2), w: Math.round(w), h, color: PLATFORM_COLOR });
 export const fragile = (x, top, w) => ({ x: Math.round(x), y: Math.round(top + 10), w: Math.round(w) });
 export const hazardOn = (x, top, w) => ({ x: Math.round(x), y: Math.round(top - 4), w: Math.round(w) });
-export const powerOn = (x, top) => ({ x: Math.round(x), y: Math.round(top - 26) });
 
 export function frame() {
     return [

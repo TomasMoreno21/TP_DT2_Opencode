@@ -109,7 +109,7 @@ export async function playLevel(game, { levelIndex, campaign, seed, comfort = 1,
     // Nada de derrotas: se prueba el recorrido, no la supervivencia.
     scene.player.invulnerableUntil = Infinity;
     scene.timer.durationMs = 1e9;
-    // Con el avance manual del reloj los cuerpos de gemas/power-ups empiezan a
+    // Con el avance manual del reloj los cuerpos de las gemas empiezan a
     // caer por gravedad (el juego en tiempo real no lo hace): se los fija.
     for (const gem of scene.level.gemList) { gem.body.setAllowGravity(false); gem.body.setVelocity(0, 0); }
 

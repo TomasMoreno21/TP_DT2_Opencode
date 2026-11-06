@@ -104,6 +104,8 @@ export class Backdrop {
 
         this.ambient = theme.ambient ? new AmbientParticles(scene, theme.ambient) : null;
         this.lastTime = 0;
+        this.speedK = 0;
+        this.drift = 0;
     }
 
     skyline(layer, theme, draw, seed) {
@@ -122,20 +124,25 @@ export class Backdrop {
     }
 
     // playerX: posición del jugador; pulse: latido de la música (0..1).
-    update(time, playerX, pulse) {
+    update(time, playerX, pulse, vx = 0, vy = 0) {
         const offset = playerX - (WORLD.width / 2);
         const still = this.scene.camFx?.reduceMotion;
-
-        this.far.x = (WORLD.width / 2) - (still ? 0 : offset * 0.04);
-        this.mid.x = (WORLD.width / 2) - (still ? 0 : offset * 0.07);
-        this.stars.tilePositionX = (still ? 0 : offset * 0.1);
-        this.stars.tilePositionY = time * 0.006;
-        this.grid.setAlpha(0.06 + 0.1 * pulse);
 
         // El delta se acota: tras una pausa o una pestaña dormida las motas no deben saltar.
         const delta = Math.min(time - this.lastTime, 50);
 
         this.lastTime = time;
-        this.ambient?.update(time, delta, still);
+
+        // La velocidad del jugador (suavizada) acelera las estrellas y estira las motas.
+        this.speedK += (Math.min(Math.hypot(vx, vy) / 700, 1) - this.speedK) * 0.08;
+        this.drift += still ? 0 : (-vx * 0.0002 + vy * 0.00015) * delta;
+
+        this.far.x = (WORLD.width / 2) - (still ? 0 : offset * 0.04);
+        this.mid.x = (WORLD.width / 2) - (still ? 0 : offset * 0.07);
+        this.stars.tilePositionX = (still ? 0 : offset * 0.1 + this.drift);
+        this.stars.tilePositionY = time * 0.006 * (1 + (still ? 0 : this.speedK * 3));
+        this.grid.setAlpha(0.06 + 0.1 * pulse + 0.05 * this.speedK);
+
+        this.ambient?.update(time, delta, still, vx, this.speedK);
     }
 }

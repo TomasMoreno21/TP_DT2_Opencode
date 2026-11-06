@@ -104,7 +104,7 @@ export class ProjectileManager {
             projectile.update(deltaMs);
 
             if (projectile.isOutOfBounds() || projectile.isAbsorbed) {
-                // Chispa al salir de la pantalla (no si lo absorbió el escudo).
+                // Chispa al salir de la pantalla (no si lo absorbió la vida infinita).
                 if (!projectile.isAbsorbed && projectile.variant !== 'ricochet') {
                     const { x, y } = projectile.circle;
                     const { width, height } = this.scene.scale;

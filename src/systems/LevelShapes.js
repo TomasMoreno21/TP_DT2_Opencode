@@ -1,6 +1,6 @@
 import { WORLD } from '../assets/levels.js';
 import { HAZARD_CONFIG } from '../entities/Hazard.js';
-import { LAYOUT_STYLES, BOUNCE_STYLES, buildLayout, fitsLayout, floorSpots, frame, plat, fragile, hazardOn, powerOn } from './LevelLayout.js';
+import { LAYOUT_STYLES, BOUNCE_STYLES, buildLayout, fitsLayout, floorSpots, frame, plat, fragile, hazardOn } from './LevelLayout.js';
 
 // Niveles 1 a 5: la estructura sale de LevelLayout.js (grafo de plataformas con reglas de espacio
 // y carriles de trampolín reservados) y acá se le suman las mecánicas de cada nivel (frágiles,
@@ -41,7 +41,7 @@ function pickFloor(rng, layout, count, apart, taken = []) {
 }
 
 // Pasa la estructura al formato del nivel: N3 y N5 convierten plataformas que no están en el
-// camino a la salida en frágiles; N4 y N5 suman lugares para pinchos y escudos.
+// camino a la salida en frágiles; N4 y N5 suman lugares para pinchos.
 function layoutToConfig(rng, levelId, layout) {
     const { items, path, trampolines, spawn, goal, goalItem, tower } = layout;
     const below = (p) => items.filter((q) => { for (let k = q.parent; k >= 0; k = items[k].parent) if (items[k] === p) return true; return false; });
@@ -67,11 +67,8 @@ function layoutToConfig(rng, levelId, layout) {
 
         const floorXs = pickFloor(rng, layout, 3, 260, taken);
         const onPlat = shuffle(rng, safe.filter((p) => p !== goalItem && !p.tower && p.w >= 140)).slice(0, 3);
-        const powered = shuffle(rng, safe.filter((p) => p !== goalItem && !p.tower)).slice(0, 3);
 
-        cfg.hazardSlots = [...floorXs.map((x) => hazardOn(x, FLOOR_TOP, 100)), ...onPlat.map((p) => hazardOn(p.x, p.top, p.w - 50))];
-        cfg.powerSlots = powered.map((p) => powerOn(p.x, p.top));
-    }
+        cfg.hazardSlots = [...floorXs.map((x) => hazardOn(x, FLOOR_TOP, 100)), ...onPlat.map((p) => hazardOn(p.x, p.top, p.w - 50))];    }
 
     return cfg;
 }
@@ -97,7 +94,7 @@ function addFragileLedges(rng, cfg, count, ctx) {
         for (const [side, rise] of shuffle(rng, [[1, 0], [-1, 0], [1, -60], [-1, -60], [1, 60], [-1, 60]])) {
             const x = Math.round(base.x + side * (base.w / 2 + rng.int(100, 115) + w / 2));
             const top = base.y - base.h / 2 + rise;
-            const apart = [cfg.spawn, cfg.goal, ...(cfg.hazardSlots ?? []), ...(cfg.powerSlots ?? [])]
+            const apart = [cfg.spawn, cfg.goal, ...(cfg.hazardSlots ?? [])]
                 .every((o) => Math.hypot(x - o.x, top - o.y) > 90);
 
             if (apart && fitsLayout({ x, top, w }, items, ctx)) {
@@ -162,7 +159,6 @@ function spotCandidates(cfg) {
     const nearAny = (c) => [
         ...(cfg.hazards ?? []).map((h) => ({ x: h.x, y: h.y, r: h.w / 2 + 28 })),
         ...(cfg.trampolines ?? []).map((t) => ({ x: t.x, y: t.y, r: t.w / 2 + 40 })),
-        ...(cfg.powerUps ?? []).map((p) => ({ x: p.x, y: p.y, r: 45 })),
         { x: cfg.spawn.x, y: cfg.spawn.y, r: 70 },
         { x: cfg.goal.x, y: cfg.goal.y, r: 90 }
     ].some((o) => Math.hypot(c.x - o.x, (c.y - o.y) * 0.7) < o.r);
@@ -312,12 +308,6 @@ function mutateMechanics(rng, levelId, cfg, hazardCap = Infinity) {
         }));
     }
 
-    if (cfg.powerSlots) {
-        const count = levelId === 4 ? rng.int(2, 3) : 1;
-
-        cfg.powerUps = shuffle(rng, cfg.powerSlots).slice(0, count).map((p) => ({ ...p, respawnMs: rng.pick([14000, 16000]) }));
-    }
-
 }
 
 // El spawn no puede quedar tapado por una plataforma (el simulador lo teletransportaría y
@@ -333,7 +323,7 @@ function mirror(cfg) {
     flip(cfg.spawn);
     flip(cfg.goal);
 
-    for (const key of ['platforms', 'fragilePlatforms', 'pointSpots', 'trampolines', 'hazards', 'powerUps']) {
+    for (const key of ['platforms', 'fragilePlatforms', 'pointSpots', 'trampolines', 'hazards']) {
         for (const e of cfg[key] ?? []) flip(e);
     }
 }
@@ -359,17 +349,15 @@ export function generateShapedLevel(rng, levelId, baseConfig, forceShape = null)
     let ctx = { reserved: [], spawn: cfg.spawn };
 
     if (layout) {
-        for (const key of ['platforms', 'fragilePlatforms', 'trampolines', 'hazards', 'powerUps', 'gems', 'pointSpots', 'hazardSlots', 'powerSlots']) {
+        for (const key of ['platforms', 'fragilePlatforms', 'trampolines', 'hazards', 'gems', 'pointSpots', 'hazardSlots']) {
             delete cfg[key];
         }
         Object.assign(cfg, layoutToConfig(rng, levelId, layout));
         ctx = layout.ctx;
     } else {
-        // Diseño base: sus pinchos y escudos pasan a ser "slots" para mutarlos igual.
+        // Diseño base: sus pinchos pasan a ser "slots" para mutarlos igual.
         cfg.hazardSlots = (baseConfig.hazards ?? []).map(({ x, y, w }) => ({ x, y, w }));
-        cfg.powerSlots = (baseConfig.powerUps ?? []).map(({ x, y }) => ({ x, y }));
         delete cfg.hazards;
-        delete cfg.powerUps;
     }
 
     cfg.shape = layout ? name : 'base';
@@ -384,7 +372,6 @@ export function generateShapedLevel(rng, levelId, baseConfig, forceShape = null)
     }
 
     delete cfg.hazardSlots;
-    delete cfg.powerSlots;
 
     delete cfg.regionKeys;
     delete cfg.bonusKeys;

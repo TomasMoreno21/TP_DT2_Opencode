@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { Level } from '../systems/Level';
-import { Player, PLAYER_CONFIG } from '../entities/Player';
+import { Player } from '../entities/Player';
 import { RisingVoid } from '../entities/RisingVoid';
 import { buildTower } from '../systems/TowerLevel';
 import { PointSpawner } from '../systems/PointSpawner';
@@ -33,6 +33,7 @@ import { PlatformGlow } from '../systems/PlatformGlow';
 import { themeFor } from '../assets/themes';
 import { LevelIntro } from '../systems/LevelIntro';
 import { Wipe } from '../systems/Wipe';
+import { Iris } from '../systems/Iris';
 import { TensionDirector } from '../systems/TensionDirector';
 import { Settings } from '../systems/Settings';
 import { LevelSummary } from '../systems/LevelSummary';
@@ -279,21 +280,6 @@ export class Game extends Scene
             this.listen('fragile-back', (x) => Audio.play('fragileBack', { x }));
         }
 
-        if (this.level.powerUpList.length) {
-            this.physics.add.overlap(this.player.rect, this.level.powerUps, (player, circle) => {
-                const powerUp = this.level.powerUpList.find((p) => p.circle === circle);
-
-                if (powerUp && powerUp.collect()) {
-                    this.player.activateShield();
-                    Audio.play('shield');
-                    this.floatingText.show(powerUp.x, powerUp.y - 28, '¡ESCUDO!', '#2dd4ff', 20);
-                    this.burstAt(powerUp.x, powerUp.y, 0x2dd4ff);
-                }
-            });
-        }
-
-        this.shieldTotalMs = PLAYER_CONFIG.shieldDurationMs;
-
         this.scoreManager = new ScoreManager();
         this.scoreManager.setQuota(levelConfig.quota);
 
@@ -345,6 +331,14 @@ export class Game extends Scene
 
         this.listen('player-dash', () => Audio.play('dash'));
         this.listen('player-dash', () => this.camFx.shake('dash'));
+        // Dash con empuje: la cámara se abre un instante, onda en el origen y chispas hacia atrás.
+        this.listen('player-dash', (dir) => {
+            const { x, y } = this.player.rect;
+
+            this.camFx.punch(0.975, 120);
+            this.fx.ring(x, y, 0xffffff, 54, 200);
+            this.fx.spark(x, y, 0xffffff, 8, { min: dir > 0 ? 150 : -30, max: dir > 0 ? 210 : 30 });
+        });
         this.listen('player-jump', (kind) => Audio.play('jump', { kind }));
         this.listen('player-jump', (kind) => kind === 'wall' && this.unlockBadge('wallJump'));
         // Wall jump con peso: un tic de hitstop y una sacudida corta al despegar.
@@ -356,6 +350,13 @@ export class Game extends Scene
         this.listen('player-dash', () => this.unlockBadge('dash'));
         this.listen('player-land', (vy) => vy > FEEL.player.landMinVy && Audio.play('land', { vy }));
         this.listen('player-land', (vy) => vy > 560 && this.camFx.shake('land'));
+        this.listen('player-land', (vy) => vy > FEEL.player.landMinVy && this.dipPlatform(vy));
+        // Aterrizaje fuerte: micro-pausa y un golpe de zoom hacia abajo.
+        this.listen('player-land', (vy) => {
+            if (vy < 700) return;
+            this.pace.hitstop(35);
+            this.camFx.punch(1.014, 90);
+        });
         this.listen('player-skid', () => Audio.play('skid'));
         this.listen('player-step', () => Audio.play('step'));
         this.listen('player-wallgrab', () => Audio.play('wallGrab'));
@@ -477,6 +478,13 @@ export class Game extends Scene
         if (wipeColor !== undefined) {
             this.registry.remove('wipeIn');
             Wipe.reveal(this, wipeColor, 360);
+        }
+
+        const irisColor = this.registry.get('irisIn');
+
+        if (irisColor !== undefined) {
+            this.registry.remove('irisIn');
+            Iris.open(this, () => this.playerScreenPos(), 600, irisColor);
         }
 
         // Intro del nivel: tarjeta y cuenta 3-2-1 (solo "¡YA!" al reintentar el mismo nivel).
@@ -684,7 +692,7 @@ export class Game extends Scene
         // Fondo con parallax, plataformas que laten con el beat en frenesí y vórtice de la salida.
         const pulse = Music.pulse;
 
-        this.backdrop.update(time, this.player.rect.x, pulse);
+        this.backdrop.update(time, this.player.rect.x, pulse, this.player.body.velocity.x, this.player.body.velocity.y);
         this.platformGlow.update(this.seenMult === 5 ? pulse : 0);
         this.level.goal.update(time);
 
@@ -733,7 +741,6 @@ export class Game extends Scene
             }
         }
 
-        this.hud.setShield(this.player.shieldUntil - this.time.now, this.shieldTotalMs);
         // Sin dash: el anillo queda vacío y gris.
         this.hud.setDashCooldown(this.player.noDash ? 1 : this.player.dashRemaining, this.player.noDash ? 1 : this.player.dashCooldownMs);
         this.hud.setComboTimer(this.scoreManager.comboRemaining(this.time.now));
@@ -779,6 +786,50 @@ export class Game extends Scene
         }
     }
 
+    // Posición del jugador en pantalla (la cámara principal puede tener zoom).
+    playerScreenPos ()
+    {
+        const c = this.cameras.main;
+
+        return { x: (this.player.rect.x - c.worldView.x) * c.zoom, y: (this.player.rect.y - c.worldView.y) * c.zoom };
+    }
+
+    // La plataforma donde aterrizás cede unos píxeles y vuelve (solo la imagen: el cuerpo no se mueve).
+    dipPlatform (vy)
+    {
+        if (this.camFx.reduceMotion) return;
+
+        const r = this.player.rect;
+        const feet = r.y + r.displayHeight / 2;
+        const plat = this.level.platforms.getChildren().find((p) =>
+            p.displayHeight <= 30 && Math.abs(p.y - p.displayHeight / 2 - feet) < 8 && Math.abs(r.x - p.x) < p.displayWidth / 2 + 16);
+
+        if (!plat || plat.dipping) return;
+
+        // Resorte amortiguado: la plataforma se comprime con el borde superior fijo (sin hueco bajo los pies),
+        // rebota pasándose de su grosor y se asienta. 35-70 % de compresión según la fuerza de la caída.
+        const h = plat.displayHeight / plat.scaleY;
+        const top = plat.y - plat.displayHeight / 2;
+        const depth = 0.35 + 0.35 * Math.min(vy / 700, 1);
+
+        plat.dipping = true;
+        this.tweens.addCounter({
+            from: 0, to: 1, duration: 450,
+            onUpdate: (tween) => {
+                const t = tween.getValue();
+                const squash = 1 - depth * Math.exp(-5 * t) * Math.cos(15 * t);
+
+                plat.setScale(plat.scaleX, squash);
+                plat.y = top + (h * squash) / 2;
+            },
+            onComplete: () => {
+                plat.setScale(plat.scaleX, 1);
+                plat.y = top + h / 2;
+                plat.dipping = false;
+            }
+        });
+    }
+
     // Orbes efímeros: cada orbe dura FLEETING_MS; parpadea al final y se reubica en otro spot.
     expireOrbs (now)
     {
@@ -810,7 +861,7 @@ export class Game extends Scene
         }
     }
 
-    // El escenario sube solo: la vista la lleva el Vacío, que mata al tocarlo (el escudo no lo frena).
+    // El escenario sube solo: la vista la lleva el Vacío, que mata al tocarlo.
     // Los orbes que se traga se reubican para que la cuota siga siendo alcanzable.
     updateVoid(delta)
     {
@@ -847,7 +898,7 @@ export class Game extends Scene
             this.onHit(null, true);
         } else if (gap < 120 && this.time.now - (this.lastVoidRumble ?? 0) > 700) {
             this.lastVoidRumble = this.time.now;
-            this.camFx.shake('shield');
+            this.camFx.shake('rumble');
         }
     }
 
@@ -1082,8 +1133,12 @@ export class Game extends Scene
 
         // Cortina diagonal hacia el nivel siguiente (o hacia la pantalla final), con tiempo para leer el panel.
         this.time.delayedCall(doneAt + 300 + rows.length * 90 + 480 + 1100, () => {
-            this.registry.set('wipeIn', this.theme.bgBottom);
-            Wipe.cover(this, this.theme.bgBottom, 360, () => {
+            // Hacia el nivel siguiente el iris se cierra sobre el jugador (con "reducir movimiento", la cortina de siempre).
+            const iris = this.levelIndex + 1 < LEVELS.length && !Settings.reduceMotion;
+            const cover = iris ? (ms, done) => Iris.close(this, () => this.playerScreenPos(), ms, this.theme.bgBottom, done) : (ms, done) => Wipe.cover(this, this.theme.bgBottom, ms, done);
+
+            this.registry.set(iris ? 'irisIn' : 'wipeIn', this.theme.bgBottom);
+            cover(iris ? 520 : 360, () => {
                 if (this.levelIndex + 1 < LEVELS.length) {
                     this.scene.start('Game', {
                         levelIndex: this.levelIndex + 1,
@@ -1143,7 +1198,7 @@ export class Game extends Scene
             return;
         }
 
-        if (this.practice && !this.player.hasShield) {
+        if (this.practice) {
             const spawn = this.level.config.spawn;
             this.player.rect.setPosition(spawn.x, spawn.y);
             this.player.body.reset(spawn.x, spawn.y);
@@ -1154,28 +1209,13 @@ export class Game extends Scene
         }
 
         // Vida infinita (código secreto): el golpe no mata.
-        if (this.registry.get('infiniteLife') && (lethal || !this.player.hasShield)) {
+        if (this.registry.get('infiniteLife')) {
             if (projectileCircle) {
                 this.projectileManager.absorbCircle(projectileCircle);
             }
             this.player.invulnerableUntil = this.time.now + 800;
             Audio.play('hit');
             this.camFx.flash(150, 255, 40, 40);
-            return;
-        }
-
-        if (this.player.hasShield && !lethal) {
-            if (projectileCircle) {
-                this.projectileManager.absorbCircle(projectileCircle);
-            }
-
-            this.player.absorbHit();
-            this.unlockBadge('shield');
-            Audio.play('hit');
-            this.camFx.shake('shield');
-            this.camFx.flash(150, 90, 220, 255);
-            this.burstAt(this.player.rect.x, this.player.rect.y, 0x2dd4ff);
-            this.floatingText.show(this.player.rect.x, this.player.rect.y - 40, '¡ESCUDO!', '#2dd4ff', 20);
             return;
         }
 
