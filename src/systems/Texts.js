@@ -178,7 +178,16 @@ function buildDict (words)
         entry.numbers = pieces.length - 1;
     }
 
-    const regex = new RegExp(`(?<![\\p{L}\\d])(?:${entries.map((e) => e.source.replace(/\(\\d\+\)/g, '\\d+')).join('|')})(?![\\p{L}\\d])`, 'giu');
+    // El borde de palabra solo cuenta si la clave empieza o termina en letra o número
+    // ("Tiempo +" tiene que valer en "TIEMPO +40").
+    const wordChar = /[\p{L}\d]/u;
+    const alternatives = entries.map((e) => {
+        const head = wordChar.test(e.key[0]) ? '(?<![\\p{L}\\d])' : '';
+        const tail = wordChar.test(e.key[e.key.length - 1]) ? '(?![\\p{L}\\d])' : '';
+
+        return `${head}(?:${e.source.replace(/\(\\d\+\)/g, '\\d+')})${tail}`;
+    });
+    const regex = new RegExp(alternatives.join('|'), 'giu');
 
     return { entries, regex };
 }
