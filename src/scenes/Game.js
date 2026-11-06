@@ -12,7 +12,7 @@ import { ProjectileManager } from '../systems/ProjectileManager';
 import { FloatingText } from '../systems/FloatingText';
 import { GamePace } from '../systems/GamePace';
 import { Audio } from '../systems/Audio';
-import { TutorialManager, Tutorial, Coach } from '../systems/TutorialManager';
+import { TutorialManager, Tutorial } from '../systems/TutorialManager';
 import { Badges } from '../systems/Badges';
 import { AchievementToast } from '../systems/AchievementToast';
 import { AchievementStore, AIR_STREAK_TARGET, evaluateLevel, goldInAllLevels } from '../systems/Achievements';
@@ -37,9 +37,11 @@ import { TensionDirector } from '../systems/TensionDirector';
 import { Settings } from '../systems/Settings';
 import { LevelSummary } from '../systems/LevelSummary';
 import { MODIFIERS, rollModifiers, applyToConfig, bonusOf } from '../systems/Modifiers';
+import { Fog } from '../systems/Fog';
 
 // Profundidad a partir de la cual un objeto fijo a la pantalla cuenta como interfaz (HUD, tutorial, avisos).
 const UI_DEPTH = 38;
+const FLEETING_MS = 5000;
 
 export class Game extends Scene
 {
@@ -215,7 +217,17 @@ export class Game extends Scene
         this.parallax = new ParallaxBackground(this, WORLD.width, this.player);
 
         if (this.modifiers.includes('slowDash')) {
-            this.player.dashCooldownMs *= 2;
+            this.player.dashCooldownMs *= 3;
+        }
+
+        if (this.modifiers.includes('noDash')) {
+            this.player.noDash = true;
+        }
+
+        // Luna: salto mucho más alto y caída lenta, difícil de colocar.
+        if (this.modifiers.includes('moon')) {
+            this.player.jumpVelocity *= 1.5;
+            this.player.fallGravityMult = 0.5;
         }
 
         this.physics.add.collider(this.player.rect, this.level.platforms);
@@ -285,8 +297,9 @@ export class Game extends Scene
         this.scoreManager = new ScoreManager();
         this.scoreManager.setQuota(levelConfig.quota);
 
-        if (this.modifiers.includes('fragileCombo')) {
-            this.scoreManager.comboWindowMs = 1800;
+        if (this.modifiers.includes('fog')) {
+            this.fog = new Fog(this);
+            this.fog.update(this.player.rect.x, this.player.rect.y);
         }
         this.timer = new GameTimer(this, () => this.onTimeUp(), levelConfig.durationSeconds);
         this.hud = new Hud(this, this.theme);
@@ -313,11 +326,6 @@ export class Game extends Scene
         }
         if (this.deaths > 0) {
             this.floatingText.showBanner((WORLD.width / 2), 286, 'Mapa nuevo: más espacio y más tiempo', '#66ff88', 20);
-        }
-
-        const coachHint = this.practice ? null : Coach.take();
-        if (coachHint) {
-            this.floatingText.showBanner((WORLD.width / 2), 340, Lang.t(coachHint), '#ffdd44', 18, 3500);
         }
 
         this.muteKey = this.input.keyboard.addKey('M');
@@ -693,6 +701,7 @@ export class Game extends Scene
 
         this.metrics.sample(this.game.loop.actualFps, time);
         this.player.update(delta);
+        this.fog?.update(this.player.rect.x, this.player.rect.y);
         this.tutorial?.update();
         const inTutorial = Boolean(this.tutorial?.active);
         this.timer.paused = inTutorial;
@@ -700,6 +709,10 @@ export class Game extends Scene
         if (this.pointsPending && !inTutorial) {
             this.pointsPending = false;
             this.pointSpawner.begin();
+        }
+
+        if (this.modifiers.includes('fleeting') && !inTutorial) {
+            this.expireOrbs(this.time.now);
         }
 
         this.timer.update();
@@ -721,7 +734,8 @@ export class Game extends Scene
         }
 
         this.hud.setShield(this.player.shieldUntil - this.time.now, this.shieldTotalMs);
-        this.hud.setDashCooldown(this.player.dashRemaining, this.player.dashCooldownMs);
+        // Sin dash: el anillo queda vacío y gris.
+        this.hud.setDashCooldown(this.player.noDash ? 1 : this.player.dashRemaining, this.player.noDash ? 1 : this.player.dashCooldownMs);
         this.hud.setComboTimer(this.scoreManager.comboRemaining(this.time.now));
         this.trackCombo();
         this.tension.update(delta);
@@ -762,6 +776,24 @@ export class Game extends Scene
             while (root.parentContainer) root = root.parentContainer;
 
             route(go, root.scrollFactorX === 0 && root.depth >= UI_DEPTH);
+        }
+    }
+
+    // Orbes efímeros: cada orbe dura FLEETING_MS; parpadea al final y se reubica en otro spot.
+    expireOrbs (now)
+    {
+        for (const point of this.pointSpawner.points) {
+            if (!point.circle.active) continue;
+
+            const left = FLEETING_MS - (now - point.activatedAt);
+
+            if (left <= 0) {
+                this.burstAt(point.circle.x, point.circle.y, 0x888888);
+                this.pointSpawner.activateAnother();
+                point.deactivate();
+            } else if (left < 1500) {
+                point.circle.setAlpha(Math.floor(now / 110) % 2 ? 0.25 : 1);
+            }
         }
     }
 
@@ -962,7 +994,6 @@ export class Game extends Scene
         if (this.isTower) {
             this.unlockBadge('void');
         }
-        Coach.reset();
         Audio.play('goalReached');
 
         // Bono de tiempo: los segundos que sobran se convierten en puntos y fijan el rango.
@@ -1089,7 +1120,6 @@ export class Game extends Scene
 
         this.gameEnded = true;
         Music.die();
-        Coach.record('timeout');
         this.metrics.finish(this.time.now, 'tiempo');
         this.scene.start('GameOver', {
             score: this.completedScore,
@@ -1150,7 +1180,6 @@ export class Game extends Scene
         }
 
         this.gameEnded = true;
-        Coach.record(lethal ? 'void' : projectileCircle ? 'projectile' : 'hazard');
         Music.die();
         this.metrics.finish(this.time.now, lethal ? 'muerte: vacío' : projectileCircle ? 'muerte: proyectil' : 'muerte: pincho');
         this.pace.hitstop(FEEL.hitstop.death);

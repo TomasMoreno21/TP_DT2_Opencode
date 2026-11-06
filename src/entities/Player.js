@@ -103,6 +103,10 @@ export class Player {
         this.dashCooldownUntil = 0;
         this.dashCooling = false;
         this.dashCooldownMs = PLAYER_CONFIG.dashCooldownMs;
+        // Los modificadores del nivel (Luna, Sin dash) cambian estos valores por instancia.
+        this.jumpVelocity = PLAYER_CONFIG.jumpVelocity;
+        this.fallGravityMult = PLAYER_CONFIG.fallGravityMult;
+        this.noDash = false;
         this.dashDir = 1;
         this.dashNextTrailAt = 0;
         this.facing = 1;
@@ -196,7 +200,7 @@ export class Player {
         // Hang time: en el ápice del salto con la tecla apretada la gravedad baja, para colocar el salto con precisión.
         const hanging = jumpNow && !this.onFloor && Math.abs(this.body.velocity.y) < PLAYER_CONFIG.hangVy && !this.isDashing && !this.wallGrabbing;
         const g = this.scene.physics.world.gravity.y;
-        this.body.setGravityY(hanging ? g * (PLAYER_CONFIG.hangGravityMult - 1) : falling ? g * (PLAYER_CONFIG.fallGravityMult - 1) : 0);
+        this.body.setGravityY(hanging ? g * (PLAYER_CONFIG.hangGravityMult - 1) : falling ? g * (this.fallGravityMult - 1) : 0);
 
         // También colgado de la pared: así el borde se sube sin soltarse.
         if (!this.isDashing) {
@@ -217,7 +221,7 @@ export class Player {
             this.dashBufferUntil = now + FEEL.dash.bufferMs;
         }
 
-        if (now <= this.dashBufferUntil && now >= this.dashCooldownUntil) {
+        if (!this.noDash && now <= this.dashBufferUntil && now >= this.dashCooldownUntil) {
             this.dashBufferUntil = 0;
             const dir = left ? -1 : right ? 1 : this.facing;
             this.dashDir = dir;
@@ -379,7 +383,7 @@ export class Player {
             // Sobre una movil (N3) el salto hereda su velocidad: ferry rapida = salto
             // mas largo, ascensor subiendo = mas alto (y bajando, mas bajo).
             const inherit = this.platformVelocity;
-            this.body.setVelocityY(PLAYER_CONFIG.jumpVelocity + (inherit ? inherit.y : 0));
+            this.body.setVelocityY(this.jumpVelocity + (inherit ? inherit.y : 0));
             if (inherit) this.body.setVelocityX(this.body.velocity.x + inherit.x);
             this.jumpBufferUntil = 0;
             this.lastOnFloorTime = -Infinity;

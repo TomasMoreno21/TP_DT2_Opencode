@@ -28,7 +28,8 @@ export class Point {
     }
 
     activate() {
-        this.circle.setActive(true).setVisible(true);
+        this.activatedAt = this.scene.time.now;
+        this.circle.setActive(true).setVisible(true).setAlpha(1);
         this.halo.setVisible(true);
         this.circle.body.enable = true;
         // Pop al aparecer + pulso continuo del halo.
